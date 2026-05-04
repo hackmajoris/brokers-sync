@@ -26,8 +26,8 @@ func main() {
 	t212 := flag.String("t212", "", "Explicit Trading 212 CSV file (overrides -data scan)")
 	xtb := flag.String("xtb", "", "Explicit XTB XLSX file (overrides -data scan)")
 	broker := flag.String("broker", "", "Filter output to a single broker: revolut | ibkr | trading212 | xtb | tradeville")
-	format := flag.String("format", "text", "Output format: text | json | csv")
-	out := flag.String("out", "", "Output path: file for json, directory for csv (stdout if empty)")
+	format := flag.String("format", "text", "Output format: text | json")
+	out := flag.String("out", "", "Output file for json (stdout if empty)")
 	noPrices := flag.Bool("no-prices", false, "Skip live price fetch (no unrealized P&L)")
 	flag.Parse()
 
@@ -145,40 +145,50 @@ func main() {
 
 	now := time.Now()
 
+	// Compute per-broker stats (used by both text and json output).
+	type brokerEntry struct {
+		name string
+		s    stats.Summary
+		l    *ledger.Ledger
+	}
+	var brokerEntries []brokerEntry
+	for _, b := range brokersInOrder(allTxs) {
+		brokerTxs := filterByBroker(allTxs, b)
+		nativeCur := brokerNativeCurrency(brokerTxs)
+		bl := ledger.New()
+		bl.Process(brokerTxs)
+		bs := stats.Compute(bl, brokerTxs, now, nil, nativeCur)
+		stats.EnrichWithPrices(&bs, priceMap)
+		brokerEntries = append(brokerEntries, brokerEntry{b, bs, bl})
+	}
+
 	switch *format {
 	case "json":
-		r := output.Build(combinedStats, combinedLedger.Realized, allTxs)
+		var brokerReports []output.BrokerReport
+		for _, be := range brokerEntries {
+			brokerReports = append(brokerReports, output.BuildBrokerReport(be.name, be.s, be.l.Realized))
+		}
+		r := output.Build(combinedStats, combinedLedger.Realized, brokerReports)
 		w, close := openWriter(*out)
 		defer close()
 		if err := output.WriteJSON(w, r); err != nil {
 			log.Fatalf("json: %v", err)
 		}
-	case "csv":
-		dir := *out
-		if dir == "" {
-			dir = "."
-		}
-		r := output.Build(combinedStats, combinedLedger.Realized, allTxs)
-		if err := output.WriteCSV(dir, r); err != nil {
-			log.Fatalf("csv: %v", err)
-		}
-		fmt.Fprintf(os.Stderr, "CSV files written to %s/\n", dir)
 	default:
-		brokers := brokersInOrder(allTxs)
+		entries := brokerEntries
 		// If -broker is set, restrict to that one broker only (no combined section).
 		if *broker != "" {
-			brokers = []string{*broker}
+			entries = nil
+			for _, be := range brokerEntries {
+				if be.name == *broker {
+					entries = []brokerEntry{be}
+					break
+				}
+			}
 		}
-		for _, b := range brokers {
-			brokerTxs := filterByBroker(allTxs, b)
-			nativeCur := brokerNativeCurrency(brokerTxs)
-			bl := ledger.New()
-			bl.Process(brokerTxs)
-			bs := stats.Compute(bl, brokerTxs, now, nil, nativeCur)
-			// Enrich positions with prices (best-effort; non-USD stocks may not resolve).
-			stats.EnrichWithPrices(&bs, priceMap)
-			printSectionHeader(b, nativeCur)
-			printText(bs, bl)
+		for _, be := range entries {
+			printSectionHeader(be.name, be.s.BaseCurrency)
+			printText(be.s, be.l)
 		}
 		// Combined section — only shown when not filtering to a single broker.
 		if *broker == "" {
