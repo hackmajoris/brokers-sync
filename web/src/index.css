@@ -1,0 +1,117 @@
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body, #root {
+  min-height: 100%;
+  background: #0b0e14;
+  color: #e2e8f0;
+}
+
+body {
+  font-family: 'DM Sans', 'Helvetica Neue', sans-serif;
+  font-size: 14px;
+  -webkit-font-smoothing: antialiased;
+}
+
+button {
+  font-family: inherit;
+}
+
+/* hide scrollbar on nav pill row */
+nav {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+nav::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Responsive grids ────────────────────────────────────────────────────────
+   Use className="kpi-5 / chart-donut / grid-2 / broker-cards-5 / div-chart-annual / broker-div-row"
+   on wrapper divs. The inline gridTemplateColumns override is allowed for non-standard col counts.
+*/
+
+.kpi-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.chart-donut {
+  display: grid;
+  grid-template-columns: 1fr 280px;
+  gap: 12px;
+}
+
+.grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.broker-cards-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+}
+
+.div-chart-annual {
+  display: grid;
+  grid-template-columns: 1fr 300px;
+  gap: 12px;
+}
+
+.broker-div-row {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+}
+
+/* ── 900 px breakpoint ───────────────────────────────────────────────────────*/
+@media (max-width: 900px) {
+  .kpi-5 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .chart-donut {
+    grid-template-columns: 1fr !important;
+  }
+
+  .grid-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .broker-cards-5 {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+
+  .div-chart-annual {
+    grid-template-columns: 1fr !important;
+  }
+
+  .broker-div-row {
+    grid-template-columns: repeat(3, 1fr) !important;
+  }
+}
+
+/* ── 600 px breakpoint ───────────────────────────────────────────────────────*/
+@media (max-width: 600px) {
+  .kpi-5 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .broker-cards-5 {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  .broker-div-row {
+    grid-template-columns: 1fr 1fr !important;
+  }
+
+  /* date label hidden on very small screens */
+  .date-label {
+    display: none !important;
+  }
+}
