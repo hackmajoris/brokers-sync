@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"io"
@@ -109,7 +110,7 @@ func main() {
 	// Always fetch FX rates so the combined totals properly convert all currencies to USD.
 	currencies := uniqueCurrencies(allTxs)
 	fmt.Fprintf(os.Stderr, "Fetching FX rates for %v → %s...\n", currencies, baseCurrency)
-	if rates, err := prices.FetchFXRates(currencies, baseCurrency); err != nil {
+	if rates, err := prices.FetchFXRates(context.Background(), currencies, baseCurrency); err != nil {
 		fmt.Fprintf(os.Stderr, "Warning: FX fetch failed (%v) — amounts not normalized\n", err)
 	} else {
 		fxRates = rates
@@ -133,7 +134,7 @@ func main() {
 		allSymbols := uniqueSymbols(combinedStats.OpenPositions)
 		fmt.Fprintf(os.Stderr, "Fetching prices for %d symbols...\n", len(allSymbols))
 		var err error
-		priceMap, err = prices.FetchQuotes(allSymbols)
+		priceMap, err = prices.FetchQuotes(context.Background(), allSymbols)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: price fetch failed (%v) — unrealized P&L unavailable\n", err)
 		} else {
