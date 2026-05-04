@@ -4,11 +4,13 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 
 ## Supported brokers
 
-| Broker                     | Format                                                                                 |
-|----------------------------|----------------------------------------------------------------------------------------|
-| Revolut                    | CSV (`Date, Ticker, Type, Quantity, Price per share, Total Amount, Currency, FX Rate`) |
-| Interactive Brokers (IBKR) | Multi-section CSV (Transaction History export)                                         |
-| Trading 212                | CSV (`Action, Time, ISIN, Ticker, Name, ...`)                                          |
+| Broker | Format |
+|---|---|
+| Revolut | CSV (`Date, Ticker, Type, Quantity, Price per share, Total Amount, Currency, FX Rate`) |
+| Interactive Brokers (IBKR) | Multi-section CSV (Transaction History export) |
+| Trading 212 | CSV (`Action, Time, ISIN, Ticker, Name, ...`) |
+
+Broker format is detected automatically from the file header — no need to label files.
 
 ## Requirements
 
@@ -20,23 +22,36 @@ go build ./...
 
 ## Usage
 
-### Basic — text output with live prices
+### Drop files and run — zero configuration
+
+Put any number of broker export CSV files into `data/` and run with no flags:
 
 ```bash
-go run ./cmd/brokers-sync \
-  -revolut  data/revolut-all-tmp.csv \
-  -ibkr     data/ibrk-all-tmp.csv \
-  -t212     data/from_2020-06-15_to_2020-12-31-tmp.csv
+go run ./cmd/brokers-sync
 ```
 
-### Skip live price fetch (no unrealized P&L)
+The tool detects each file's broker automatically, merges all transactions, and removes any duplicates (useful when export date ranges overlap).
+
+Example output when scanning `data/`:
+```
+Scanning data/
+  ibrk-2024.csv          → ibkr         (215 transactions)
+  revolut-all.csv        → revolut       (55 transactions)
+  t212-2020.csv          → trading212   (141 transactions)
+  dedup: removed 12 duplicate transaction(s)
+Total: 399 transactions
+```
+
+### Skip live price fetch (faster, no unrealized P&L)
 
 ```bash
-go run ./cmd/brokers-sync \
-  -revolut  data/revolut-all-tmp.csv \
-  -ibkr     data/ibrk-all-tmp.csv \
-  -t212     data/from_2020-06-15_to_2020-12-31-tmp.csv \
-  -no-prices
+go run ./cmd/brokers-sync -no-prices
+```
+
+### Scan a different directory
+
+```bash
+go run ./cmd/brokers-sync -data ~/Downloads/statements/
 ```
 
 ### JSON output (for charting / external tools)
@@ -44,22 +59,13 @@ go run ./cmd/brokers-sync \
 Writes a single JSON file with all positions, transactions, dividends, and period summaries.
 
 ```bash
-go run ./cmd/brokers-sync \
-  -revolut  data/revolut-all-tmp.csv \
-  -ibkr     data/ibrk-all-tmp.csv \
-  -t212     data/from_2020-06-15_to_2020-12-31-tmp.csv \
-  -format json \
-  -out report.json
+go run ./cmd/brokers-sync -format json -out report.json
 ```
 
 Omit `-out` to print JSON to stdout:
 
 ```bash
-go run ./cmd/brokers-sync \
-  -revolut  data/revolut-all-tmp.csv \
-  -ibkr     data/ibrk-all-tmp.csv \
-  -t212     data/from_2020-06-15_to_2020-12-31-tmp.csv \
-  -format json
+go run ./cmd/brokers-sync -format json
 ```
 
 ### CSV output (one file per section)
@@ -67,43 +73,53 @@ go run ./cmd/brokers-sync \
 Writes five CSV files into the specified directory.
 
 ```bash
-go run ./cmd/brokers-sync \
-  -revolut  data/revolut-all-tmp.csv \
-  -ibkr     data/ibrk-all-tmp.csv \
-  -t212     data/from_2020-06-15_to_2020-12-31-tmp.csv \
-  -format csv \
-  -out ./out/
+go run ./cmd/brokers-sync -format csv -out ./out/
 ```
 
 Files produced:
 
-| File                      | Contents                                                           |
-|---------------------------|--------------------------------------------------------------------|
-| `positions.csv`           | Open positions with cost basis and live unrealized P&L             |
-| `realized_by_symbol.csv`  | Realized P&L per ticker (all time)                                 |
-| `dividends_by_symbol.csv` | Gross dividends, tax withheld, net per ticker                      |
-| `summary_by_year.csv`     | Realized, dividends, fees, deposits, withdrawals per calendar year |
-| `transactions.csv`        | All normalized transactions from all brokers                       |
+| File | Contents |
+|---|---|
+| `positions.csv` | Open positions with cost basis and live unrealized P&L |
+| `realized_by_symbol.csv` | Realized P&L per ticker (all time) |
+| `dividends_by_symbol.csv` | Gross dividends, tax withheld, net per ticker |
+| `summary_by_year.csv` | Realized, dividends, fees, deposits, withdrawals per calendar year |
+| `transactions.csv` | All normalized transactions from all brokers |
 
-### Use a single broker file
+### Explicit file flags (optional override)
 
-All broker flags are optional — pass only the ones you have:
+If you need to point at files outside `data/`, use the explicit flags.
+These are merged with (and deduplicated against) whatever the directory scan finds.
 
 ```bash
-go run ./cmd/brokers-sync -ibkr data/ibrk-all-tmp.csv
-go run ./cmd/brokers-sync -revolut data/revolut-all-tmp.csv -no-prices
+go run ./cmd/brokers-sync \
+  -revolut ~/Downloads/revolut-new.csv \
+  -ibkr    ~/Downloads/ibkr-new.csv \
+  -t212    ~/Downloads/t212-new.csv
+```
+
+Mix explicit files with a directory scan:
+
+```bash
+go run ./cmd/brokers-sync -data ./data -revolut ~/Downloads/revolut-latest.csv
 ```
 
 ## Flags
 
-| Flag                        | Default      | Description                           |
-|-----------------------------|--------------|---------------------------------------|
-| `-revolut <file>`           | —            | Revolut CSV export                    |
-| `-ibkr <file>`              | —            | IBKR Transaction History CSV export   |
-| `-t212 <file>`              | —            | Trading 212 CSV export                |
-| `-format <text\|json\|csv>` | `text`       | Output format                         |
-| `-out <path>`               | stdout / `.` | Output file (json) or directory (csv) |
-| `-no-prices`                | false        | Skip Yahoo Finance price fetch        |
+| Flag | Default | Description |
+|---|---|---|
+| `-data <dir>` | `data` | Directory to scan for broker CSV files (auto-detected) |
+| `-revolut <file>` | — | Explicit Revolut CSV (merged with `-data` scan) |
+| `-ibkr <file>` | — | Explicit IBKR CSV (merged with `-data` scan) |
+| `-t212 <file>` | — | Explicit Trading 212 CSV (merged with `-data` scan) |
+| `-format <text\|json\|csv>` | `text` | Output format |
+| `-out <path>` | stdout / `.` | Output file (json) or directory (csv) |
+| `-no-prices` | false | Skip Yahoo Finance price fetch |
+
+## Deduplication
+
+Transactions are keyed by a hash of `broker + date + symbol + type + quantity + net amount`.
+Any transaction appearing more than once — across files or from overlapping export ranges — is dropped silently after the first occurrence. The count of removed duplicates is printed to stderr.
 
 ## Output sections (text mode)
 
@@ -120,6 +136,7 @@ cmd/brokers-sync/main.go    CLI entry point and text output
 internal/
   model/transaction.go      Normalized Transaction type and TxType enum
   parser/
+    detect.go               Auto-detection of broker format + directory loader + dedup
     revolut.go              Revolut CSV parser
     ibkr.go                 IBKR multi-section CSV parser
     trading212.go           Trading 212 CSV parser

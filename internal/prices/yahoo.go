@@ -107,6 +107,54 @@ func fetchOne(symbol string) (float64, error) {
 	return price, nil
 }
 
+// FetchFXRates returns spot rates for each currency relative to base (e.g. "USD").
+// Uses Yahoo Finance tickers like "EURUSD=X". Currencies equal to base get rate 1.0.
+func FetchFXRates(currencies []string, base string) (map[string]float64, error) {
+	rates := map[string]float64{base: 1.0}
+	var toFetch []string
+	for _, c := range currencies {
+		if c != "" && c != base {
+			toFetch = append(toFetch, c)
+		}
+	}
+	if len(toFetch) == 0 {
+		return rates, nil
+	}
+
+	type result struct {
+		currency string
+		rate     float64
+		err      error
+	}
+	ch := make(chan result, len(toFetch))
+	var wg sync.WaitGroup
+
+	for _, c := range toFetch {
+		wg.Add(1)
+		go func(c string) {
+			defer wg.Done()
+			ticker := c + base + "=X"
+			rate, err := fetchOne(ticker)
+			ch <- result{c, rate, err}
+		}(c)
+	}
+	wg.Wait()
+	close(ch)
+
+	var errs []string
+	for r := range ch {
+		if r.err != nil {
+			errs = append(errs, fmt.Sprintf("%s: %v", r.currency, r.err))
+			continue
+		}
+		rates[r.currency] = r.rate
+	}
+	if len(errs) > 0 && len(rates) == 1 {
+		return nil, fmt.Errorf("all FX fetches failed: %s", strings.Join(errs, "; "))
+	}
+	return rates, nil
+}
+
 func min(a, b int) int {
 	if a < b {
 		return a

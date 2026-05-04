@@ -11,6 +11,7 @@ import (
 type Lot struct {
 	Date      time.Time
 	Broker    string
+	Currency  string // currency the cost basis is denominated in
 	Quantity  float64
 	CostBasis float64 // total cost for this lot (positive)
 }
@@ -36,6 +37,7 @@ type RealizedTx struct {
 	Date      time.Time
 	Symbol    string
 	Broker    string
+	Currency  string // currency the proceeds and P&L are denominated in
 	Quantity  float64
 	Proceeds  float64 // positive
 	CostBasis float64 // positive
@@ -46,11 +48,14 @@ type RealizedTx struct {
 // - open positions (FIFO lots)
 // - realized P&L
 // - dividends
+// - explicit fees (custody, platform)
+// - per-trade commissions from buy/sell transactions
 type Ledger struct {
-	Positions map[string]*Position
-	Realized  []RealizedTx
-	Dividends []model.Transaction
-	Fees      []model.Transaction
+	Positions   map[string]*Position
+	Realized    []RealizedTx
+	Dividends   []model.Transaction
+	Fees        []model.Transaction // TxFee type (custody fees, platform charges)
+	Commissions []model.Transaction // Commission field on buy/sell transactions
 }
 
 func New() *Ledger {
@@ -85,6 +90,11 @@ func (l *Ledger) apply(tx model.Transaction) {
 	case model.TxFee:
 		l.Fees = append(l.Fees, tx)
 	}
+	// Track per-trade commission separately (IBKR, T212).
+	// Note: commission is already included in tx.Net / cost basis — this is purely for reporting.
+	if tx.Commission != 0 && (tx.Type == model.TxBuy || tx.Type == model.TxSell) {
+		l.Commissions = append(l.Commissions, tx)
+	}
 }
 
 func (l *Ledger) positionFor(symbol string) *Position {
@@ -101,13 +111,24 @@ func (l *Ledger) buy(tx model.Transaction) {
 		return
 	}
 	p := l.positionFor(tx.Symbol)
-	cost := -tx.Net // Net is negative for buys (cash outflow)
-	if cost < 0 {
+
+	// Three conventions across brokers:
+	//   IBKR:           Net < 0  (cash outflow, e.g. -1167.95)
+	//   Revolut/T212:   Net > 0  (absolute cost in account currency, e.g. 134.24)
+	//   no Net at all:  Net == 0 → fall back to qty × price (same-currency only)
+	var cost float64
+	switch {
+	case tx.Net < 0:
+		cost = -tx.Net
+	case tx.Net > 0:
+		cost = tx.Net
+	default:
 		cost = tx.Quantity * tx.Price
 	}
 	p.Lots = append(p.Lots, Lot{
 		Date:      tx.Date,
 		Broker:    tx.Broker,
+		Currency:  tx.Currency,
 		Quantity:  tx.Quantity,
 		CostBasis: cost,
 	})
@@ -158,6 +179,7 @@ func (l *Ledger) sell(tx model.Transaction) {
 		Date:      tx.Date,
 		Symbol:    tx.Symbol,
 		Broker:    tx.Broker,
+		Currency:  tx.Currency,
 		Quantity:  tx.Quantity,
 		Proceeds:  proceeds,
 		CostBasis: costBasis,

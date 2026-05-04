@@ -19,6 +19,7 @@ import (
 // Report is the full serializable report, suitable for JSON export or chart consumption.
 type Report struct {
 	GeneratedAt       time.Time                `json:"generated_at"`
+	BaseCurrency      string                   `json:"base_currency"`
 	OpenPositions     []stats.PositionSummary  `json:"open_positions"`
 	RealizedBySymbol  []RealizedRow            `json:"realized_pnl_by_symbol"`
 	AllTime           stats.PeriodSummary      `json:"all_time"`
@@ -53,6 +54,7 @@ func Build(s stats.Summary, realized []ledger.RealizedTx, allTxs []model.Transac
 
 	return Report{
 		GeneratedAt:       time.Now().UTC(),
+		BaseCurrency:      s.BaseCurrency,
 		OpenPositions:     s.OpenPositions,
 		RealizedBySymbol:  realizedRows,
 		AllTime:           s.AllTime,
@@ -101,10 +103,11 @@ func writePositionsCSV(path string, positions []stats.PositionSummary) error {
 	}
 	defer f.Close()
 	w := csv.NewWriter(f)
-	_ = w.Write([]string{"symbol", "quantity", "avg_cost", "total_cost", "current_price", "market_value", "unrealized_pnl", "unrealized_pct"})
+	_ = w.Write([]string{"symbol", "currency", "quantity", "avg_cost", "total_cost", "current_price", "market_value", "unrealized_pnl", "unrealized_pct"})
 	for _, p := range positions {
 		_ = w.Write([]string{
 			p.Symbol,
+			p.Currency,
 			ff(p.Quantity),
 			ff(p.AvgCost),
 			ff(p.TotalCost),
@@ -155,18 +158,20 @@ func writeSummaryByYearCSV(path string, years []stats.PeriodSummary) error {
 	}
 	defer f.Close()
 	w := csv.NewWriter(f)
-	_ = w.Write([]string{"year", "realized_pnl", "dividends_net", "tax_withheld", "fees", "deposits", "withdrawals", "buy_volume", "sell_volume"})
+	_ = w.Write([]string{"year", "realized_pnl", "dividends_net", "tax_withheld", "commissions", "fees", "deposits", "withdrawals", "buy_volume", "sell_volume", "gain_pct"})
 	for _, p := range years {
 		_ = w.Write([]string{
 			p.Label,
 			ff(p.Realized),
 			ff(p.Dividends),
 			ff(-p.TaxWithheld),
+			ff(p.Commissions),
 			ff(p.Fees),
 			ff(p.Deposits),
 			ff(p.Withdrawals),
 			ff(p.BuyVolume),
 			ff(p.SellVolume),
+			ff(p.GainPct),
 		})
 	}
 	w.Flush()
