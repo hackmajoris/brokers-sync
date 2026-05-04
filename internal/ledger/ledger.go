@@ -175,6 +175,10 @@ func (l *Ledger) sell(tx model.Transaction) {
 	}
 	p.Lots = active
 
+	pnl := proceeds - costBasis
+	if tx.BrokerPnL != 0 {
+		pnl = tx.BrokerPnL
+	}
 	l.Realized = append(l.Realized, RealizedTx{
 		Date:      tx.Date,
 		Symbol:    tx.Symbol,
@@ -183,7 +187,7 @@ func (l *Ledger) sell(tx model.Transaction) {
 		Quantity:  tx.Quantity,
 		Proceeds:  proceeds,
 		CostBasis: costBasis,
-		PnL:       proceeds - costBasis,
+		PnL:       pnl,
 	})
 }
 

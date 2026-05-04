@@ -33,5 +33,6 @@ type Transaction struct {
 	Commission float64 // always <= 0
 	Net        float64 // Gross + Commission
 	FXRate     float64 // price currency → base currency (0 means unknown)
+	BrokerPnL  float64 // broker-reported realized P&L for sells (0 = not provided)
 	Notes      string
 }

@@ -128,8 +128,15 @@ func parseT212Row(r []string, idx map[string]int) (model.Transaction, error) {
 	}
 
 	// Result is the realized P&L reported by T212 (absent in some export versions).
+	// Use it as the authoritative P&L for sells — it accounts for corporate actions
+	// (splits, buybacks) that may not appear as separate transactions in the export.
 	if i, ok := idx["Result"]; ok && i < len(r) {
 		if s := strings.TrimSpace(r[i]); s != "" {
+			if tx.Type == model.TxSell {
+				if v, err := strconv.ParseFloat(s, 64); err == nil {
+					tx.BrokerPnL = v
+				}
+			}
 			tx.Notes = rawAction + " result=" + s
 		}
 	}

@@ -89,23 +89,6 @@ func main() {
 		}
 	}
 
-	// Run the full combined ledger before any broker filtering so that
-	// cross-broker position closures (e.g. Revolut buy → IBKR sell after migration)
-	// are reflected in open positions.
-	combinedLedger := ledger.New()
-	combinedLedger.Process(allTxs)
-
-	var brokerFilter string
-	if *broker != "" {
-		validBrokers := []string{parser.BrokerRevolut, parser.BrokerIBKR, parser.BrokerTrading212, parser.BrokerXTB, parser.BrokerTradeville}
-		if !contains(validBrokers, *broker) {
-			log.Fatalf("unknown broker %q — valid values: %s", *broker, strings.Join(validBrokers, ", "))
-		}
-		brokerFilter = *broker
-		allTxs = filterByBroker(allTxs, brokerFilter)
-		fmt.Fprintf(os.Stderr, "Broker filter %q: %d transactions\n\n", brokerFilter, len(allTxs))
-	}
-
 	if len(allTxs) == 0 {
 		fmt.Fprintln(os.Stderr, "No transactions found. Drop CSV/XLSX files into data/ or use -revolut/-ibkr/-t212/-xtb.")
 		flag.Usage()
@@ -113,8 +96,13 @@ func main() {
 	}
 	fmt.Fprintf(os.Stderr, "Total:       %d transactions\n\n", len(allTxs))
 
-	l := ledger.New()
-	l.Process(allTxs)
+	// Validate broker filter if provided.
+	if *broker != "" {
+		validBrokers := []string{parser.BrokerRevolut, parser.BrokerIBKR, parser.BrokerTrading212, parser.BrokerXTB, parser.BrokerTradeville}
+		if !contains(validBrokers, *broker) {
+			log.Fatalf("unknown broker %q — valid values: %s", *broker, strings.Join(validBrokers, ", "))
+		}
+	}
 
 	const baseCurrency = "USD"
 	fxRates := map[string]float64{baseCurrency: 1.0}
@@ -133,34 +121,33 @@ func main() {
 		}
 	}
 
-	s := stats.Compute(l, allTxs, time.Now(), fxRates, baseCurrency)
+	// Build the combined (cross-broker) ledger — used for both the combined
+	// section and as the authoritative source for cross-broker position closures.
+	combinedLedger := ledger.New()
+	combinedLedger.Process(allTxs)
+	combinedStats := stats.Compute(combinedLedger, allTxs, time.Now(), fxRates, baseCurrency)
 
-	// When filtering by broker, replace open positions with the combined-ledger
-	// view filtered to lots that still belong to that broker. This correctly
-	// handles positions bought at Revolut and later sold at IBKR (after migration).
-	if brokerFilter != "" {
-		s.OpenPositions = openPositionsByBroker(combinedLedger, brokerFilter, fxRates)
-	}
-
-	// Fetch live prices for unrealized P&L unless skipped
+	// Fetch live prices once for all unique symbols; used by both per-broker
+	// and combined sections.
+	var priceMap map[string]float64
 	if !*noPrices {
-		symbols := make([]string, 0, len(s.OpenPositions))
-		for _, p := range s.OpenPositions {
-			symbols = append(symbols, p.Symbol)
-		}
-		fmt.Fprintf(os.Stderr, "Fetching prices for %d symbols...\n", len(symbols))
-		priceMap, err := prices.FetchQuotes(symbols)
+		allSymbols := uniqueSymbols(combinedStats.OpenPositions)
+		fmt.Fprintf(os.Stderr, "Fetching prices for %d symbols...\n", len(allSymbols))
+		var err error
+		priceMap, err = prices.FetchQuotes(allSymbols)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: price fetch failed (%v) — unrealized P&L unavailable\n", err)
 		} else {
-			stats.EnrichWithPrices(&s, priceMap)
-			fmt.Fprintf(os.Stderr, "Prices fetched for %d/%d symbols\n\n", countPriced(s.OpenPositions), len(symbols))
+			fmt.Fprintf(os.Stderr, "Prices fetched for %d/%d symbols\n\n", len(priceMap)/2, len(allSymbols))
 		}
 	}
+	stats.EnrichWithPrices(&combinedStats, priceMap)
+
+	now := time.Now()
 
 	switch *format {
 	case "json":
-		r := output.Build(s, l.Realized, allTxs)
+		r := output.Build(combinedStats, combinedLedger.Realized, allTxs)
 		w, close := openWriter(*out)
 		defer close()
 		if err := output.WriteJSON(w, r); err != nil {
@@ -171,24 +158,99 @@ func main() {
 		if dir == "" {
 			dir = "."
 		}
-		r := output.Build(s, l.Realized, allTxs)
+		r := output.Build(combinedStats, combinedLedger.Realized, allTxs)
 		if err := output.WriteCSV(dir, r); err != nil {
 			log.Fatalf("csv: %v", err)
 		}
 		fmt.Fprintf(os.Stderr, "CSV files written to %s/\n", dir)
 	default:
-		printText(s, l)
+		brokers := brokersInOrder(allTxs)
+		// If -broker is set, restrict to that one broker only (no combined section).
+		if *broker != "" {
+			brokers = []string{*broker}
+		}
+		for _, b := range brokers {
+			brokerTxs := filterByBroker(allTxs, b)
+			nativeCur := brokerNativeCurrency(brokerTxs)
+			bl := ledger.New()
+			bl.Process(brokerTxs)
+			bs := stats.Compute(bl, brokerTxs, now, nil, nativeCur)
+			// Enrich positions with prices (best-effort; non-USD stocks may not resolve).
+			stats.EnrichWithPrices(&bs, priceMap)
+			printSectionHeader(b, nativeCur)
+			printText(bs, bl)
+		}
+		// Combined section — only shown when not filtering to a single broker.
+		if *broker == "" {
+			printSectionHeader("COMBINED", baseCurrency)
+			printText(combinedStats, combinedLedger)
+		}
 	}
 }
 
-func countPriced(positions []stats.PositionSummary) int {
-	n := 0
-	for _, p := range positions {
-		if p.CurrentPrice > 0 {
-			n++
+// brokersInOrder returns unique broker names present in txs using a stable preferred order.
+func brokersInOrder(txs []model.Transaction) []string {
+	preferred := []string{
+		parser.BrokerTrading212,
+		parser.BrokerRevolut,
+		parser.BrokerIBKR,
+		parser.BrokerXTB,
+		parser.BrokerTradeville,
+	}
+	present := map[string]bool{}
+	for _, tx := range txs {
+		present[tx.Broker] = true
+	}
+	var out []string
+	for _, b := range preferred {
+		if present[b] {
+			out = append(out, b)
+			delete(present, b)
 		}
 	}
-	return n
+	// Append any unknown brokers alphabetically.
+	var extra []string
+	for b := range present {
+		extra = append(extra, b)
+	}
+	sort.Strings(extra)
+	return append(out, extra...)
+}
+
+// brokerNativeCurrency returns the most common currency among buy/sell/deposit transactions
+// for a set of broker transactions.
+func brokerNativeCurrency(txs []model.Transaction) string {
+	counts := map[string]int{}
+	for _, tx := range txs {
+		if isCurrencyCode.MatchString(tx.Currency) &&
+			(tx.Type == model.TxBuy || tx.Type == model.TxSell || tx.Type == model.TxDeposit) {
+			counts[tx.Currency]++
+		}
+	}
+	best, bestN := "USD", 0
+	for c, n := range counts {
+		if n > bestN {
+			best, bestN = c, n
+		}
+	}
+	return best
+}
+
+func uniqueSymbols(positions []stats.PositionSummary) []string {
+	out := make([]string, 0, len(positions))
+	for _, p := range positions {
+		out = append(out, p.Symbol)
+	}
+	return out
+}
+
+func printSectionHeader(name, currency string) {
+	title := fmt.Sprintf("  %s  (%s)  ", strings.ToUpper(name), currency)
+	line := strings.Repeat("─", len(title))
+	fmt.Println()
+	fmt.Println(line)
+	fmt.Println(title)
+	fmt.Println(line)
 }
 
 func openWriter(path string) (io.Writer, func()) {
@@ -298,10 +360,10 @@ func printText(s stats.Summary, l *ledger.Ledger) {
 	cur := s.BaseCurrency
 	printPositions(s.OpenPositions, cur)
 	printRealizedBySymbol(l.Realized, cur)
-	printPeriod(s.AllTime, cur)
-	printPeriod(s.YTD, cur)
-	printPeriod(s.MTD, cur)
-	printByYear(s.ByYear, cur)
+	printPeriod(s.AllTime)
+	printPeriod(s.YTD)
+	printPeriod(s.MTD)
+	printByYear(s.ByYear)
 	printDividends(s.BySymbol, cur)
 }
 
@@ -370,8 +432,8 @@ func printRealizedBySymbol(realized []ledger.RealizedTx, cur string) {
 	fmt.Println()
 }
 
-func printPeriod(p stats.PeriodSummary, cur string) {
-	fmt.Printf("=== %s (%s) ===\n", p.Label, cur)
+func printPeriod(p stats.PeriodSummary) {
+	fmt.Printf("=== %s ===\n", p.Label)
 	fmt.Printf("  Realized P&L:   %+12.2f\n", p.Realized)
 	fmt.Printf("  Dividends:      %+12.2f  (tax withheld: %.2f)\n", p.Dividends, -p.TaxWithheld)
 	fmt.Printf("  Commissions:    %+12.2f\n", p.Commissions)
@@ -383,8 +445,8 @@ func printPeriod(p stats.PeriodSummary, cur string) {
 	fmt.Println()
 }
 
-func printByYear(years []stats.PeriodSummary, cur string) {
-	fmt.Printf("=== Year-by-Year Breakdown (%s) ===\n", cur)
+func printByYear(years []stats.PeriodSummary) {
+	fmt.Println("=== Year-by-Year Breakdown ===")
 	fmt.Printf("%-6s %12s %12s %12s %12s %12s %12s %12s %8s\n",
 		"Year", "Realized", "Dividends", "TaxWithheld", "Commissions", "Fees", "Deposits", "Withdrawals", "Gain%")
 	fmt.Println(strings.Repeat("-", 108))

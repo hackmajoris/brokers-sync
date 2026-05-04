@@ -113,7 +113,7 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 	}
 	var posRows []posRow
 	for sym, pos := range l.Positions {
-		if pos.Quantity > 1e-6 {
+		if pos.Quantity > 1e-4 {
 			posRows = append(posRows, posRow{sym, pos})
 		}
 	}
