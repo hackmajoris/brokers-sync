@@ -78,7 +78,7 @@ function IndividualBroker({ b }: { b: BrokerData }) {
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
                 <tr style={{ background: '#0f172a', position: 'sticky', top: 0 }}>
-                  {['Symbol', 'Mkt Value', 'Cost', 'U.PnL', 'Return'].map(h => (
+                  {['Symbol', 'Qty', 'Avg Cost', 'Cur. Price', 'Mkt Value', 'Cost', 'U.PnL', 'Return'].map(h => (
                     <th key={h} style={{ padding: '7px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#475569', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
@@ -95,6 +95,9 @@ function IndividualBroker({ b }: { b: BrokerData }) {
                         <span style={{ fontWeight: 600, fontSize: 12 }}>{p.symbol}</span>
                       </div>
                     </td>
+                    <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#94a3b8' }}>{p.quantity != null ? fmt(p.quantity, 1) : '—'}</td>
+                    <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#64748b' }}>{p.avgCost != null ? fc(p.avgCost) : '—'}</td>
+                    <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#94a3b8' }}>{p.currentPrice != null ? fc(p.currentPrice) : '—'}</td>
                     <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600 }}>{p.mv != null ? fc(p.mv) : '—'}</td>
                     <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#64748b' }}>{fc(p.cost)}</td>
                     <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: clr(p.pnl) }}>{p.pnl != null ? fc(p.pnl) : '—'}</td>
@@ -110,6 +113,7 @@ function IndividualBroker({ b }: { b: BrokerData }) {
                 <tfoot>
                   <tr style={{ borderTop: '2px solid #334155', background: '#0f172a' }}>
                     <td style={{ padding: '8px 14px', fontSize: 11, fontWeight: 700, color: '#94a3b8' }}>Total</td>
+                    <td /><td /><td />
                     <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700 }}>{fc(openMV)}</td>
                     <td />
                     <td style={{ padding: '8px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: clr(openPnl) }}>{fc(openPnl)}</td>

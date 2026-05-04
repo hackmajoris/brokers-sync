@@ -33,6 +33,7 @@ function mapPosition(p: RawPosition): Position {
     pct: p.unrealized_pct_omitempty,
     cost: p.total_cost,
     quantity: p.quantity,
+    avgCost: p.avg_cost,
     currentPrice: p.current_price,
   }
 }

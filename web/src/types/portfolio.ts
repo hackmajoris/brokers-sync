@@ -76,6 +76,7 @@ export interface Position {
   pct: number | null
   cost: number
   quantity?: number
+  avgCost?: number
   currentPrice?: number
 }
 
