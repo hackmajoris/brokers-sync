@@ -58,6 +58,7 @@ type Summary struct {
 	MTD           PeriodSummary
 	ByYear        []PeriodSummary
 	BySymbol      []DividendBySymbol
+	CashBalance   float64 // uninvested cash: deposits - withdrawals - buys + sells + dividends + fees
 }
 
 // toBase converts an amount from the given currency to the base currency using fxRates.
@@ -345,6 +346,37 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 	sort.Slice(s.BySymbol, func(i, j int) bool {
 		return s.BySymbol[i].Gross > s.BySymbol[j].Gross
 	})
+
+	// Cash balance: uninvested cash remaining in the account.
+	for _, tx := range allTxs {
+		switch tx.Type {
+		case model.TxDeposit:
+			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+		case model.TxWithdrawal:
+			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+		case model.TxBuy:
+			var cost float64
+			switch {
+			case tx.Net < 0:
+				cost = -tx.Net
+			case tx.Net > 0:
+				cost = tx.Net
+			default:
+				cost = tx.Quantity * tx.Price
+			}
+			s.CashBalance -= toBase(cost, tx.Currency, fxRates)
+		case model.TxSell:
+			proceeds := tx.Net
+			if proceeds <= 0 {
+				proceeds = tx.Quantity * tx.Price
+			}
+			s.CashBalance += toBase(proceeds, tx.Currency, fxRates)
+		case model.TxDividend, model.TxTaxWithholding:
+			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+		case model.TxFee:
+			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+		}
+	}
 
 	return s
 }

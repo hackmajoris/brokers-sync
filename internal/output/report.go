@@ -14,6 +14,7 @@ import (
 type Report struct {
 	GeneratedAt       time.Time                `json:"generated_at"`
 	BaseCurrency      string                   `json:"base_currency"`
+	CashBalance       float64                  `json:"cash_balance"`
 	Brokers           []BrokerReport           `json:"brokers"`
 	OpenPositions     []stats.PositionSummary  `json:"open_positions"`
 	RealizedBySymbol  []RealizedRow            `json:"realized_pnl_by_symbol"`
@@ -28,6 +29,7 @@ type Report struct {
 type BrokerReport struct {
 	Name              string                   `json:"name"`
 	BaseCurrency      string                   `json:"base_currency"`
+	CashBalance       float64                  `json:"cash_balance"`
 	OpenPositions     []stats.PositionSummary  `json:"open_positions"`
 	RealizedBySymbol  []RealizedRow            `json:"realized_pnl_by_symbol"`
 	AllTime           stats.PeriodSummary      `json:"all_time"`
@@ -64,6 +66,7 @@ func BuildBrokerReport(name string, s stats.Summary, realized []ledger.RealizedT
 	return BrokerReport{
 		Name:              name,
 		BaseCurrency:      s.BaseCurrency,
+		CashBalance:       s.CashBalance,
 		OpenPositions:     s.OpenPositions,
 		RealizedBySymbol:  realizedRows(realized),
 		AllTime:           s.AllTime,
@@ -78,6 +81,7 @@ func Build(s stats.Summary, realized []ledger.RealizedTx, brokers []BrokerReport
 	return Report{
 		GeneratedAt:       time.Now().UTC(),
 		BaseCurrency:      s.BaseCurrency,
+		CashBalance:       s.CashBalance,
 		Brokers:           brokers,
 		OpenPositions:     s.OpenPositions,
 		RealizedBySymbol:  realizedRows(realized),

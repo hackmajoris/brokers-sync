@@ -106,17 +106,16 @@ func main() {
 
 	const baseCurrency = "USD"
 	fxRates := map[string]float64{baseCurrency: 1.0}
-	if !*noPrices {
-		currencies := uniqueCurrencies(allTxs)
-		fmt.Fprintf(os.Stderr, "Fetching FX rates for %v → %s...\n", currencies, baseCurrency)
-		if rates, err := prices.FetchFXRates(currencies, baseCurrency); err != nil {
-			fmt.Fprintf(os.Stderr, "Warning: FX fetch failed (%v) — amounts not normalized\n", err)
-		} else {
-			fxRates = rates
-			for c, r := range rates {
-				if c != baseCurrency {
-					fmt.Fprintf(os.Stderr, "  1 %s = %.4f %s\n", c, r, baseCurrency)
-				}
+	// Always fetch FX rates so the combined totals properly convert all currencies to USD.
+	currencies := uniqueCurrencies(allTxs)
+	fmt.Fprintf(os.Stderr, "Fetching FX rates for %v → %s...\n", currencies, baseCurrency)
+	if rates, err := prices.FetchFXRates(currencies, baseCurrency); err != nil {
+		fmt.Fprintf(os.Stderr, "Warning: FX fetch failed (%v) — amounts not normalized\n", err)
+	} else {
+		fxRates = rates
+		for c, r := range rates {
+			if c != baseCurrency {
+				fmt.Fprintf(os.Stderr, "  1 %s = %.4f %s\n", c, r, baseCurrency)
 			}
 		}
 	}

@@ -57,6 +57,7 @@ function mapBroker(b: RawBroker): BrokerData {
   return {
     name: b.name,
     currency: b.base_currency,
+    cashBalance: b.cash_balance ?? 0,
     allTimeGain: b.all_time.gain_pct,
     allTimeRPnl: b.all_time.realized_pnl,
     ytdGain: b.ytd.gain_pct,
@@ -98,6 +99,7 @@ export async function fetchPortfolioData(): Promise<PortfolioData> {
   return {
     generatedAt: raw.generated_at,
     baseCurrency: raw.base_currency,
+    cashBalance: raw.cash_balance ?? 0,
     brokers: raw.brokers.map(mapBroker),
     allTime: mapPeriod(raw.all_time),
     ytd: mapPeriod(raw.ytd),

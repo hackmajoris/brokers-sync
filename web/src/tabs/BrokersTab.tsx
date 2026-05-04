@@ -260,7 +260,7 @@ export function BrokersTab({ data, accent }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                 <thead>
                   <tr style={{ background: '#0f172a' }}>
-                    {['Broker', 'Currency', 'Deposits', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Open Positions'].map(h => (
+                    {['Broker', 'Currency', 'Cash', 'Deposits', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Open Positions'].map(h => (
                       <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Broker' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#475569', letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -276,6 +276,7 @@ export function BrokersTab({ data, accent }: Props) {
                     >
                       <td style={{ padding: '10px 14px' }}><BrokerPill name={b.name} /></td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, color: '#64748b' }}>{b.currency}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600, color: b.cashBalance >= 0 ? '#34d399' : '#f87171' }}>{fmtCurrency(b.cashBalance, b.currency)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#94a3b8' }}>{fmtCurrency(b.deposits, b.currency)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                         <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: clr(b.allTimeGain) + '22', color: clr(b.allTimeGain) }}>{fmtPct(b.allTimeGain)}</span>
@@ -299,6 +300,7 @@ export function BrokersTab({ data, accent }: Props) {
                   <tr style={{ borderTop: '2px solid #334155', background: '#0f172a' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#e2e8f0', fontSize: 11 }}>TOTAL / ALL</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, color: '#475569' }}>USD</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: data.cashBalance >= 0 ? '#34d399' : '#f87171' }}>{fmtCurrency(data.cashBalance)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#e2e8f0' }}>{fmtCurrency(data.allTime.deposits)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 12, fontWeight: 700, background: clr(data.allTime.gainPct) + '22', color: clr(data.allTime.gainPct) }}>{fmtPct(data.allTime.gainPct)}</span>
@@ -370,6 +372,7 @@ export function BrokersTab({ data, accent }: Props) {
                     <MiniStat label="YTD" value={fmtPct(b.ytdGain)} color={clr(b.ytdGain)} large />
                     <MiniStat label="MTD" value={fmtPct(b.mtdGain)} color={clr(b.mtdGain)} large />
                     <div style={{ height: 1, background: '#1e293b', margin: '2px 0' }} />
+                    <MiniStat label="Cash" value={fmtCurrency(b.cashBalance, b.currency)} color={b.cashBalance >= 0 ? '#34d399' : '#f87171'} mono />
                     <MiniStat label="R.PnL YTD" value={fmtCurrency(b.ytdRPnl, b.currency)} color={clr(b.ytdRPnl)} mono />
                     <MiniStat label="Divs YTD" value={fmtCurrency(b.ytdDivs, b.currency)} color="#facc15" mono />
                     <MiniStat label="All-Time" value={fmtPct(b.allTimeGain)} color={clr(b.allTimeGain)} mono />

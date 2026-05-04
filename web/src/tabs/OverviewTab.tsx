@@ -48,6 +48,12 @@ export function OverviewTab({ data, accent }: Props) {
       <div className="kpi-5">
         <StatCard label="Total Market Value" value={fmtCurrency(totalMV)} sub="Open positions" />
         <StatCard
+          label="Cash (all brokers)"
+          value={fmtCurrency(data.cashBalance)}
+          sub="Uninvested"
+          valueColor={data.cashBalance >= 0 ? '#34d399' : '#f87171'}
+        />
+        <StatCard
           label="Unrealized P&L"
           value={fmtCurrency(totalUPnl)}
           sub={fmtPct((totalUPnl / data.allTime.deposits) * 100)}
@@ -63,12 +69,6 @@ export function OverviewTab({ data, accent }: Props) {
           label="Total Dividends"
           value={fmtCurrency(data.allTime.dividends)}
           sub={`Tax: −$${fmt(Math.abs(data.allTime.taxWithheld))}`}
-        />
-        <StatCard
-          label="MTD Return"
-          value={fmtPct(data.mtd.gainPct)}
-          sub={`Realized: ${fmtCurrency(data.mtd.realizedPnl)}`}
-          valueColor={clr(data.mtd.gainPct)}
         />
       </div>
 

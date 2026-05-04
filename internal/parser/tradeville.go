@@ -104,11 +104,31 @@ func parseTradevilleRow(r []string, idx map[string]int) (model.Transaction, erro
 	tx.Type = txType
 	tx.Notes = op
 
-	tx.Symbol = strings.TrimSpace(r[idx["simbol"]])
-	if cur := strings.TrimSpace(r[idx["valuta"]]); currencyRe.MatchString(cur) {
-		tx.Currency = cur
+	// Trade rows (cump/vanz) have 24 fields; non-trade rows (in/out/div/comis) have 18/17
+	// because the pret column is absent, shifting comis, suma, valuta left by one.
+	isTrade := op == "cump" || op == "vanz"
+
+	if isTrade {
+		tx.Symbol = strings.TrimSpace(r[idx["simbol"]])
+		if cur := strings.TrimSpace(r[idx["valuta"]]); currencyRe.MatchString(cur) {
+			tx.Currency = cur
+		} else {
+			tx.Currency = "RON"
+		}
 	} else {
-		tx.Currency = "RON" // default for Tradeville; field misaligned due to HTML in last column
+		// For non-trade rows, simbol holds the currency (e.g. "RON", "EUR").
+		if cur := strings.TrimSpace(r[idx["simbol"]]); currencyRe.MatchString(cur) {
+			tx.Currency = cur
+		} else {
+			tx.Currency = "RON"
+		}
+		// Extract stock symbol from description for dividends (e.g. "DIVIDEND TLV" → "TLV").
+		if op == "div" {
+			parts := strings.Fields(strings.TrimSpace(r[idx["descr"]]))
+			if len(parts) >= 2 {
+				tx.Symbol = parts[len(parts)-1]
+			}
+		}
 	}
 
 	if s := strings.TrimSpace(r[idx["cant"]]); s != "" {
@@ -118,14 +138,21 @@ func parseTradevilleRow(r []string, idx map[string]int) (model.Transaction, erro
 		}
 	}
 
-	if s := strings.TrimSpace(r[idx["pret"]]); s != "" {
-		tx.Price, err = strconv.ParseFloat(s, 64)
-		if err != nil {
-			return tx, fmt.Errorf("pret %q: %w", s, err)
+	if isTrade {
+		if s := strings.TrimSpace(r[idx["pret"]]); s != "" {
+			tx.Price, err = strconv.ParseFloat(s, 64)
+			if err != nil {
+				return tx, fmt.Errorf("pret %q: %w", s, err)
+			}
 		}
 	}
 
-	if s := strings.TrimSpace(r[idx["comis"]]); s != "" {
+	// For non-trade rows, the commission sits at the pret position (shifted left by 1).
+	commisCol := idx["comis"]
+	if !isTrade {
+		commisCol = idx["pret"]
+	}
+	if s := strings.TrimSpace(r[commisCol]); s != "" {
 		v, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return tx, fmt.Errorf("comis %q: %w", s, err)
@@ -136,8 +163,13 @@ func parseTradevilleRow(r []string, idx map[string]int) (model.Transaction, erro
 		tx.Commission = v
 	}
 
-	// "suma" is the net cash effect (negative for buys, positive for sells/deposits).
-	if s := strings.TrimSpace(r[idx["suma"]]); s != "" {
+	// For non-trade rows, suma sits at the comis position (shifted left by 1).
+	// "suma" is the net cash effect (negative for buys/withdrawals, positive for sells/deposits).
+	sumaCol := idx["suma"]
+	if !isTrade {
+		sumaCol = idx["comis"]
+	}
+	if s := strings.TrimSpace(r[sumaCol]); s != "" {
 		v, err := strconv.ParseFloat(s, 64)
 		if err != nil {
 			return tx, fmt.Errorf("suma %q: %w", s, err)

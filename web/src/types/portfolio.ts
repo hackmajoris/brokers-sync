@@ -43,6 +43,7 @@ export interface RawDividendBySymbol {
 export interface RawBroker {
   name: string
   base_currency: string
+  cash_balance: number
   open_positions: RawPosition[]
   realized_pnl_by_symbol: RawRealizedBySymbol[]
   all_time: RawPeriod
@@ -55,6 +56,7 @@ export interface RawBroker {
 export interface RawPortfolio {
   generated_at: string
   base_currency: string
+  cash_balance: number
   brokers: RawBroker[]
   open_positions: RawPosition[]
   realized_pnl_by_symbol: RawRealizedBySymbol[]
@@ -114,6 +116,7 @@ export interface PeriodSummary {
 export interface BrokerData {
   name: string
   currency: string
+  cashBalance: number
   allTimeGain: number
   allTimeRPnl: number
   ytdGain: number
@@ -135,6 +138,7 @@ export interface BrokerData {
 export interface PortfolioData {
   generatedAt: string
   baseCurrency: string
+  cashBalance: number
   brokers: BrokerData[]
   allTime: PeriodSummary
   ytd: PeriodSummary
