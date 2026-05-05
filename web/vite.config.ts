@@ -11,6 +11,11 @@ export default defineConfig({
       configureServer(server) {
         server.middlewares.use('/data/result.json', (_req, res) => {
           const filePath = path.resolve(__dirname, '../data/result.json')
+          if (!fs.existsSync(filePath)) {
+            res.statusCode = 404
+            res.end()
+            return
+          }
           res.setHeader('Content-Type', 'application/json')
           res.setHeader('Cache-Control', 'no-cache')
           fs.createReadStream(filePath).pipe(res)
@@ -18,4 +23,12 @@ export default defineConfig({
       },
     },
   ],
+  server: {
+    proxy: {
+      '/api': {
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+      },
+    },
+  },
 })

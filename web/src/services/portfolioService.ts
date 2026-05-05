@@ -78,10 +78,62 @@ function mapBroker(b: RawBroker): BrokerData {
   }
 }
 
-export async function fetchPortfolioData(): Promise<PortfolioData> {
+const CACHE_KEY = 'brokers-sync:portfolio'
+
+export function cacheRawPortfolio(raw: RawPortfolio): void {
+  try { localStorage.setItem(CACHE_KEY, JSON.stringify(raw)) } catch { /* quota exceeded */ }
+}
+
+export function loadCachedPortfolio(): PortfolioData | null {
+  try {
+    const raw = localStorage.getItem(CACHE_KEY)
+    if (!raw) return null
+    return mapRawPortfolio(JSON.parse(raw) as RawPortfolio)
+  } catch { return null }
+}
+
+export async function uploadZip(
+  blob: Blob,
+  name: string,
+  onLog?: (line: string) => void,
+): Promise<RawPortfolio | null> {
+  const fd = new FormData()
+  fd.append('file', blob, name)
+  const res = await fetch('/api/upload/zip', { method: 'POST', body: fd })
+  if (!res.ok || !res.body) throw new Error(`Server returned ${res.status} ${res.statusText}`)
+
+  const reader = res.body.getReader()
+  const decoder = new TextDecoder()
+  let buf = ''
+
+  while (true) {
+    const { done, value } = await reader.read()
+    if (done) break
+    buf += decoder.decode(value, { stream: true })
+    const parts = buf.split('\n\n')
+    buf = parts.pop() ?? ''
+    for (const part of parts) {
+      const dataLine = part.split('\n').find(l => l.startsWith('data: '))
+      if (!dataLine) continue
+      try {
+        const ev = JSON.parse(dataLine.slice(6)) as { type: string; line?: string; success?: boolean; report?: unknown }
+        if (ev.type === 'log' && ev.line != null) onLog?.(ev.line)
+        else if (ev.type === 'done') return ev.success && ev.report ? (ev.report as RawPortfolio) : null
+      } catch { /* ignore malformed */ }
+    }
+  }
+  return null
+}
+
+export async function fetchPortfolioData(): Promise<PortfolioData | null> {
   const res = await fetch('/data/result.json')
+  if (res.status === 404) return loadCachedPortfolio()
   if (!res.ok) throw new Error(`Failed to load portfolio data: ${res.statusText}`)
   const raw: RawPortfolio = await res.json()
+  return mapRawPortfolio(raw)
+}
+
+export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
 
   const topRPnlMap = new Map<string, number>()
   for (const b of raw.brokers) {

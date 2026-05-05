@@ -2,3 +2,4 @@ data/*
 /dedup.log.csv
 web/node_modules
 web/dist
+/server

@@ -35,7 +35,7 @@ export function DonutChart({ slices, size = 96 }: DonutChartProps) {
           style={{ transform: 'rotate(-90deg)', transformOrigin: '50% 50%' }}
         />
       ))}
-      <circle cx={cx} cy={cy} r={r - strokeW / 2 - 1} fill="#0f172a" />
+      <circle cx={cx} cy={cy} r={r - strokeW / 2 - 1} fill="#080808" />
     </svg>
   )
 }

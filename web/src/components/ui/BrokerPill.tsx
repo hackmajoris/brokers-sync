@@ -5,7 +5,7 @@ interface BrokerPillProps {
 }
 
 export function BrokerPill({ name }: BrokerPillProps) {
-  const color = BROKER_COLORS[name] ?? '#94a3b8'
+  const color = BROKER_COLORS[name] ?? '#c0c0c0'
   const label = BROKER_LABELS[name] ?? name
   return (
     <span

@@ -32,7 +32,7 @@ export function fmtPct(n: number | null | undefined): string {
 }
 
 export function clr(n: number | null | undefined, inv = false): string {
-  if (n == null) return '#94a3b8'
+  if (n == null) return '#c0c0c0'
   const pos = n >= 0
   if (inv) return pos ? '#f87171' : '#34d399'
   return pos ? '#34d399' : '#f87171'

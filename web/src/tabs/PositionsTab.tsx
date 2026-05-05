@@ -36,16 +36,16 @@ export function PositionsTab({ data, accent }: Props) {
       </div>
 
       {/* All positions table */}
-      <div style={{ background: '#111827', borderRadius: 10, border: '1px solid #1e293b', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1e293b' }}>
+      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
           <SectionLabel>Open Positions</SectionLabel>
         </div>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
             <thead>
-              <tr style={{ background: '#0f172a' }}>
+              <tr style={{ background: '#080808' }}>
                 {['Symbol', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', 'Allocation'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#475569', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -53,8 +53,8 @@ export function PositionsTab({ data, accent }: Props) {
               {sorted.map(p => (
                 <tr
                   key={p.symbol}
-                  style={{ borderTop: '1px solid #1e293b', transition: 'background 0.1s' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#1e293b44')}
+                  style={{ borderTop: '1px solid #1a1a1a', transition: 'background 0.1s' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a44')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '10px 14px' }}>
@@ -66,14 +66,14 @@ export function PositionsTab({ data, accent }: Props) {
                     </div>
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontFamily: "'DM Mono', monospace", fontSize: 13 }}>{fmtCurrency(p.mv)}</td>
-                  <td style={{ padding: '10px 14px', textAlign: 'right', color: '#64748b', fontFamily: "'DM Mono', monospace", fontSize: 12 }}>{fmtCurrency(p.cost)}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', color: '#888888', fontFamily: "'DM Mono', monospace", fontSize: 12 }}>{fmtCurrency(p.cost)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontFamily: "'DM Mono', monospace", fontSize: 13, color: clr(p.pnl) }}>{fmtCurrency(p.pnl)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: clr(p.pct) + '22', color: clr(p.pct) }}>{fmtPct(p.pct)}</span>
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
-                      <span style={{ fontSize: 11, color: '#94a3b8' }}>{fmt(totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0, 1)}%</span>
+                      <span style={{ fontSize: 11, color: '#c0c0c0' }}>{fmt(totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0, 1)}%</span>
                       <div style={{ width: 60 }}>
                         <HorizBar value={p.mv ?? 0} total={totalMV} color={accent} height={3} />
                       </div>
@@ -89,12 +89,12 @@ export function PositionsTab({ data, accent }: Props) {
       {/* Per-broker position cards */}
       <div className="grid-2">
         {data.brokers.filter(b => b.positions.some(p => p.mv != null)).map(b => {
-          const bc = BROKER_COLORS[b.name] ?? '#94a3b8'
+          const bc = BROKER_COLORS[b.name] ?? '#c0c0c0'
           return (
-            <div key={b.name} style={{ background: '#111827', borderRadius: 10, border: '1px solid #1e293b', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1e293b', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div key={b.name} style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <BrokerPill name={b.name} />
-                <div style={{ fontSize: 11, color: '#475569' }}>{b.currency}</div>
+                <div style={{ fontSize: 11, color: '#555555' }}>{b.currency}</div>
               </div>
               <div style={{ padding: '8px 0' }}>
                 {b.positions.filter(p => p.mv != null).map(p => (
@@ -103,7 +103,7 @@ export function PositionsTab({ data, accent }: Props) {
                       {p.symbol.slice(0, 3)}
                     </div>
                     <span style={{ flex: 1, fontWeight: 500, fontSize: 12 }}>{p.symbol}</span>
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#94a3b8' }}>{fmtK(p.mv)}</span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#c0c0c0' }}>{fmtK(p.mv)}</span>
                     <span style={{ padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600, background: clr(p.pnl) + '22', color: clr(p.pnl), minWidth: 52, textAlign: 'right' }}>
                       {fmtPct(p.pct)}
                     </span>

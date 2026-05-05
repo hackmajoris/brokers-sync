@@ -9,10 +9,10 @@ export function StatCard({ label, value, sub, valueColor }: StatCardProps) {
   return (
     <div
       style={{
-        background: '#111827',
+        background: '#0f0f0f',
         borderRadius: 10,
         padding: '14px 16px',
-        border: '1px solid #1e293b',
+        border: '1px solid #1a1a1a',
         display: 'flex',
         flexDirection: 'column',
         gap: 4,
@@ -23,7 +23,7 @@ export function StatCard({ label, value, sub, valueColor }: StatCardProps) {
           fontSize: 10,
           fontWeight: 500,
           letterSpacing: '0.08em',
-          color: '#475569',
+          color: '#555555',
           textTransform: 'uppercase',
         }}
       >
@@ -33,13 +33,13 @@ export function StatCard({ label, value, sub, valueColor }: StatCardProps) {
         style={{
           fontSize: 22,
           fontWeight: 700,
-          color: valueColor ?? '#e2e8f0',
+          color: valueColor ?? '#ffffff',
           lineHeight: 1.1,
         }}
       >
         {value}
       </div>
-      {sub && <div style={{ fontSize: 11, color: '#64748b' }}>{sub}</div>}
+      {sub && <div style={{ fontSize: 11, color: '#888888' }}>{sub}</div>}
     </div>
   )
 }
