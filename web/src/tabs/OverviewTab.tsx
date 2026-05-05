@@ -81,7 +81,7 @@ export function OverviewTab({ data, accent }: Props) {
 
       {/* Annual chart + donut */}
       <div className="chart-donut">
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a', minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <SectionLabel>Annual Performance</SectionLabel>
             <div style={{ display: 'flex', gap: 4 }}>
@@ -115,7 +115,7 @@ export function OverviewTab({ data, accent }: Props) {
           </div>
         </div>
 
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a', minWidth: 0, overflow: 'hidden' }}>
           <SectionLabel>Broker Allocation</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <DonutChart slices={brokerAlloc} size={100} />

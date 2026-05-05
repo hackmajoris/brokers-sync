@@ -66,7 +66,7 @@ export function BarChart({ data, keyX, keyY, color = '#fb923c', colorFn, height 
   });
 
   return (
-    <div style={{ position: 'relative', height }}>
+    <div style={{ position: 'relative', width: '100%', height }}>
       <canvas ref={ref} />
     </div>
   );

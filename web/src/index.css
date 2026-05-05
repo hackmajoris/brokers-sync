@@ -51,12 +51,14 @@ nav::-webkit-scrollbar {
   grid-template-columns: 1fr 280px;
   gap: 12px;
 }
+.chart-donut > * { min-width: 0; }
 
 .grid-2 {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 12px;
 }
+.grid-2 > * { min-width: 0; }
 
 .broker-cards-5 {
   display: grid;
