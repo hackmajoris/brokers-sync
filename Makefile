@@ -5,7 +5,7 @@ PROFILE_ARG   = $(if $(AWS_PROFILE),--profile $(AWS_PROFILE))
 AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Account --output text)
 
 .PHONY: dev build build-web build-server run \
-        cdk-bootstrap cdk-deploy cdk-destroy cdk-diff
+        cdk-bootstrap cdk-deploy cdk-destroy cdk-diff ecr-setup
 
 dev:
 	@trap 'kill 0' EXIT; \
@@ -25,7 +25,9 @@ run: build
 
 cdk-bootstrap:
 	cd infra && cdk bootstrap aws://$(AWS_ACCOUNT)/$(AWS_REGION) $(PROFILE_ARG)
-	@echo "Setting ECR lifecycle policy (keep 2 images)..."
+
+# Run once after bootstrapping a new environment to cap the CDK asset ECR repo at 2 images.
+ecr-setup:
 	aws ecr put-lifecycle-policy \
 		--repository-name cdk-hnb659fds-container-assets-$(AWS_ACCOUNT)-$(AWS_REGION) \
 		--lifecycle-policy-text '{"rules":[{"rulePriority":1,"description":"keep last 2 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":2},"action":{"type":"expire"}}]}' \
