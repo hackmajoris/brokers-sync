@@ -7,6 +7,7 @@ import type { PortfolioData } from '../types/portfolio'
 type Status = 'idle' | 'uploading' | 'done'
 
 const accent = ACCENT_DEFAULT
+const MAX_ZIP_BYTES = 10 * 1024 * 1024 // 10 MB — matches API Gateway hard limit
 
 interface Props {
   noData?: boolean
@@ -109,11 +110,17 @@ export function SettingsView({ noData, onImported }: Props) {
 
   function handleFileChange() {
     const file = fileRef.current?.files?.[0]
-    setFileName(file ? file.name : null)
     setLogs([])
     setSuccess(null)
     setFetchError(null)
     setStatus('idle')
+    if (file && file.size > MAX_ZIP_BYTES) {
+      setFetchError(`File is too large (${(file.size / 1024 / 1024).toFixed(1)} MB). Maximum allowed size is 10 MB.`)
+      if (fileRef.current) fileRef.current.value = ''
+      setFileName(null)
+      return
+    }
+    setFileName(file ? file.name : null)
   }
 
   async function uploadBlob(blob: Blob, name: string) {
@@ -300,7 +307,7 @@ export function SettingsView({ noData, onImported }: Props) {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16 }}>
+      <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
         <label style={{
           display: 'flex', alignItems: 'center', gap: 10, flex: 1,
           background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 8,
@@ -341,6 +348,8 @@ export function SettingsView({ noData, onImported }: Props) {
           {busy ? 'Processing…' : 'Upload & import'}
         </button>
       </form>
+
+      <div style={{ fontSize: 11, color: '#555555', marginBottom: 12 }}>Max file size: 10 MB</div>
 
       {fetchError && !busy && (
         <div style={{

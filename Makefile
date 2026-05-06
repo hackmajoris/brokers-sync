@@ -1,6 +1,8 @@
 AWS_PROFILE  ?= hackmajoris-aws
 AWS_REGION   ?= eu-central-1
-AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity --profile $(AWS_PROFILE) --query Account --output text)
+# Empty AWS_PROFILE (e.g. in CI) → no --profile flag; OIDC/env credentials are used instead.
+PROFILE_ARG   = $(if $(AWS_PROFILE),--profile $(AWS_PROFILE))
+AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Account --output text)
 
 .PHONY: dev build build-web build-server run \
         cdk-bootstrap cdk-deploy cdk-destroy cdk-diff
@@ -22,22 +24,22 @@ run: build
 	./bin/server -data data -web web/dist
 
 cdk-bootstrap:
-	cd infra && cdk bootstrap aws://$(AWS_ACCOUNT)/$(AWS_REGION) --profile $(AWS_PROFILE)
+	cd infra && cdk bootstrap aws://$(AWS_ACCOUNT)/$(AWS_REGION) $(PROFILE_ARG)
 	@echo "Setting ECR lifecycle policy (keep 2 images)..."
 	aws ecr put-lifecycle-policy \
 		--repository-name cdk-hnb659fds-container-assets-$(AWS_ACCOUNT)-$(AWS_REGION) \
 		--lifecycle-policy-text '{"rules":[{"rulePriority":1,"description":"keep last 2 images","selection":{"tagStatus":"any","countType":"imageCountMoreThan","countNumber":2},"action":{"type":"expire"}}]}' \
-		--profile $(AWS_PROFILE) \
+		$(PROFILE_ARG) \
 		--region $(AWS_REGION)
 
 cdk-diff:
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \
-		cdk diff --all --profile $(AWS_PROFILE)
+		cdk diff --all $(PROFILE_ARG)
 
 cdk-deploy: build-web
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \
-		cdk deploy --all --profile $(AWS_PROFILE) --require-approval never --outputs-file cdk-outputs.json
+		cdk deploy --all $(PROFILE_ARG) --require-approval never --outputs-file cdk-outputs.json
 
 cdk-destroy:
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \
-		cdk destroy --all --profile $(AWS_PROFILE) --force
+		cdk destroy --all $(PROFILE_ARG) --force

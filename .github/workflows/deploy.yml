@@ -11,8 +11,6 @@ permissions:
 
 env:
   AWS_REGION: eu-central-1
-  CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
-  CDK_DEFAULT_REGION: eu-central-1
 
 jobs:
   deploy:
@@ -38,19 +36,14 @@ jobs:
       - name: Install CDK CLI
         run: npm install -g aws-cdk
 
-      - name: Build React SPA
-        # web/dist must exist before cdk deploy so BucketDeployment can sync it to S3
-        run: cd web && npm ci && npm run build
+      - name: Install web dependencies
+        run: cd web && npm ci
 
       - name: CDK Bootstrap
-        # Idempotent — safe to run on every deploy. Creates the CDK staging S3 bucket
-        # and ECR repository used to store assets during deployment.
-        working-directory: infra
-        run: cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/eu-central-1
+        run: make cdk-bootstrap AWS_PROFILE=
 
       - name: CDK Deploy
-        working-directory: infra
-        run: go mod download && cdk deploy --require-approval never --outputs-file cdk-outputs.json
+        run: make cdk-deploy AWS_PROFILE=
 
       - name: Upload deployment outputs
         uses: actions/upload-artifact@v4

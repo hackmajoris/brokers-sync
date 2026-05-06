@@ -115,11 +115,14 @@ export async function uploadZip(
     for (const part of parts) {
       const dataLine = part.split('\n').find(l => l.startsWith('data: '))
       if (!dataLine) continue
-      try {
-        const ev = JSON.parse(dataLine.slice(6)) as { type: string; line?: string; success?: boolean; report?: unknown }
-        if (ev.type === 'log' && ev.line != null) onLog?.(ev.line)
-        else if (ev.type === 'done') return ev.success && ev.report ? (ev.report as RawPortfolio) : null
-      } catch { /* ignore malformed */ }
+      let ev: { type: string; line?: string; success?: boolean; report?: unknown; error?: string } | null = null
+      try { ev = JSON.parse(dataLine.slice(6)) } catch { /* ignore malformed */ }
+      if (!ev) continue
+      if (ev.type === 'log' && ev.line != null) onLog?.(ev.line)
+      else if (ev.type === 'done') {
+        if (!ev.success) throw new Error(ev.error ?? 'Import failed')
+        return ev.report ? (ev.report as RawPortfolio) : null
+      }
     }
   }
   return null

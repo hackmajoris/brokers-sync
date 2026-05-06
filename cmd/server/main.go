@@ -75,7 +75,9 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		sseEvent(w, map[string]any{"type": "done", "success": false, "error": msg})
 	}
 
-	if err := r.ParseMultipartForm(128 << 20); err != nil {
+	const maxZipBytes = 10 << 20 // 10 MB — matches API Gateway hard limit
+
+	if err := r.ParseMultipartForm(maxZipBytes); err != nil {
 		fail("parse form: " + err.Error())
 		return
 	}
@@ -89,6 +91,11 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	buf, err := io.ReadAll(f)
 	if err != nil {
 		fail("read body: " + err.Error())
+		return
+	}
+
+	if len(buf) > maxZipBytes {
+		fail(fmt.Sprintf("zip file is too large (%.1f MB); maximum allowed size is 10 MB", float64(len(buf))/1024/1024))
 		return
 	}
 
@@ -204,7 +211,6 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 
 	sseEvent(w, map[string]any{"type": "done", "success": true, "report": report})
 }
-
 
 var isCurrencyCode = regexp.MustCompile(`^[A-Z]{3}$`)
 
