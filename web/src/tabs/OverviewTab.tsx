@@ -19,7 +19,7 @@ export function OverviewTab({ data, accent }: Props) {
 
   const totalMV = data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0)
   const totalUPnl = data.openPositions.reduce((s, p) => s + (p.pnl ?? 0), 0)
-  const totalAmount = totalMV + data.cashBalance + totalUPnl
+  const totalAmount = totalMV + data.cashBalance;
 
   const brokerAlloc = data.brokers
     .map(b => ({
