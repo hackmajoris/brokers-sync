@@ -36,8 +36,8 @@ jobs:
       - name: Install CDK CLI
         run: npm install -g aws-cdk
 
-      - name: Install web dependencies
-        run: cd web && npm ci
+      - name: Build web
+        run: cd web && npm ci && npm run build
 
       - name: CDK Bootstrap
         run: make cdk-bootstrap AWS_PROFILE=
