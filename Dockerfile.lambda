@@ -5,6 +5,9 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/server ./cmd/server
+# Create empty web/dist here (builder runs natively) so the final arm64 stage
+# needs no RUN commands and works on amd64 CI without QEMU.
+RUN mkdir -p /app/web/dist
 
 FROM --platform=linux/arm64 public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 AS lwa
 
@@ -13,9 +16,7 @@ WORKDIR /app
 # Lambda Web Adapter extension — proxies Lambda invocation events to the HTTP server
 COPY --from=lwa /lambda-adapter /opt/extensions/lambda-adapter
 COPY --from=builder /app/bin/server ./server
-# Empty dirs so the FileServer handler doesn't panic on startup.
-# The SPA is served from S3/CloudFront; Lambda only handles /api/* routes.
-RUN mkdir -p /app/web/dist
+COPY --from=builder /app/web/dist /app/web/dist
 EXPOSE 8080
 ENV PORT=8080
 ENV AWS_LWA_PORT=8080
