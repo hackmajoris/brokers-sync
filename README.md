@@ -2,6 +2,19 @@
 
 Parses and normalizes transaction exports from multiple brokers into a unified ledger, then computes portfolio statistics: open positions with unrealized P&L, realized P&L (FIFO), dividends, year-by-year breakdowns, and more.
 
+
+## Features
+
+- **No account required** — upload a ZIP of your broker exports and get results instantly. No login, no data stored server-side; the backend only parses the CSVs and calls Yahoo Finance for live prices, then discards everything.
+- **ZIP saved in your browser** — the uploaded file is cached in IndexedDB so you can re-process without re-uploading. All data is transient and stays in your browser session.
+- **Automatic broker detection** — drop any mix of exports into one ZIP; the format is inferred from the file headers automatically.
+- **Per-broker statistics** — all-time return, all-time realized P&L, YTD realized P&L, total dividends received, annualized return, top realized gainers, top realized losers, and open positions summary — broken down per broker and aggregated across all of them.
+- **Open positions** — quantity, average cost, cost basis, current market value, unrealized P&L (amount and %), portfolio allocation weight, and return since purchase.
+- **Annual breakdown** — realized P&L, dividends, deposits, withdrawals, fees, buy volume, and sell volume — bucketed per calendar year.
+- **P&L statistics** — all-time and YTD realized gain/loss, FIFO lot matching, largest single winners and losers.
+- **Dividend statistics** — aggregated dividend income (all-time and YTD), annual dividend totals, year-over-year dividend progress, and per-symbol breakdown with gross amount, tax withheld, and net received.
+- **Runs locally via Docker Compose** — single command (`docker compose up`) to spin up the full stack; no cloud account needed.
+
 **Live site:** [brokersync.dot-core.com](http://brokersync.dot-core.com)
 
 ## Supported brokers
