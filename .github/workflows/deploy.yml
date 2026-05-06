@@ -1,0 +1,60 @@
+name: Deploy
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  id-token: write  # required for OIDC
+  contents: read
+
+env:
+  AWS_REGION: eu-central-1
+  CDK_DEFAULT_ACCOUNT: ${{ secrets.AWS_ACCOUNT_ID }}
+  CDK_DEFAULT_REGION: eu-central-1
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::${{ secrets.AWS_ACCOUNT_ID }}:role/github-actions-brokers-sync
+          aws-region: eu-central-1
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.24'
+          cache: true
+
+      - name: Install CDK CLI
+        run: npm install -g aws-cdk
+
+      - name: Build React SPA
+        # web/dist must exist before cdk deploy so BucketDeployment can sync it to S3
+        run: cd web && npm ci && npm run build
+
+      - name: CDK Bootstrap
+        # Idempotent — safe to run on every deploy. Creates the CDK staging S3 bucket
+        # and ECR repository used to store assets during deployment.
+        working-directory: infra
+        run: cdk bootstrap aws://${{ secrets.AWS_ACCOUNT_ID }}/eu-central-1
+
+      - name: CDK Deploy
+        working-directory: infra
+        run: go mod download && cdk deploy --require-approval never --outputs-file cdk-outputs.json
+
+      - name: Upload deployment outputs
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: cdk-outputs
+          path: infra/cdk-outputs.json

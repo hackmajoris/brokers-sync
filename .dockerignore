@@ -4,3 +4,5 @@ bin
 data
 .git
 .idea
+infra/cdk.out
+infra/*.out

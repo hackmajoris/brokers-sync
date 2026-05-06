@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import type { PortfolioData } from './types/portfolio'
 import { fetchPortfolioData, uploadZip, mapRawPortfolio, cacheRawPortfolio } from './services/portfolioService'
+import { loadMockPortfolio } from './services/mockService'
 import { loadCachedZip } from './services/zipCache'
 import { ACCENT_DEFAULT } from './constants'
 import { OverviewTab } from './tabs/OverviewTab'
@@ -24,6 +25,7 @@ type TabId = (typeof TABS)[number]['id']
 export function App() {
   const [data, setData] = useState<PortfolioData | null>(null)
   const [noData, setNoData] = useState(false)
+  const [isDemo, setIsDemo] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [refreshing, setRefreshing] = useState(false)
   const accent = ACCENT_DEFAULT
@@ -33,7 +35,7 @@ export function App() {
       const cached = await loadCachedZip()
       if (cached) {
         // Show cached JSON immediately, then refresh in background
-        const initial = await fetchPortfolioData()
+        const initial = await fetchPortfolioData().catch(() => null)
         if (initial) setData(initial); else { setNoData(true); setActiveTab('settings') }
 
         setRefreshing(true)
@@ -47,9 +49,13 @@ export function App() {
         } catch { /* silent — stale data is still shown */ }
         setRefreshing(false)
       } else {
-        fetchPortfolioData()
-          .then(d => { if (d) setData(d); else { setNoData(true); setActiveTab('settings') } })
-          .catch(() => { setNoData(true); setActiveTab('settings') })
+        const real = await fetchPortfolioData().catch(() => null)
+        if (real) {
+          setData(real)
+        } else {
+          setData(loadMockPortfolio())
+          setIsDemo(true)
+        }
       }
     }
     init()
@@ -82,17 +88,27 @@ export function App() {
             >{t.label}</button>
           ))}
         </nav>
-        <div style={{ fontSize: 11, color: '#555555', flexShrink: 0 }} className="date-label">
-          {refreshing
-            ? <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
-            : <>As of <span style={{ color: '#c0c0c0' }}>{generatedDate}</span></>
-          }
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {isDemo && (
+            <span style={{
+              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
+              background: '#f59e0b22', border: '1px solid #f59e0b55',
+              color: '#f59e0b', borderRadius: 4, padding: '2px 7px',
+              userSelect: 'none',
+            }}>DEMO</span>
+          )}
+          <div style={{ fontSize: 11, color: '#555555' }} className="date-label">
+            {refreshing
+              ? <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
+              : <>As of <span style={{ color: '#c0c0c0' }}>{generatedDate}</span></>
+            }
+          </div>
         </div>
       </header>
 
       <main style={{ padding: '16px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
         {activeTab === 'settings' && (
-          <SettingsView onImported={d => { setData(d); setNoData(false); setActiveTab('overview') }} noData={noData} />
+          <SettingsView onImported={d => { setData(d); setNoData(false); setIsDemo(false); setActiveTab('overview') }} noData={noData} />
         )}
 
         {!noData && activeTab !== 'settings' && !data && (

@@ -127,8 +127,10 @@ export async function uploadZip(
 
 export async function fetchPortfolioData(): Promise<PortfolioData | null> {
   const res = await fetch('/data/result.json')
-  if (res.status === 404) return loadCachedPortfolio()
-  if (!res.ok) throw new Error(`Failed to load portfolio data: ${res.statusText}`)
+  if (!res.ok) return loadCachedPortfolio()
+  // CloudFront maps 403/404 to index.html (200) — guard against parsing HTML as JSON
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) return loadCachedPortfolio()
   const raw: RawPortfolio = await res.json()
   return mapRawPortfolio(raw)
 }

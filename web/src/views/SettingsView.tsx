@@ -67,6 +67,19 @@ const BROKERS = [
       'Download the generated report file',
     ],
   },
+  {
+    id: 'xtb',
+    name: 'XTB',
+    full: 'XTB',
+    format: 'XLSX / CSV',
+    steps: [
+      'Log in to xStation 5 (web or desktop)',
+      'Click the clock icon (History) in the left sidebar',
+      'Select the Cash Operations tab for deposits/withdrawals or Closed Positions for trades',
+      'Set your desired date range using the date pickers',
+      'Click the Export icon (arrow) in the top-right of the table to download as CSV',
+    ],
+  },
 ]
 
 export function SettingsView({ noData, onImported }: Props) {

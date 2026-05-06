@@ -103,6 +103,10 @@ export function OverviewTab({ data, accent }: Props) {
             data={yearlyData} keyX="year" keyY="val"
             colorFn={v => v >= 0 ? '#34d399' : '#f87171'}
             height={130}
+            formatValue={chartMode === 'gainPct'
+              ? v => `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+              : v => v >= 1000 ? `$${(v / 1000).toFixed(0)}k` : `$${Math.round(v)}`
+            }
           />
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10 }}>
             {data.byYear.map(y => (

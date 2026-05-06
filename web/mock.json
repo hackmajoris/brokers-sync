@@ -1,0 +1,2718 @@
+{
+  "generated_at": "2026-05-06T09:29:23.899382857Z",
+  "base_currency": "USD",
+  "cash_balance": 4190.401914627844,
+  "brokers": [
+    {
+      "name": "trading212",
+      "base_currency": "USD",
+      "cash_balance": 83.68999999999967,
+      "open_positions": [
+        {
+          "symbol": "AMZN",
+          "currency": "USD",
+          "quantity": 15.01274973,
+          "avg_cost": 240.1847182596323,
+          "total_cost": 3605.8330642024207,
+          "current_price": 273.55,
+          "market_value": 4106.7376886415,
+          "unrealized_pnl": 500.9046244390793,
+          "unrealized_pct_omitempty": 13.891508994465198
+        },
+        {
+          "symbol": "BABA",
+          "currency": "USD",
+          "quantity": 1.2896462,
+          "avg_cost": 120.25778853145925,
+          "total_cost": 155.09,
+          "current_price": 132.26,
+          "market_value": 170.56860641199998,
+          "unrealized_pnl": 15.47860641199998,
+          "unrealized_pct_omitempty": 9.980402612676498
+        },
+        {
+          "symbol": "GOOGL",
+          "currency": "USD",
+          "quantity": 1.0000000000000004,
+          "avg_cost": 245.3699999999999,
+          "total_cost": 245.37,
+          "current_price": 388.43,
+          "market_value": 388.4300000000002,
+          "unrealized_pnl": 143.06000000000017,
+          "unrealized_pct_omitempty": 58.30378611892252
+        },
+        {
+          "symbol": "GTCH",
+          "currency": "USD",
+          "quantity": 6474.254999999999,
+          "avg_cost": 0.0914251910065328,
+          "total_cost": 591.91,
+          "current_price": 0.0001,
+          "market_value": 0.6474255,
+          "unrealized_pnl": -591.2625744999999,
+          "unrealized_pct_omitempty": -99.89062095588855
+        },
+        {
+          "symbol": "INOD",
+          "currency": "USD",
+          "quantity": 12,
+          "avg_cost": 76.96,
+          "total_cost": 923.52,
+          "current_price": 45.64,
+          "market_value": 547.6800000000001,
+          "unrealized_pnl": -375.84,
+          "unrealized_pct_omitempty": -40.696465696465694
+        },
+        {
+          "symbol": "NFLX",
+          "currency": "USD",
+          "quantity": 6,
+          "avg_cost": 96.03166666666665,
+          "total_cost": 576.1899999999999,
+          "current_price": 87.89,
+          "market_value": 527.34,
+          "unrealized_pnl": -48.84999999999994,
+          "unrealized_pct_omitempty": -8.47810618025303
+        },
+        {
+          "symbol": "O",
+          "currency": "USD",
+          "quantity": 86.00000000000001,
+          "avg_cost": 28.587441860465113,
+          "total_cost": 2458.52,
+          "current_price": 28.27,
+          "market_value": 2431.2200000000003,
+          "unrealized_pnl": -27.299999999999617,
+          "unrealized_pct_omitempty": -1.1104241576232698
+        }
+      ],
+      "realized_pnl_by_symbol": [
+        {
+          "symbol": "TGT",
+          "pnl": 77.91
+        },
+        {
+          "symbol": "GOOGL",
+          "pnl": 74.99
+        },
+        {
+          "symbol": "AAP3",
+          "pnl": 59.2
+        },
+        {
+          "symbol": "O",
+          "pnl": 58.370000000000005
+        },
+        {
+          "symbol": "3APE",
+          "pnl": 47.58
+        },
+        {
+          "symbol": "MSFT",
+          "pnl": 35.43
+        },
+        {
+          "symbol": "HD",
+          "pnl": 17.88
+        },
+        {
+          "symbol": "TSLA",
+          "pnl": 14.82
+        },
+        {
+          "symbol": "JPM",
+          "pnl": 12.17
+        },
+        {
+          "symbol": "PEP",
+          "pnl": 9.46
+        },
+        {
+          "symbol": "ABBV",
+          "pnl": 9.14
+        },
+        {
+          "symbol": "AMZN",
+          "pnl": 7.8500000000000005
+        },
+        {
+          "symbol": "DLR",
+          "pnl": 4.59
+        },
+        {
+          "symbol": "WCLD",
+          "pnl": 3.44
+        },
+        {
+          "symbol": "COUV",
+          "pnl": 1.4700000000000006
+        },
+        {
+          "symbol": "NKE",
+          "pnl": 1.23
+        },
+        {
+          "symbol": "TWLO",
+          "pnl": 1.12
+        },
+        {
+          "symbol": "AAPL",
+          "pnl": 0.26
+        },
+        {
+          "symbol": "BABA",
+          "pnl": -0.02
+        },
+        {
+          "symbol": "TEF",
+          "pnl": -0.14
+        },
+        {
+          "symbol": "HITI",
+          "pnl": -0.14
+        },
+        {
+          "symbol": "VZ",
+          "pnl": -1.55
+        },
+        {
+          "symbol": "CRM",
+          "pnl": -1.91
+        },
+        {
+          "symbol": "STOR",
+          "pnl": -2.05
+        },
+        {
+          "symbol": "ZM",
+          "pnl": -2.63
+        },
+        {
+          "symbol": "XYZ",
+          "pnl": -3.71
+        },
+        {
+          "symbol": "NFLX",
+          "pnl": -6.52
+        },
+        {
+          "symbol": "CLOV",
+          "pnl": -6.67
+        },
+        {
+          "symbol": "COST",
+          "pnl": -8.41
+        },
+        {
+          "symbol": "HCMC",
+          "pnl": -13.15
+        },
+        {
+          "symbol": "PTON",
+          "pnl": -22.06
+        },
+        {
+          "symbol": "ISLN",
+          "pnl": -51.2
+        },
+        {
+          "symbol": "GAXYQ",
+          "pnl": -60.26
+        },
+        {
+          "symbol": "CBBT",
+          "pnl": -149
+        },
+        {
+          "symbol": "3LTP",
+          "pnl": -255.04
+        },
+        {
+          "symbol": "PATH",
+          "pnl": -436.32
+        },
+        {
+          "symbol": "AIAD",
+          "pnl": -508.16
+        },
+        {
+          "symbol": "NIO",
+          "pnl": -604.18
+        },
+        {
+          "symbol": "ALPP",
+          "pnl": -1886.8799999999999
+        }
+      ],
+      "all_time": {
+        "label": "All Time",
+        "start": "0001-01-01T00:00:00Z",
+        "end": "0001-01-01T00:00:00Z",
+        "realized_pnl": -3583.0899999999997,
+        "dividends_net": 118.55000000000021,
+        "tax_withheld": 0,
+        "fees": -0.32,
+        "commissions": -0.7400000000000001,
+        "deposits": 14497.039999999999,
+        "withdrawals": -2443.05,
+        "buy_volume": 44635.54750721853,
+        "sell_volume": 15077.362633271965,
+        "gain_pct": -20.451721330878403
+      },
+      "ytd": {
+        "label": "YTD",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.885417455Z",
+        "realized_pnl": -1353.35,
+        "dividends_net": 27.640000000000015,
+        "tax_withheld": 0,
+        "fees": -0.32,
+        "commissions": -0.01,
+        "deposits": 270,
+        "withdrawals": 0,
+        "buy_volume": 4740.479999103899,
+        "sell_volume": 944.2529079576041,
+        "gain_pct": -7.825873416256937
+      },
+      "mtd": {
+        "label": "MTD",
+        "start": "2026-05-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.885417455Z",
+        "realized_pnl": 0,
+        "dividends_net": 0.01,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 0,
+        "withdrawals": 0,
+        "buy_volume": 0,
+        "sell_volume": 0,
+        "gain_pct": 0.00005903156358673419
+      },
+      "by_year": [
+        {
+          "label": "2020",
+          "start": "2020-01-01T00:00:00Z",
+          "end": "2020-12-31T23:59:59Z",
+          "realized_pnl": 964.7600000000001,
+          "dividends_net": 0,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 3236,
+          "withdrawals": -25,
+          "buy_volume": 6178.165596464601,
+          "sell_volume": 2965.19464243726,
+          "gain_pct": 29.81334981458591
+        },
+        {
+          "label": "2021",
+          "start": "2021-01-01T00:00:00Z",
+          "end": "2021-12-31T23:59:59Z",
+          "realized_pnl": 6.590000000000003,
+          "dividends_net": 20.090000000000003,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": -0.12,
+          "deposits": 3135.74,
+          "withdrawals": -21.74,
+          "buy_volume": 7641.544184447529,
+          "sell_volume": 4579.0565066161,
+          "gain_pct": 0.3502241940404677
+        },
+        {
+          "label": "2022",
+          "start": "2022-01-01T00:00:00Z",
+          "end": "2022-12-31T23:59:59Z",
+          "realized_pnl": 133.02,
+          "dividends_net": 58.109999999999985,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": -0.6000000000000001,
+          "deposits": 600.82,
+          "withdrawals": 0,
+          "buy_volume": 21487.2705339235,
+          "sell_volume": 1576.9889049600001,
+          "gain_pct": 2.2628339468785232
+        },
+        {
+          "label": "2023",
+          "start": "2023-01-01T00:00:00Z",
+          "end": "2023-12-31T23:59:59Z",
+          "realized_pnl": 163.64000000000001,
+          "dividends_net": 2.04,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 8.48,
+          "withdrawals": -2386.31,
+          "buy_volume": 868.9896933999999,
+          "sell_volume": 3236.650348555,
+          "gain_pct": 1.9165265560358014
+        },
+        {
+          "label": "2024",
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2024-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 3.769999999999999,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 0,
+          "withdrawals": 0,
+          "buy_volume": 0,
+          "sell_volume": 0,
+          "gain_pct": 0.05861390165343664
+        },
+        {
+          "label": "2025",
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:59:59Z",
+          "realized_pnl": -3497.75,
+          "dividends_net": 6.899999999999998,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": -0.01,
+          "deposits": 7246,
+          "withdrawals": -10,
+          "buy_volume": 3719.0974998789998,
+          "sell_volume": 1775.219322746,
+          "gain_pct": -25.52178751734968
+        },
+        {
+          "label": "2026",
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-12-31T23:59:59Z",
+          "realized_pnl": -1353.35,
+          "dividends_net": 27.640000000000015,
+          "tax_withheld": 0,
+          "fees": -0.32,
+          "commissions": -0.01,
+          "deposits": 270,
+          "withdrawals": 0,
+          "buy_volume": 4740.479999103899,
+          "sell_volume": 944.2529079576041,
+          "gain_pct": -20.879622735613037
+        }
+      ],
+      "dividends_by_symbol": [
+        {
+          "symbol": "O",
+          "gross": 72.16,
+          "tax_withheld": 0,
+          "net": 72.16
+        },
+        {
+          "symbol": "HD",
+          "gross": 9.98,
+          "tax_withheld": 0,
+          "net": 9.98
+        },
+        {
+          "symbol": "TGT",
+          "gross": 8.26,
+          "tax_withheld": 0,
+          "net": 8.26
+        },
+        {
+          "symbol": "(no symbol)",
+          "gross": 7.279999999999998,
+          "tax_withheld": 0,
+          "net": 7.279999999999998
+        },
+        {
+          "symbol": "BABA",
+          "gross": 6.01,
+          "tax_withheld": 0,
+          "net": 6.01
+        },
+        {
+          "symbol": "MSFT",
+          "gross": 4.7,
+          "tax_withheld": 0,
+          "net": 4.7
+        },
+        {
+          "symbol": "PEP",
+          "gross": 3.73,
+          "tax_withheld": 0,
+          "net": 3.73
+        },
+        {
+          "symbol": "ABBV",
+          "gross": 1.4099999999999997,
+          "tax_withheld": 0,
+          "net": 1.4099999999999997
+        },
+        {
+          "symbol": "DLR",
+          "gross": 1.1300000000000001,
+          "tax_withheld": 0,
+          "net": 1.1300000000000001
+        },
+        {
+          "symbol": "TEF",
+          "gross": 0.9600000000000001,
+          "tax_withheld": 0,
+          "net": 0.9600000000000001
+        },
+        {
+          "symbol": "JPM",
+          "gross": 0.93,
+          "tax_withheld": 0,
+          "net": 0.93
+        },
+        {
+          "symbol": "STOR",
+          "gross": 0.88,
+          "tax_withheld": 0,
+          "net": 0.88
+        },
+        {
+          "symbol": "GOOGL",
+          "gross": 0.38,
+          "tax_withheld": 0,
+          "net": 0.38
+        },
+        {
+          "symbol": "VZ",
+          "gross": 0.28,
+          "tax_withheld": 0,
+          "net": 0.28
+        },
+        {
+          "symbol": "NKE",
+          "gross": 0.19000000000000003,
+          "tax_withheld": 0,
+          "net": 0.19000000000000003
+        },
+        {
+          "symbol": "COST",
+          "gross": 0.16,
+          "tax_withheld": 0,
+          "net": 0.16
+        },
+        {
+          "symbol": "CRM",
+          "gross": 0.09,
+          "tax_withheld": 0,
+          "net": 0.09
+        },
+        {
+          "symbol": "AAPL",
+          "gross": 0.02,
+          "tax_withheld": 0,
+          "net": 0.02
+        }
+      ]
+    },
+    {
+      "name": "revolut",
+      "base_currency": "USD",
+      "cash_balance": 0.5799999999988685,
+      "open_positions": [
+        {
+          "symbol": "AAPL",
+          "currency": "USD",
+          "quantity": 11.999999999999996,
+          "avg_cost": 163.95535905932593,
+          "total_cost": 1967.4643087119105,
+          "current_price": 284.18,
+          "market_value": 3410.159999999999,
+          "unrealized_pnl": 1442.6956912880887,
+          "unrealized_pct_omitempty": 73.32766774471324
+        },
+        {
+          "symbol": "BABA",
+          "currency": "USD",
+          "quantity": 16,
+          "avg_cost": 159.060366553518,
+          "total_cost": 2544.965864856288,
+          "current_price": 132.26,
+          "market_value": 2116.16,
+          "unrealized_pnl": -428.8058648562883,
+          "unrealized_pct_omitempty": -16.84917942427894
+        },
+        {
+          "symbol": "BAC",
+          "currency": "USD",
+          "quantity": 17,
+          "avg_cost": 29.1753319517775,
+          "total_cost": 495.9806431802175,
+          "current_price": 53.12,
+          "market_value": 903.04,
+          "unrealized_pnl": 407.05935681978247,
+          "unrealized_pct_omitempty": 82.07162162816
+        },
+        {
+          "symbol": "CRM",
+          "currency": "USD",
+          "quantity": 1,
+          "avg_cost": 279.9536822306035,
+          "total_cost": 279.9536822306035
+        },
+        {
+          "symbol": "DIS",
+          "currency": "USD",
+          "quantity": 1,
+          "avg_cost": 178.2525189386863,
+          "total_cost": 178.2525189386863
+        },
+        {
+          "symbol": "GOOGL",
+          "currency": "USD",
+          "quantity": 9,
+          "avg_cost": 164.49830545640447,
+          "total_cost": 1480.4847491076403,
+          "current_price": 388.43,
+          "market_value": 3495.87,
+          "unrealized_pnl": 2015.3852508923599,
+          "unrealized_pct_omitempty": 136.13009199231064
+        },
+        {
+          "symbol": "MSFT",
+          "currency": "USD",
+          "quantity": 0.9999999999999997,
+          "avg_cost": 288.70354694447883,
+          "total_cost": 288.7035469444787,
+          "current_price": 411.38,
+          "market_value": 411.3799999999999,
+          "unrealized_pnl": 122.67645305552114,
+          "unrealized_pct_omitempty": 42.49218769699194
+        },
+        {
+          "symbol": "TGT",
+          "currency": "USD",
+          "quantity": 9,
+          "avg_cost": 194.5449487789921,
+          "total_cost": 1750.904539010929
+        },
+        {
+          "symbol": "TSLA",
+          "currency": "USD",
+          "quantity": 23.000000000000004,
+          "avg_cost": 346.6428740138575,
+          "total_cost": 7972.786102318724
+        },
+        {
+          "symbol": "UNH",
+          "currency": "USD",
+          "quantity": 16,
+          "avg_cost": 326.84187499999996,
+          "total_cost": 5229.469999999999,
+          "current_price": 363.87,
+          "market_value": 5821.92,
+          "unrealized_pnl": 592.4500000000007,
+          "unrealized_pct_omitempty": 11.329063939557944
+        },
+        {
+          "symbol": "O",
+          "currency": "USD",
+          "quantity": 33.99999999999995,
+          "avg_cost": 32.45766274578827,
+          "total_cost": 1103.5605333567996,
+          "current_price": 28.27,
+          "market_value": 961.1799999999986,
+          "unrealized_pnl": -142.38053335680104,
+          "unrealized_pct_omitempty": -12.90192327952408
+        },
+        {
+          "symbol": "MS",
+          "currency": "USD",
+          "quantity": 13,
+          "avg_cost": 17.236923076923077,
+          "total_cost": 224.07999999999998,
+          "current_price": 28.55,
+          "market_value": 371.15000000000003,
+          "unrealized_pnl": 147.07000000000002,
+          "unrealized_pct_omitempty": 65.63280971081757
+        }
+      ],
+      "realized_pnl_by_symbol": [
+        {
+          "symbol": "TSLA",
+          "pnl": 9031.186102318725
+        },
+        {
+          "symbol": "AAPL",
+          "pnl": 5470.694308711911
+        },
+        {
+          "symbol": "HD",
+          "pnl": 528.7700000000001
+        },
+        {
+          "symbol": "MSFT",
+          "pnl": 354.5035469444791
+        },
+        {
+          "symbol": "NIO",
+          "pnl": 200.33000000000027
+        },
+        {
+          "symbol": "AMZN",
+          "pnl": 164.56000000000003
+        },
+        {
+          "symbol": "O",
+          "pnl": 154.42053335679967
+        },
+        {
+          "symbol": "ZM",
+          "pnl": 107.00999999999999
+        },
+        {
+          "symbol": "TROW",
+          "pnl": 101.88999999999976
+        },
+        {
+          "symbol": "TGT",
+          "pnl": 88.69453901092926
+        },
+        {
+          "symbol": "PTON",
+          "pnl": 33.05000000000007
+        },
+        {
+          "symbol": "BRK.B",
+          "pnl": 29.580000000000087
+        },
+        {
+          "symbol": "NFLX",
+          "pnl": 29.50999999999999
+        },
+        {
+          "symbol": "FRCB",
+          "pnl": 28.889999999999986
+        },
+        {
+          "symbol": "JNJ",
+          "pnl": 23.40000000000009
+        },
+        {
+          "symbol": "PEP",
+          "pnl": 19.559999999999974
+        },
+        {
+          "symbol": "CRM",
+          "pnl": 15.433682230603452
+        },
+        {
+          "symbol": "WMT",
+          "pnl": 15.139999999999986
+        },
+        {
+          "symbol": "SPG",
+          "pnl": 14.639999999999986
+        },
+        {
+          "symbol": "AFL",
+          "pnl": 7.6099999999999
+        },
+        {
+          "symbol": "MRK",
+          "pnl": 2.5000000000000115
+        },
+        {
+          "symbol": "KO",
+          "pnl": 1.3299999999999983
+        },
+        {
+          "symbol": "NVDA",
+          "pnl": 0.4399999999999409
+        },
+        {
+          "symbol": "HOOD",
+          "pnl": 0.030000000000001137
+        },
+        {
+          "symbol": "BAC",
+          "pnl": 0.010643180217521753
+        },
+        {
+          "symbol": "O",
+          "pnl": -0.2400000000000002
+        },
+        {
+          "symbol": "CSCO",
+          "pnl": -0.7800000000000082
+        },
+        {
+          "symbol": "DIS",
+          "pnl": -1.6374810613136876
+        },
+        {
+          "symbol": "GOOGL",
+          "pnl": -7.865250892359828
+        },
+        {
+          "symbol": "ABBV",
+          "pnl": -19.829999999999814
+        },
+        {
+          "symbol": "BYND",
+          "pnl": -23.21999999999997
+        },
+        {
+          "symbol": "BABA",
+          "pnl": -48.49413514371192
+        }
+      ],
+      "all_time": {
+        "label": "All Time",
+        "start": "0001-01-01T00:00:00Z",
+        "end": "0001-01-01T00:00:00Z",
+        "realized_pnl": 16321.116488656276,
+        "dividends_net": 353.28999999999996,
+        "tax_withheld": 0,
+        "fees": -39.15000000000003,
+        "commissions": 0,
+        "deposits": 39711.39,
+        "withdrawals": -32829.46,
+        "buy_volume": 179232.12789308451,
+        "sell_volume": 172102.7564259186,
+        "gain_pct": 22.986229812107627
+      },
+      "ytd": {
+        "label": "YTD",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.885800601Z",
+        "realized_pnl": 0,
+        "dividends_net": 40.5,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 0,
+        "withdrawals": -49,
+        "buy_volume": 26.33,
+        "sell_volume": 0,
+        "gain_pct": 0.05583061130383776
+      },
+      "mtd": {
+        "label": "MTD",
+        "start": "2026-05-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.885800601Z",
+        "realized_pnl": 0,
+        "dividends_net": 0,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 0,
+        "withdrawals": 0,
+        "buy_volume": 0,
+        "sell_volume": 0,
+        "gain_pct": 0
+      },
+      "by_year": [
+        {
+          "label": "2020",
+          "start": "2020-01-01T00:00:00Z",
+          "end": "2020-12-31T23:59:59Z",
+          "realized_pnl": 6329.462742905841,
+          "dividends_net": 65.1,
+          "tax_withheld": 0,
+          "fees": -0.86,
+          "commissions": 0,
+          "deposits": 19527.100000000002,
+          "withdrawals": -13088.54,
+          "buy_volume": 141515.64081748642,
+          "sell_volume": 135062.18936725432,
+          "gain_pct": 32.74711935159773
+        },
+        {
+          "label": "2021",
+          "start": "2021-01-01T00:00:00Z",
+          "end": "2021-12-31T23:59:59Z",
+          "realized_pnl": 8780.43113379575,
+          "dividends_net": 68.87,
+          "tax_withheld": 0,
+          "fees": -17.46,
+          "commissions": 0,
+          "deposits": 5906.579999999999,
+          "withdrawals": -11127,
+          "buy_volume": 20178.929821878803,
+          "sell_volume": 25348.321220385697,
+          "gain_pct": 47.22437375246078
+        },
+        {
+          "label": "2022",
+          "start": "2022-01-01T00:00:00Z",
+          "end": "2022-12-31T23:59:59Z",
+          "realized_pnl": 1083.0839326189218,
+          "dividends_net": 83.47000000000001,
+          "tax_withheld": 0,
+          "fees": -15.990000000000002,
+          "commissions": 0,
+          "deposits": 5501.09,
+          "withdrawals": -4403.68,
+          "buy_volume": 7775.753378220801,
+          "sell_volume": 6626.869989419401,
+          "gain_pct": 5.315869436313778
+        },
+        {
+          "label": "2023",
+          "start": "2023-01-01T00:00:00Z",
+          "end": "2023-12-31T23:59:59Z",
+          "realized_pnl": 192.07733870431343,
+          "dividends_net": 40.39,
+          "tax_withheld": 0,
+          "fees": -4.799999999999998,
+          "commissions": 0,
+          "deposits": 2218.79,
+          "withdrawals": -3742.61,
+          "buy_volume": 3328.9038754984003,
+          "sell_volume": 4818.1493575729,
+          "gain_pct": 1.1117797432544647
+        },
+        {
+          "label": "2024",
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2024-12-31T23:59:59Z",
+          "realized_pnl": -63.9386593685492,
+          "dividends_net": 1.15,
+          "tax_withheld": 0,
+          "fees": -0.04,
+          "commissions": 0,
+          "deposits": 0,
+          "withdrawals": -248.77,
+          "buy_volume": 0,
+          "sell_volume": 247.2264912863,
+          "gain_pct": -0.36096213113188375
+        },
+        {
+          "label": "2025",
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 53.81,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 6557.83,
+          "withdrawals": -169.86,
+          "buy_volume": 6406.57,
+          "sell_volume": 0,
+          "gain_pct": 0.22760759117133406
+        },
+        {
+          "label": "2026",
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 40.5,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 0,
+          "withdrawals": -49,
+          "buy_volume": 26.33,
+          "sell_volume": 0,
+          "gain_pct": 0.17241176373363606
+        }
+      ],
+      "dividends_by_symbol": [
+        {
+          "symbol": "AAPL",
+          "gross": 91.54,
+          "tax_withheld": 0,
+          "net": 91.54
+        },
+        {
+          "symbol": "UNH",
+          "gross": 81.53999999999999,
+          "tax_withheld": 0,
+          "net": 81.53999999999999
+        },
+        {
+          "symbol": "O",
+          "gross": 78.85000000000001,
+          "tax_withheld": 0,
+          "net": 78.85000000000001
+        },
+        {
+          "symbol": "TGT",
+          "gross": 34.91000000000001,
+          "tax_withheld": 0,
+          "net": 34.91000000000001
+        },
+        {
+          "symbol": "HD",
+          "gross": 14.76,
+          "tax_withheld": 0,
+          "net": 14.76
+        },
+        {
+          "symbol": "MSFT",
+          "gross": 11.680000000000001,
+          "tax_withheld": 0,
+          "net": 11.680000000000001
+        },
+        {
+          "symbol": "MS",
+          "gross": 11.25,
+          "tax_withheld": 0,
+          "net": 11.25
+        },
+        {
+          "symbol": "PEP",
+          "gross": 7.12,
+          "tax_withheld": 0,
+          "net": 7.12
+        },
+        {
+          "symbol": "JNJ",
+          "gross": 5.95,
+          "tax_withheld": 0,
+          "net": 5.95
+        },
+        {
+          "symbol": "ABBV",
+          "gross": 5.87,
+          "tax_withheld": 0,
+          "net": 5.87
+        },
+        {
+          "symbol": "MRK",
+          "gross": 4.18,
+          "tax_withheld": 0,
+          "net": 4.18
+        },
+        {
+          "symbol": "WMT",
+          "gross": 1.91,
+          "tax_withheld": 0,
+          "net": 1.91
+        },
+        {
+          "symbol": "GOOGL",
+          "gross": 1.52,
+          "tax_withheld": 0,
+          "net": 1.52
+        },
+        {
+          "symbol": "AFL",
+          "gross": 1.44,
+          "tax_withheld": 0,
+          "net": 1.44
+        },
+        {
+          "symbol": "BABA",
+          "gross": 0.64,
+          "tax_withheld": 0,
+          "net": 0.64
+        },
+        {
+          "symbol": "CRM",
+          "gross": 0.13,
+          "tax_withheld": 0,
+          "net": 0.13
+        }
+      ]
+    },
+    {
+      "name": "ibkr",
+      "base_currency": "USD",
+      "cash_balance": 4143.132196315002,
+      "open_positions": [
+        {
+          "symbol": "AMZN",
+          "currency": "USD",
+          "quantity": 67,
+          "avg_cost": 225.7601717455224,
+          "total_cost": 15125.93150695,
+          "current_price": 273.55,
+          "market_value": 18327.850000000002,
+          "unrealized_pnl": 3201.91849305,
+          "unrealized_pct_omitempty": 21.168405341375475
+        },
+        {
+          "symbol": "BAC",
+          "currency": "USD",
+          "quantity": 15,
+          "avg_cost": 43.14948408333334,
+          "total_cost": 647.2422612500001,
+          "current_price": 53.12,
+          "market_value": 796.8,
+          "unrealized_pnl": 149.55773874999988,
+          "unrealized_pct_omitempty": 23.106918028060065
+        },
+        {
+          "symbol": "CAT",
+          "currency": "USD",
+          "quantity": 0.6,
+          "avg_cost": 363.00396208333336,
+          "total_cost": 217.80237725,
+          "current_price": 904.59,
+          "market_value": 542.754,
+          "unrealized_pnl": 324.95162275,
+          "unrealized_pct_omitempty": 149.19562717950086
+        },
+        {
+          "symbol": "COST",
+          "currency": "USD",
+          "quantity": 0.2824,
+          "avg_cost": 532.3804877124646,
+          "total_cost": 150.34424973,
+          "current_price": 1016.42,
+          "market_value": 287.03700799999996,
+          "unrealized_pnl": 136.69275826999998,
+          "unrealized_pct_omitempty": 90.91984463355503
+        },
+        {
+          "symbol": "CVX",
+          "currency": "USD",
+          "quantity": 2,
+          "avg_cost": 160.06828215625,
+          "total_cost": 320.1365643125,
+          "current_price": 192.64,
+          "market_value": 385.28,
+          "unrealized_pnl": 65.14343568749996,
+          "unrealized_pct_omitempty": 20.34863959616636
+        },
+        {
+          "symbol": "FRC",
+          "currency": "USD",
+          "quantity": 11,
+          "avg_cost": 48.880841568181815,
+          "total_cost": 537.68925725
+        },
+        {
+          "symbol": "GOOGL",
+          "currency": "USD",
+          "quantity": 3,
+          "avg_cost": 252.83396016666666,
+          "total_cost": 758.5018805,
+          "current_price": 388.43,
+          "market_value": 1165.29,
+          "unrealized_pnl": 406.78811950000005,
+          "unrealized_pct_omitempty": 53.63046947646956
+        },
+        {
+          "symbol": "JPM",
+          "currency": "USD",
+          "quantity": 3,
+          "avg_cost": 153.44025145,
+          "total_cost": 460.32075435,
+          "current_price": 309.4,
+          "market_value": 928.1999999999999,
+          "unrealized_pnl": 467.8792456499999,
+          "unrealized_pct_omitempty": 101.64200532532428
+        },
+        {
+          "symbol": "OKLO",
+          "currency": "USD",
+          "quantity": 1,
+          "avg_cost": 74.764150625,
+          "total_cost": 74.764150625,
+          "current_price": 68.38,
+          "market_value": 68.38,
+          "unrealized_pnl": -6.384150625000004,
+          "unrealized_pct_omitempty": -8.539053238257804
+        },
+        {
+          "symbol": "OXY",
+          "currency": "USD",
+          "quantity": 1,
+          "avg_cost": 46.210355625,
+          "total_cost": 46.210355625,
+          "current_price": 59.34,
+          "market_value": 59.34,
+          "unrealized_pnl": 13.129644375000005,
+          "unrealized_pct_omitempty": 28.412775009887202
+        },
+        {
+          "symbol": "QCOM",
+          "currency": "USD",
+          "quantity": 10,
+          "avg_cost": 166.23769025312498,
+          "total_cost": 1662.37690253125,
+          "current_price": 186.55,
+          "market_value": 1865.5,
+          "unrealized_pnl": 203.1230974687502,
+          "unrealized_pct_omitempty": 12.218835401253527
+        },
+        {
+          "symbol": "SPGI",
+          "currency": "USD",
+          "quantity": 6,
+          "avg_cost": 461.565339625,
+          "total_cost": 2769.39203775,
+          "current_price": 423.87,
+          "market_value": 2543.2200000000003,
+          "unrealized_pnl": -226.17203774999984,
+          "unrealized_pct_omitempty": -8.166847982048578
+        },
+        {
+          "symbol": "TXRH",
+          "currency": "USD",
+          "quantity": 29,
+          "avg_cost": 157.74792747844825,
+          "total_cost": 4574.689896874999,
+          "current_price": 158.03,
+          "market_value": 4582.87,
+          "unrealized_pnl": 8.180103125000784,
+          "unrealized_pct_omitempty": 0.1788121885723591
+        },
+        {
+          "symbol": "UNH",
+          "currency": "USD",
+          "quantity": 27,
+          "avg_cost": 321.09962097530865,
+          "total_cost": 8669.689766333333,
+          "current_price": 363.87,
+          "market_value": 9824.49,
+          "unrealized_pnl": 1154.8002336666673,
+          "unrealized_pct_omitempty": 13.319971818957788
+        },
+        {
+          "symbol": "O",
+          "currency": "USD",
+          "quantity": 775.0415,
+          "avg_cost": 30.89491539096414,
+          "total_cost": 23944.841566985935,
+          "current_price": 28.27,
+          "market_value": 21910.423205,
+          "unrealized_pnl": -2034.418361985934,
+          "unrealized_pct_omitempty": -8.496269880486066
+        },
+        {
+          "symbol": "VUAA",
+          "currency": "EUR",
+          "quantity": 2,
+          "avg_cost": 115.9939455,
+          "total_cost": 231.987891
+        },
+        {
+          "symbol": "MS",
+          "currency": "USD",
+          "quantity": 637,
+          "avg_cost": 18.277027947642836,
+          "total_cost": 11642.466802648487,
+          "current_price": 28.55,
+          "market_value": 18186.350000000002,
+          "unrealized_pnl": 6543.883197351513,
+          "unrealized_pct_omitempty": 56.20701616141073
+        }
+      ],
+      "realized_pnl_by_symbol": [
+        {
+          "symbol": "TSLA",
+          "pnl": 6230.024999905
+        },
+        {
+          "symbol": "GOOGL",
+          "pnl": 2336.8269334350002
+        },
+        {
+          "symbol": "AAPL",
+          "pnl": 2073.7305195520003
+        },
+        {
+          "symbol": "TXRH",
+          "pnl": 1511.5732010729994
+        },
+        {
+          "symbol": "BABA",
+          "pnl": 1294.887877966
+        },
+        {
+          "symbol": "MS",
+          "pnl": 1008.9059859064823
+        },
+        {
+          "symbol": "JPM",
+          "pnl": 764.0065711249999
+        },
+        {
+          "symbol": "BAC",
+          "pnl": 745.1853332500002
+        },
+        {
+          "symbol": "AMZN",
+          "pnl": 689.1960945299998
+        },
+        {
+          "symbol": "TGT",
+          "pnl": 655.055504577
+        },
+        {
+          "symbol": "OKLO",
+          "pnl": 566.0465516250001
+        },
+        {
+          "symbol": "AGX",
+          "pnl": 475.1635694999998
+        },
+        {
+          "symbol": "CRM",
+          "pnl": 211.18770543
+        },
+        {
+          "symbol": "CRDO",
+          "pnl": 178.18895835600003
+        },
+        {
+          "symbol": "MSFT",
+          "pnl": 110.31825218
+        },
+        {
+          "symbol": "DIS",
+          "pnl": 89.45188017100001
+        },
+        {
+          "symbol": "QCOM",
+          "pnl": 65.42371628125011
+        },
+        {
+          "symbol": "OXY",
+          "pnl": 52.51361637500037
+        },
+        {
+          "symbol": "UNH",
+          "pnl": 48.933567333333315
+        },
+        {
+          "symbol": "VUAA",
+          "pnl": 22.45749569999993
+        },
+        {
+          "symbol": "BRK B",
+          "pnl": 12.054710618000286
+        },
+        {
+          "symbol": "FRCB",
+          "pnl": 0.318603992
+        },
+        {
+          "symbol": "IESC",
+          "pnl": -10.332344499999863
+        },
+        {
+          "symbol": "CVX",
+          "pnl": -29.08232868749994
+        },
+        {
+          "symbol": "O",
+          "pnl": -49.823350274061056
+        }
+      ],
+      "all_time": {
+        "label": "All Time",
+        "start": "0001-01-01T00:00:00Z",
+        "end": "0001-01-01T00:00:00Z",
+        "realized_pnl": 19052.213625419507,
+        "dividends_net": 8892.759999999998,
+        "tax_withheld": -2037.9999999999993,
+        "fees": 0,
+        "commissions": -133.21646624700006,
+        "deposits": 53986.809891799996,
+        "withdrawals": -5954.2630989379995,
+        "buy_volume": 109986.12162400004,
+        "sell_volume": 57330.16770000001,
+        "gain_pct": 46.62074305833251
+      },
+      "ytd": {
+        "label": "YTD",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.89900175Z",
+        "realized_pnl": 3335.302838207816,
+        "dividends_net": 1175.42,
+        "tax_withheld": -223.07999999999998,
+        "fees": 0,
+        "commissions": -6.008277668999999,
+        "deposits": 381.447,
+        "withdrawals": 0,
+        "buy_volume": 4859.220899999999,
+        "sell_volume": 7849.852,
+        "gain_pct": 7.525262083487904
+      },
+      "mtd": {
+        "label": "MTD",
+        "start": "2026-05-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.89900175Z",
+        "realized_pnl": 1738.8261585133332,
+        "dividends_net": 0,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": -0.801575645,
+        "deposits": 0,
+        "withdrawals": 0,
+        "buy_volume": 0,
+        "sell_volume": 4616.075,
+        "gain_pct": 2.900892612953415
+      },
+      "by_year": [
+        {
+          "label": "2022",
+          "start": "2022-01-01T00:00:00Z",
+          "end": "2022-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 7.39,
+          "tax_withheld": -0.82,
+          "fees": 0,
+          "commissions": -4.697605399999999,
+          "deposits": 2601.7759,
+          "withdrawals": 0,
+          "buy_volume": 2572.6889239999996,
+          "sell_volume": 0,
+          "gain_pct": 0.2840367611983799
+        },
+        {
+          "label": "2023",
+          "start": "2023-01-01T00:00:00Z",
+          "end": "2023-12-31T23:59:59Z",
+          "realized_pnl": 6526.685248227897,
+          "dividends_net": 317.7,
+          "tax_withheld": -34.89,
+          "fees": 0,
+          "commissions": -32.732800406000024,
+          "deposits": 12447.485699999997,
+          "withdrawals": 0,
+          "buy_volume": 22618.786200000002,
+          "sell_volume": 10058.971599999999,
+          "gain_pct": 45.55370018278831
+        },
+        {
+          "label": "2024",
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2024-12-31T23:59:59Z",
+          "realized_pnl": 3330.9581771906996,
+          "dividends_net": 3284.99,
+          "tax_withheld": -851.7000000000002,
+          "fees": 0,
+          "commissions": -44.807651087,
+          "deposits": 26140.8648918,
+          "withdrawals": -4448.983098938,
+          "buy_volume": 32292.73219999999,
+          "sell_volume": 7247.388999999998,
+          "gain_pct": 13.830050442311382
+        },
+        {
+          "label": "2025",
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:59:59Z",
+          "realized_pnl": 5859.267361793093,
+          "dividends_net": 4107.26,
+          "tax_withheld": -927.5100000000002,
+          "fees": 0,
+          "commissions": -44.970131684999984,
+          "deposits": 12415.236400000003,
+          "withdrawals": -1505.28,
+          "buy_volume": 47642.69339999999,
+          "sell_volume": 32173.9551,
+          "gain_pct": 15.942137317425981
+        },
+        {
+          "label": "2026",
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-12-31T23:59:59Z",
+          "realized_pnl": 3335.302838207816,
+          "dividends_net": 1175.42,
+          "tax_withheld": -223.07999999999998,
+          "fees": 0,
+          "commissions": -6.008277668999999,
+          "deposits": 381.447,
+          "withdrawals": 0,
+          "buy_volume": 4859.220899999999,
+          "sell_volume": 7849.852,
+          "gain_pct": 6.276648015679215
+        }
+      ],
+      "dividends_by_symbol": [
+        {
+          "symbol": "MS",
+          "gross": 6735.2,
+          "tax_withheld": 1634.5900000000001,
+          "net": 5100.61
+        },
+        {
+          "symbol": "O",
+          "gross": 3136.2799999999997,
+          "tax_withheld": 301.58000000000004,
+          "net": 2834.7
+        },
+        {
+          "symbol": "TXRH",
+          "gross": 206.30999999999997,
+          "tax_withheld": 20.669999999999998,
+          "net": 185.64
+        },
+        {
+          "symbol": "TGT",
+          "gross": 192.81999999999996,
+          "tax_withheld": 19.280000000000005,
+          "net": 173.53999999999996
+        },
+        {
+          "symbol": "BAC",
+          "gross": 154.42,
+          "tax_withheld": 15.459999999999997,
+          "net": 138.95999999999998
+        },
+        {
+          "symbol": "UNH",
+          "gross": 125.97,
+          "tax_withheld": 12.59,
+          "net": 113.38
+        },
+        {
+          "symbol": "JPM",
+          "gross": 91.5,
+          "tax_withheld": 9.149999999999999,
+          "net": 82.35
+        },
+        {
+          "symbol": "CVX",
+          "gross": 70.53,
+          "tax_withheld": 7.08,
+          "net": 63.45
+        },
+        {
+          "symbol": "QCOM",
+          "gross": 63.04,
+          "tax_withheld": 6.319999999999999,
+          "net": 56.72
+        },
+        {
+          "symbol": "BABA",
+          "gross": 42.56,
+          "tax_withheld": 0,
+          "net": 42.56
+        },
+        {
+          "symbol": "AAPL",
+          "gross": 26.6,
+          "tax_withheld": 2.6700000000000004,
+          "net": 23.93
+        },
+        {
+          "symbol": "OXY",
+          "gross": 20.9,
+          "tax_withheld": 2.09,
+          "net": 18.81
+        },
+        {
+          "symbol": "GOOGL",
+          "gross": 18.369999999999997,
+          "tax_withheld": 1.84,
+          "net": 16.529999999999998
+        },
+        {
+          "symbol": "SPGI",
+          "gross": 16.04,
+          "tax_withheld": 1.6099999999999999,
+          "net": 14.43
+        },
+        {
+          "symbol": "MSFT",
+          "gross": 10.860000000000001,
+          "tax_withheld": 1.0999999999999999,
+          "net": 9.760000000000002
+        },
+        {
+          "symbol": "COST",
+          "gross": 8.7,
+          "tax_withheld": 0.8800000000000002,
+          "net": 7.819999999999999
+        },
+        {
+          "symbol": "CAT",
+          "gross": 6.91,
+          "tax_withheld": 0.7099999999999999,
+          "net": 6.2
+        },
+        {
+          "symbol": "AGX",
+          "gross": 3,
+          "tax_withheld": 0.3,
+          "net": 2.7
+        },
+        {
+          "symbol": "DIS",
+          "gross": 0.75,
+          "tax_withheld": 0.08,
+          "net": 0.67
+        }
+      ]
+    },
+    {
+      "name": "xtb",
+      "base_currency": "EUR",
+      "cash_balance": 3.2699999999998397,
+      "open_positions": [
+        {
+          "symbol": "VWCE.DE",
+          "currency": "EUR",
+          "quantity": 43,
+          "avg_cost": 146.42279069767446,
+          "total_cost": 6296.180000000001,
+          "current_price": 157.34,
+          "market_value": 6765.62,
+          "unrealized_pnl": 469.4399999999989,
+          "unrealized_pct_omitempty": 7.455949480478622
+        }
+      ],
+      "realized_pnl_by_symbol": [
+        {
+          "symbol": "VUAA.DE",
+          "pnl": 32.819999999999965
+        },
+        {
+          "symbol": "V3AA.DE",
+          "pnl": 4.289999999999976
+        }
+      ],
+      "all_time": {
+        "label": "All Time",
+        "start": "0001-01-01T00:00:00Z",
+        "end": "0001-01-01T00:00:00Z",
+        "realized_pnl": 37.10999999999994,
+        "dividends_net": -2.02,
+        "tax_withheld": -2.17,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 7233.36,
+        "withdrawals": -969,
+        "buy_volume": 7901.465,
+        "sell_volume": 1642.371,
+        "gain_pct": 0.42780370527506645
+      },
+      "ytd": {
+        "label": "YTD",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.899284077Z",
+        "realized_pnl": 13.189999999999982,
+        "dividends_net": -0.74,
+        "tax_withheld": -0.79,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 3914.98,
+        "withdrawals": -200,
+        "buy_volume": 4618.072999999999,
+        "sell_volume": 892.3860000000001,
+        "gain_pct": 0.1517855836612875
+      },
+      "mtd": {
+        "label": "MTD",
+        "start": "2026-05-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.899284077Z",
+        "realized_pnl": 0,
+        "dividends_net": 0,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 0,
+        "withdrawals": 0,
+        "buy_volume": 0,
+        "sell_volume": 0,
+        "gain_pct": 0
+      },
+      "by_year": [
+        {
+          "label": "2025",
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:59:59Z",
+          "realized_pnl": 23.91999999999996,
+          "dividends_net": -1.2799999999999998,
+          "tax_withheld": -1.38,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 3318.38,
+          "withdrawals": -769,
+          "buy_volume": 3283.392,
+          "sell_volume": 749.9850000000001,
+          "gain_pct": 0.6822606211464618
+        },
+        {
+          "label": "2026",
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-12-31T23:59:59Z",
+          "realized_pnl": 13.189999999999982,
+          "dividends_net": -0.74,
+          "tax_withheld": -0.79,
+          "fees": 0,
+          "commissions": 0,
+          "deposits": 3914.98,
+          "withdrawals": -200,
+          "buy_volume": 4618.072999999999,
+          "sell_volume": 892.3860000000001,
+          "gain_pct": 0.19235820342073112
+        }
+      ],
+      "dividends_by_symbol": [
+        {
+          "symbol": "(no symbol)",
+          "gross": 0.15,
+          "tax_withheld": 2.17,
+          "net": -2.02
+        }
+      ]
+    },
+    {
+      "name": "tradeville",
+      "base_currency": "RON",
+      "cash_balance": 14.96690000000035,
+      "open_positions": [
+        {
+          "symbol": "SNP",
+          "currency": "RON",
+          "quantity": 20818,
+          "avg_cost": 0.8918656470859332,
+          "total_cost": 18566.859041034957
+        },
+        {
+          "symbol": "TLV",
+          "currency": "RON",
+          "quantity": 159,
+          "avg_cost": 29.396967421383646,
+          "total_cost": 4674.1178199999995
+        },
+        {
+          "symbol": "TVBETETF",
+          "currency": "RON",
+          "quantity": 124,
+          "avg_cost": 45.27848266129032,
+          "total_cost": 5614.531849999999
+        }
+      ],
+      "realized_pnl_by_symbol": [
+        {
+          "symbol": "SNP",
+          "pnl": 1582.1531110349547
+        }
+      ],
+      "all_time": {
+        "label": "All Time",
+        "start": "0001-01-01T00:00:00Z",
+        "end": "0001-01-01T00:00:00Z",
+        "realized_pnl": 1582.1531110349547,
+        "dividends_net": 1006.5824999999999,
+        "tax_withheld": 0,
+        "fees": -1.96,
+        "commissions": -234.38973,
+        "deposits": 35854.71,
+        "withdrawals": -9571.01,
+        "buy_volume": 34571.0285,
+        "sell_volume": 7574.704999999999,
+        "gain_pct": 5.698832315778274
+      },
+      "ytd": {
+        "label": "YTD",
+        "start": "2026-01-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.899368065Z",
+        "realized_pnl": 0,
+        "dividends_net": 0,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": -49.76927,
+        "deposits": 9190,
+        "withdrawals": 0,
+        "buy_volume": 9144.734,
+        "sell_volume": 0,
+        "gain_pct": 0
+      },
+      "mtd": {
+        "label": "MTD",
+        "start": "2026-05-01T00:00:00Z",
+        "end": "2026-05-06T09:29:23.899368065Z",
+        "realized_pnl": 0,
+        "dividends_net": 0,
+        "tax_withheld": 0,
+        "fees": 0,
+        "commissions": 0,
+        "deposits": 0,
+        "withdrawals": 0,
+        "buy_volume": 0,
+        "sell_volume": 0,
+        "gain_pct": 0
+      },
+      "by_year": [
+        {
+          "label": "2024",
+          "start": "2024-01-01T00:00:00Z",
+          "end": "2024-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 0,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": -25.17179,
+          "deposits": 4150,
+          "withdrawals": 0,
+          "buy_volume": 4118.015,
+          "sell_volume": 0,
+          "gain_pct": 0
+        },
+        {
+          "label": "2025",
+          "start": "2025-01-01T00:00:00Z",
+          "end": "2025-12-31T23:59:59Z",
+          "realized_pnl": 1582.1531110349547,
+          "dividends_net": 1006.5824999999999,
+          "tax_withheld": 0,
+          "fees": -1.96,
+          "commissions": -159.44867000000002,
+          "deposits": 22514.71,
+          "withdrawals": -9571.01,
+          "buy_volume": 21308.279499999997,
+          "sell_volume": 7574.704999999999,
+          "gain_pct": 9.710052205003954
+        },
+        {
+          "label": "2026",
+          "start": "2026-01-01T00:00:00Z",
+          "end": "2026-12-31T23:59:59Z",
+          "realized_pnl": 0,
+          "dividends_net": 0,
+          "tax_withheld": 0,
+          "fees": 0,
+          "commissions": -49.76927,
+          "deposits": 9190,
+          "withdrawals": 0,
+          "buy_volume": 9144.734,
+          "sell_volume": 0,
+          "gain_pct": 0
+        }
+      ],
+      "dividends_by_symbol": [
+        {
+          "symbol": "SNP",
+          "gross": 710.9685,
+          "tax_withheld": 0,
+          "net": 710.9685
+        },
+        {
+          "symbol": "TLV",
+          "gross": 295.614,
+          "tax_withheld": 0,
+          "net": 295.614
+        }
+      ]
+    }
+  ],
+  "open_positions": [
+    {
+      "symbol": "AAPL",
+      "currency": "USD",
+      "quantity": 2.999999999999993,
+      "avg_cost": 151.78857620833324,
+      "total_cost": 455.3657286249986,
+      "current_price": 284.18,
+      "market_value": 852.539999999998,
+      "unrealized_pnl": 397.17427137499936,
+      "unrealized_pct_omitempty": 87.22094053373067
+    },
+    {
+      "symbol": "AMZN",
+      "currency": "USD",
+      "quantity": 82.01274973,
+      "avg_cost": 228.36840638845374,
+      "total_cost": 18729.12095937519,
+      "current_price": 273.55,
+      "market_value": 22434.5876886415,
+      "unrealized_pnl": 3705.4667292663116,
+      "unrealized_pct_omitempty": 19.78452025219836
+    },
+    {
+      "symbol": "BABA",
+      "currency": "USD",
+      "quantity": 1.2896461999999997,
+      "avg_cost": 94.32876520173458,
+      "total_cost": 121.65073359310921,
+      "current_price": 132.26,
+      "market_value": 170.56860641199995,
+      "unrealized_pnl": 48.91787281889074,
+      "unrealized_pct_omitempty": 40.211736809174205
+    },
+    {
+      "symbol": "BAC",
+      "currency": "USD",
+      "quantity": 32,
+      "avg_cost": 41.1496019140625,
+      "total_cost": 1316.78726125,
+      "current_price": 53.12,
+      "market_value": 1699.84,
+      "unrealized_pnl": 383.0527387499999,
+      "unrealized_pct_omitempty": 29.08994869728429
+    },
+    {
+      "symbol": "CAT",
+      "currency": "USD",
+      "quantity": 0.6,
+      "avg_cost": 363.00396208333336,
+      "total_cost": 217.80237725,
+      "current_price": 904.59,
+      "market_value": 542.754,
+      "unrealized_pnl": 324.95162275,
+      "unrealized_pct_omitempty": 149.19562717950086
+    },
+    {
+      "symbol": "COST",
+      "currency": "USD",
+      "quantity": 0.2824,
+      "avg_cost": 532.3804877124646,
+      "total_cost": 150.34424973,
+      "current_price": 1016.42,
+      "market_value": 287.03700799999996,
+      "unrealized_pnl": 136.69275826999998,
+      "unrealized_pct_omitempty": 90.91984463355503
+    },
+    {
+      "symbol": "CVX",
+      "currency": "USD",
+      "quantity": 2,
+      "avg_cost": 160.06828215625,
+      "total_cost": 320.1365643125,
+      "current_price": 192.64,
+      "market_value": 385.28,
+      "unrealized_pnl": 65.14343568749996,
+      "unrealized_pct_omitempty": 20.34863959616636
+    },
+    {
+      "symbol": "FRC",
+      "currency": "USD",
+      "quantity": 11,
+      "avg_cost": 48.880841568181815,
+      "total_cost": 537.68925725
+    },
+    {
+      "symbol": "GOOGL",
+      "currency": "USD",
+      "quantity": 8.92626001,
+      "avg_cost": 238.57483795676765,
+      "total_cost": 2129.5810354457253,
+      "current_price": 388.43,
+      "market_value": 3467.2271756843,
+      "unrealized_pnl": 1337.6461402385748,
+      "unrealized_pct_omitempty": 62.81264333097345
+    },
+    {
+      "symbol": "GTCH",
+      "currency": "USD",
+      "quantity": 6474.254999999999,
+      "avg_cost": 0.0914251910065328,
+      "total_cost": 591.91,
+      "current_price": 0.0001,
+      "market_value": 0.6474255,
+      "unrealized_pnl": -591.2625744999999,
+      "unrealized_pct_omitempty": -99.89062095588855
+    },
+    {
+      "symbol": "INOD",
+      "currency": "USD",
+      "quantity": 12,
+      "avg_cost": 76.96,
+      "total_cost": 923.52,
+      "current_price": 45.64,
+      "market_value": 547.6800000000001,
+      "unrealized_pnl": -375.84,
+      "unrealized_pct_omitempty": -40.696465696465694
+    },
+    {
+      "symbol": "JPM",
+      "currency": "USD",
+      "quantity": 3,
+      "avg_cost": 153.44025145,
+      "total_cost": 460.32075435,
+      "current_price": 309.4,
+      "market_value": 928.1999999999999,
+      "unrealized_pnl": 467.8792456499999,
+      "unrealized_pct_omitempty": 101.64200532532428
+    },
+    {
+      "symbol": "MSFT",
+      "currency": "USD",
+      "quantity": 0.9999999999999991,
+      "avg_cost": 237.87045725000021,
+      "total_cost": 237.87045725000002,
+      "current_price": 411.38,
+      "market_value": 411.37999999999965,
+      "unrealized_pnl": 173.5095427499996,
+      "unrealized_pct_omitempty": 72.9428718286115
+    },
+    {
+      "symbol": "NFLX",
+      "currency": "USD",
+      "quantity": 6,
+      "avg_cost": 96.03166666666665,
+      "total_cost": 576.1899999999999,
+      "current_price": 87.89,
+      "market_value": 527.34,
+      "unrealized_pnl": -48.84999999999994,
+      "unrealized_pct_omitempty": -8.47810618025303
+    },
+    {
+      "symbol": "OKLO",
+      "currency": "USD",
+      "quantity": 1,
+      "avg_cost": 74.764150625,
+      "total_cost": 74.764150625,
+      "current_price": 68.38,
+      "market_value": 68.38,
+      "unrealized_pnl": -6.384150625000004,
+      "unrealized_pct_omitempty": -8.539053238257804
+    },
+    {
+      "symbol": "OXY",
+      "currency": "USD",
+      "quantity": 1,
+      "avg_cost": 46.210355625,
+      "total_cost": 46.210355625,
+      "current_price": 59.34,
+      "market_value": 59.34,
+      "unrealized_pnl": 13.129644375000005,
+      "unrealized_pct_omitempty": 28.412775009887202
+    },
+    {
+      "symbol": "QCOM",
+      "currency": "USD",
+      "quantity": 10,
+      "avg_cost": 166.23769025312498,
+      "total_cost": 1662.37690253125,
+      "current_price": 186.55,
+      "market_value": 1865.5,
+      "unrealized_pnl": 203.1230974687502,
+      "unrealized_pct_omitempty": 12.218835401253527
+    },
+    {
+      "symbol": "SNP",
+      "currency": "RON",
+      "quantity": 20818,
+      "avg_cost": 0.2001346512060834,
+      "total_cost": 4166.403168808244
+    },
+    {
+      "symbol": "SPGI",
+      "currency": "USD",
+      "quantity": 6,
+      "avg_cost": 461.565339625,
+      "total_cost": 2769.39203775,
+      "current_price": 423.87,
+      "market_value": 2543.2200000000003,
+      "unrealized_pnl": -226.17203774999984,
+      "unrealized_pct_omitempty": -8.166847982048578
+    },
+    {
+      "symbol": "TLV",
+      "currency": "RON",
+      "quantity": 159,
+      "avg_cost": 6.59667948935849,
+      "total_cost": 1048.8720388079998
+    },
+    {
+      "symbol": "TVBETETF",
+      "currency": "RON",
+      "quantity": 124,
+      "avg_cost": 10.160491509193548,
+      "total_cost": 1259.90094714
+    },
+    {
+      "symbol": "TXRH",
+      "currency": "USD",
+      "quantity": 29,
+      "avg_cost": 157.74792747844825,
+      "total_cost": 4574.689896874999,
+      "current_price": 158.03,
+      "market_value": 4582.87,
+      "unrealized_pnl": 8.180103125000784,
+      "unrealized_pct_omitempty": 0.1788121885723591
+    },
+    {
+      "symbol": "UNH",
+      "currency": "USD",
+      "quantity": 43,
+      "avg_cost": 323.2362736356589,
+      "total_cost": 13899.159766333332,
+      "current_price": 363.87,
+      "market_value": 15646.41,
+      "unrealized_pnl": 1747.250233666668,
+      "unrealized_pct_omitempty": 12.570905457888706
+    },
+    {
+      "symbol": "O",
+      "currency": "USD",
+      "quantity": 895.0415000000002,
+      "avg_cost": 30.734713631115238,
+      "total_cost": 27508.844190463835,
+      "current_price": 28.27,
+      "market_value": 25302.823205000004,
+      "unrealized_pnl": -2206.0209854638306,
+      "unrealized_pct_omitempty": -8.019315425213561
+    },
+    {
+      "symbol": "VUAA",
+      "currency": "EUR",
+      "quantity": 2,
+      "avg_cost": 136.5480726426,
+      "total_cost": 273.0961452852
+    },
+    {
+      "symbol": "VWCE.DE",
+      "currency": "EUR",
+      "quantity": 43,
+      "avg_cost": 172.36890920930233,
+      "total_cost": 7411.863096,
+      "current_price": 157.34,
+      "market_value": 6765.62,
+      "unrealized_pnl": -646.2430959999999,
+      "unrealized_pct_omitempty": -8.719037138567245
+    },
+    {
+      "symbol": "MS",
+      "currency": "USD",
+      "quantity": 650,
+      "avg_cost": 18.256225850228443,
+      "total_cost": 11866.546802648487,
+      "current_price": 28.55,
+      "market_value": 18557.5,
+      "unrealized_pnl": 6690.953197351514,
+      "unrealized_pct_omitempty": 56.38500659566913
+    }
+  ],
+  "realized_pnl_by_symbol": [
+    {
+      "symbol": "TSLA",
+      "pnl": 7154.1541976402295
+    },
+    {
+      "symbol": "AAPL",
+      "pnl": 6033.511249737743
+    },
+    {
+      "symbol": "GOOGL",
+      "pnl": 2285.865453268467
+    },
+    {
+      "symbol": "SNP",
+      "pnl": 1582.1531110349547
+    },
+    {
+      "symbol": "TXRH",
+      "pnl": 1511.5732010729994
+    },
+    {
+      "symbol": "MS",
+      "pnl": 1008.9059859064823
+    },
+    {
+      "symbol": "BAC",
+      "pnl": 918.7603332500001
+    },
+    {
+      "symbol": "AMZN",
+      "pnl": 858.9624827527653
+    },
+    {
+      "symbol": "JPM",
+      "pnl": 776.176571125
+    },
+    {
+      "symbol": "OKLO",
+      "pnl": 566.0465516250001
+    },
+    {
+      "symbol": "MSFT",
+      "pnl": 548.9089004505511
+    },
+    {
+      "symbol": "HD",
+      "pnl": 514.5322747174398
+    },
+    {
+      "symbol": "AGX",
+      "pnl": 475.1635694999998
+    },
+    {
+      "symbol": "CRDO",
+      "pnl": 178.18895835600003
+    },
+    {
+      "symbol": "O",
+      "pnl": 116.54229786819462
+    },
+    {
+      "symbol": "ZM",
+      "pnl": 104.38
+    },
+    {
+      "symbol": "TROW",
+      "pnl": 101.88999999999976
+    },
+    {
+      "symbol": "QCOM",
+      "pnl": 65.42371628125011
+    },
+    {
+      "symbol": "AAP3",
+      "pnl": 59.2
+    },
+    {
+      "symbol": "OXY",
+      "pnl": 52.51361637500037
+    },
+    {
+      "symbol": "UNH",
+      "pnl": 48.933567333333315
+    },
+    {
+      "symbol": "3APE",
+      "pnl": 47.58
+    },
+    {
+      "symbol": "VUAA.DE",
+      "pnl": 32.819999999999965
+    },
+    {
+      "symbol": "BRK.B",
+      "pnl": 29.580000000000087
+    },
+    {
+      "symbol": "FRCB",
+      "pnl": 29.208603991999986
+    },
+    {
+      "symbol": "PEP",
+      "pnl": 29.019999999999975
+    },
+    {
+      "symbol": "JNJ",
+      "pnl": 23.40000000000009
+    },
+    {
+      "symbol": "NFLX",
+      "pnl": 22.98999999999999
+    },
+    {
+      "symbol": "VUAA",
+      "pnl": 22.45749569999994
+    },
+    {
+      "symbol": "WMT",
+      "pnl": 15.139999999999986
+    },
+    {
+      "symbol": "SPG",
+      "pnl": 14.639999999999986
+    },
+    {
+      "symbol": "BRK B",
+      "pnl": 12.054710618000286
+    },
+    {
+      "symbol": "PTON",
+      "pnl": 10.99000000000007
+    },
+    {
+      "symbol": "AFL",
+      "pnl": 7.6099999999999
+    },
+    {
+      "symbol": "DLR",
+      "pnl": 4.59
+    },
+    {
+      "symbol": "V3AA.DE",
+      "pnl": 4.289999999999997
+    },
+    {
+      "symbol": "WCLD",
+      "pnl": 3.44
+    },
+    {
+      "symbol": "MRK",
+      "pnl": 2.5000000000000115
+    },
+    {
+      "symbol": "COUV",
+      "pnl": 1.4700000000000006
+    },
+    {
+      "symbol": "KO",
+      "pnl": 1.3299999999999983
+    },
+    {
+      "symbol": "NKE",
+      "pnl": 1.23
+    },
+    {
+      "symbol": "TWLO",
+      "pnl": 1.12
+    },
+    {
+      "symbol": "NVDA",
+      "pnl": 0.4399999999999409
+    },
+    {
+      "symbol": "HOOD",
+      "pnl": 0.030000000000001137
+    },
+    {
+      "symbol": "TEF",
+      "pnl": -0.14
+    },
+    {
+      "symbol": "HITI",
+      "pnl": -0.14
+    },
+    {
+      "symbol": "O",
+      "pnl": -0.2400000000000002
+    },
+    {
+      "symbol": "CSCO",
+      "pnl": -0.7800000000000082
+    },
+    {
+      "symbol": "VZ",
+      "pnl": -1.55
+    },
+    {
+      "symbol": "STOR",
+      "pnl": -2.05
+    },
+    {
+      "symbol": "XYZ",
+      "pnl": -3.71
+    },
+    {
+      "symbol": "CLOV",
+      "pnl": -6.67
+    },
+    {
+      "symbol": "COST",
+      "pnl": -8.41
+    },
+    {
+      "symbol": "IESC",
+      "pnl": -10.332344499999863
+    },
+    {
+      "symbol": "ABBV",
+      "pnl": -10.689999999999813
+    },
+    {
+      "symbol": "HCMC",
+      "pnl": -13.15
+    },
+    {
+      "symbol": "BYND",
+      "pnl": -23.21999999999997
+    },
+    {
+      "symbol": "CVX",
+      "pnl": -29.08232868749994
+    },
+    {
+      "symbol": "ISLN",
+      "pnl": -51.2
+    },
+    {
+      "symbol": "CRM",
+      "pnl": -56.43955713355244
+    },
+    {
+      "symbol": "GAXYQ",
+      "pnl": -60.26
+    },
+    {
+      "symbol": "DIS",
+      "pnl": -90.43811982899996
+    },
+    {
+      "symbol": "CBBT",
+      "pnl": -149
+    },
+    {
+      "symbol": "3LTP",
+      "pnl": -255.04
+    },
+    {
+      "symbol": "NIO",
+      "pnl": -403.84999999999974
+    },
+    {
+      "symbol": "PATH",
+      "pnl": -436.32
+    },
+    {
+      "symbol": "AIAD",
+      "pnl": -508.16
+    },
+    {
+      "symbol": "TGT",
+      "pnl": -551.1673081377116
+    },
+    {
+      "symbol": "BABA",
+      "pnl": -1335.5312689546454
+    },
+    {
+      "symbol": "ALPP",
+      "pnl": -1886.8799999999999
+    }
+  ],
+  "all_time": {
+    "label": "All Time",
+    "start": "0001-01-01T00:00:00Z",
+    "end": "0001-01-01T00:00:00Z",
+    "realized_pnl": 18168.70332868232,
+    "dividends_net": 9588.099169000006,
+    "tax_withheld": -2040.5545239999992,
+    "fees": -41.77731200000002,
+    "commissions": -188.84049834980001,
+    "deposits": 126247.82309579998,
+    "withdrawals": -46012.101454938,
+    "buy_volume": 351128.3239465029,
+    "sell_volume": 248322.55176719042,
+    "gain_pct": 16.113325586362226
+  },
+  "ytd": {
+    "label": "YTD",
+    "start": "2026-01-01T00:00:00Z",
+    "end": "2026-05-06T09:29:23.740555046Z",
+    "realized_pnl": 617.6937429822435,
+    "dividends_net": 1242.6888719999997,
+    "tax_withheld": -224.009988,
+    "fees": -0.32,
+    "commissions": -17.186501857,
+    "deposits": 7322.397455999998,
+    "withdrawals": -284.44,
+    "buy_volume": 17114.504744303904,
+    "sell_volume": 9844.621707157603,
+    "gain_pct": 1.0799857365746612
+  },
+  "mtd": {
+    "label": "MTD",
+    "start": "2026-05-01T00:00:00Z",
+    "end": "2026-05-06T09:29:23.740555046Z",
+    "realized_pnl": 1729.4155559913906,
+    "dividends_net": 0.01,
+    "tax_withheld": 0,
+    "fees": 0,
+    "commissions": -0.801575645,
+    "deposits": 0,
+    "withdrawals": 0,
+    "buy_volume": 0,
+    "sell_volume": 4616.075,
+    "gain_pct": 1.0039627966294624
+  },
+  "by_year": [
+    {
+      "label": "2020",
+      "start": "2020-01-01T00:00:00Z",
+      "end": "2020-12-31T23:59:59Z",
+      "realized_pnl": 7294.222742905841,
+      "dividends_net": 65.1,
+      "tax_withheld": 0,
+      "fees": -0.86,
+      "commissions": 0,
+      "deposits": 22763.100000000002,
+      "withdrawals": -13113.54,
+      "buy_volume": 147693.80641395098,
+      "sell_volume": 138027.38400969157,
+      "gain_pct": 32.33005497013078
+    },
+    {
+      "label": "2021",
+      "start": "2021-01-01T00:00:00Z",
+      "end": "2021-12-31T23:59:59Z",
+      "realized_pnl": 8854.224591059492,
+      "dividends_net": 88.96000000000001,
+      "tax_withheld": 0,
+      "fees": -17.46,
+      "commissions": -0.12,
+      "deposits": 9042.32,
+      "withdrawals": -11148.74,
+      "buy_volume": 27820.474006326334,
+      "sell_volume": 29927.377727001796,
+      "gain_pct": 33.91822287831401
+    },
+    {
+      "label": "2022",
+      "start": "2022-01-01T00:00:00Z",
+      "end": "2022-12-31T23:59:59Z",
+      "realized_pnl": 1165.2922243649082,
+      "dividends_net": 148.96999999999997,
+      "tax_withheld": -0.82,
+      "fees": -15.990000000000002,
+      "commissions": -5.297605399999998,
+      "deposits": 8703.6859,
+      "withdrawals": -4403.68,
+      "buy_volume": 31835.712836144303,
+      "sell_volume": 8203.8588943794,
+      "gain_pct": 3.9737269372623563
+    },
+    {
+      "label": "2023",
+      "start": "2023-01-01T00:00:00Z",
+      "end": "2023-12-31T23:59:59Z",
+      "realized_pnl": -1234.7244426979673,
+      "dividends_net": 360.13,
+      "tax_withheld": -34.89,
+      "fees": -4.799999999999998,
+      "commissions": -32.732800406000024,
+      "deposits": 14674.7557,
+      "withdrawals": -6128.919999999999,
+      "buy_volume": 26816.679768898408,
+      "sell_volume": 18113.7713061279,
+      "gain_pct": -1.958450217084526
+    },
+    {
+      "label": "2024",
+      "start": "2024-01-01T00:00:00Z",
+      "end": "2024-12-31T23:59:59Z",
+      "realized_pnl": -748.3026141541098,
+      "dividends_net": 3289.91,
+      "tax_withheld": -851.7,
+      "fees": -0.04,
+      "commissions": -52.512595953799995,
+      "deposits": 27072.124891800002,
+      "withdrawals": -4697.753098938,
+      "buy_volume": 33392.730597599984,
+      "sell_volume": 7673.7175560863,
+      "gain_pct": 3.979120310000451
+    },
+    {
+      "label": "2025",
+      "start": "2025-01-01T00:00:00Z",
+      "end": "2025-12-31T23:59:59Z",
+      "realized_pnl": 2220.2970842219233,
+      "dividends_net": 4392.340297,
+      "tax_withheld": -929.1345360000003,
+      "fees": -2.307312,
+      "commissions": -80.99099473300001,
+      "deposits": 36669.43914799999,
+      "withdrawals": -6235.028355999999,
+      "buy_volume": 66454.41557927903,
+      "sell_volume": 36531.82056674601,
+      "gain_pct": 6.714983326813105
+    },
+    {
+      "label": "2026",
+      "start": "2026-01-01T00:00:00Z",
+      "end": "2026-12-31T23:59:59Z",
+      "realized_pnl": 617.6937429822435,
+      "dividends_net": 1242.6888719999997,
+      "tax_withheld": -224.009988,
+      "fees": -0.32,
+      "commissions": -17.186501857,
+      "deposits": 7322.397455999998,
+      "withdrawals": -284.44,
+      "buy_volume": 17114.504744303904,
+      "sell_volume": 9844.621707157603,
+      "gain_pct": 1.8137233877428545
+    }
+  ],
+  "dividends_by_symbol": [
+    {
+      "symbol": "MS",
+      "gross": 6746.450000000001,
+      "tax_withheld": 1634.59,
+      "net": 5111.860000000001
+    },
+    {
+      "symbol": "O",
+      "gross": 3287.29,
+      "tax_withheld": 301.58000000000004,
+      "net": 2985.71
+    },
+    {
+      "symbol": "TGT",
+      "gross": 235.98999999999995,
+      "tax_withheld": 19.280000000000005,
+      "net": 216.70999999999995
+    },
+    {
+      "symbol": "UNH",
+      "gross": 207.51,
+      "tax_withheld": 12.59,
+      "net": 194.92
+    },
+    {
+      "symbol": "TXRH",
+      "gross": 206.31,
+      "tax_withheld": 20.669999999999998,
+      "net": 185.64000000000001
+    },
+    {
+      "symbol": "SNP",
+      "gross": 159.5413314,
+      "tax_withheld": 0,
+      "net": 159.5413314
+    },
+    {
+      "symbol": "BAC",
+      "gross": 154.42000000000002,
+      "tax_withheld": 15.459999999999997,
+      "net": 138.96
+    },
+    {
+      "symbol": "AAPL",
+      "gross": 118.16000000000004,
+      "tax_withheld": 2.6700000000000004,
+      "net": 115.49000000000004
+    },
+    {
+      "symbol": "JPM",
+      "gross": 92.42999999999999,
+      "tax_withheld": 9.149999999999999,
+      "net": 83.28
+    },
+    {
+      "symbol": "CVX",
+      "gross": 70.53,
+      "tax_withheld": 7.08,
+      "net": 63.45
+    },
+    {
+      "symbol": "TLV",
+      "gross": 66.33578159999999,
+      "tax_withheld": 0,
+      "net": 66.33578159999999
+    },
+    {
+      "symbol": "QCOM",
+      "gross": 63.04,
+      "tax_withheld": 6.319999999999999,
+      "net": 56.72
+    },
+    {
+      "symbol": "BABA",
+      "gross": 49.21,
+      "tax_withheld": 0,
+      "net": 49.21
+    },
+    {
+      "symbol": "MSFT",
+      "gross": 27.239999999999995,
+      "tax_withheld": 1.0999999999999999,
+      "net": 26.139999999999993
+    },
+    {
+      "symbol": "HD",
+      "gross": 24.74,
+      "tax_withheld": 0,
+      "net": 24.74
+    },
+    {
+      "symbol": "OXY",
+      "gross": 20.9,
+      "tax_withheld": 2.09,
+      "net": 18.81
+    },
+    {
+      "symbol": "GOOGL",
+      "gross": 20.270000000000003,
+      "tax_withheld": 1.84,
+      "net": 18.430000000000003
+    },
+    {
+      "symbol": "SPGI",
+      "gross": 16.04,
+      "tax_withheld": 1.6099999999999999,
+      "net": 14.43
+    },
+    {
+      "symbol": "PEP",
+      "gross": 10.85,
+      "tax_withheld": 0,
+      "net": 10.85
+    },
+    {
+      "symbol": "COST",
+      "gross": 8.86,
+      "tax_withheld": 0.8800000000000002,
+      "net": 7.9799999999999995
+    },
+    {
+      "symbol": "(no symbol)",
+      "gross": 7.456579999999997,
+      "tax_withheld": 2.5545240000000002,
+      "net": 4.902055999999996
+    },
+    {
+      "symbol": "ABBV",
+      "gross": 7.280000000000001,
+      "tax_withheld": 0,
+      "net": 7.280000000000001
+    },
+    {
+      "symbol": "CAT",
+      "gross": 6.91,
+      "tax_withheld": 0.7099999999999999,
+      "net": 6.2
+    },
+    {
+      "symbol": "JNJ",
+      "gross": 5.95,
+      "tax_withheld": 0,
+      "net": 5.95
+    },
+    {
+      "symbol": "MRK",
+      "gross": 4.18,
+      "tax_withheld": 0,
+      "net": 4.18
+    },
+    {
+      "symbol": "AGX",
+      "gross": 3,
+      "tax_withheld": 0.3,
+      "net": 2.7
+    },
+    {
+      "symbol": "WMT",
+      "gross": 1.91,
+      "tax_withheld": 0,
+      "net": 1.91
+    },
+    {
+      "symbol": "AFL",
+      "gross": 1.44,
+      "tax_withheld": 0,
+      "net": 1.44
+    },
+    {
+      "symbol": "DLR",
+      "gross": 1.1300000000000001,
+      "tax_withheld": 0,
+      "net": 1.1300000000000001
+    },
+    {
+      "symbol": "TEF",
+      "gross": 0.9600000000000001,
+      "tax_withheld": 0,
+      "net": 0.9600000000000001
+    },
+    {
+      "symbol": "STOR",
+      "gross": 0.88,
+      "tax_withheld": 0,
+      "net": 0.88
+    },
+    {
+      "symbol": "DIS",
+      "gross": 0.75,
+      "tax_withheld": 0.08,
+      "net": 0.67
+    },
+    {
+      "symbol": "VZ",
+      "gross": 0.28,
+      "tax_withheld": 0,
+      "net": 0.28
+    },
+    {
+      "symbol": "CRM",
+      "gross": 0.22000000000000008,
+      "tax_withheld": 0,
+      "net": 0.22000000000000008
+    },
+    {
+      "symbol": "NKE",
+      "gross": 0.19000000000000003,
+      "tax_withheld": 0,
+      "net": 0.19000000000000003
+    }
+  ]
+}

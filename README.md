@@ -2,6 +2,8 @@
 
 Parses and normalizes transaction exports from multiple brokers into a unified ledger, then computes portfolio statistics: open positions with unrealized P&L, realized P&L (FIFO), dividends, year-by-year breakdowns, and more.
 
+**Live site:** [brokersync.dot-core.com](http://brokersync.dot-core.com)
+
 ## Supported brokers
 
 | Broker | Format |
@@ -9,6 +11,8 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 | Revolut | CSV (`Date, Ticker, Type, Quantity, Price per share, Total Amount, Currency, FX Rate`) |
 | Interactive Brokers (IBKR) | Multi-section CSV (Transaction History export) |
 | Trading 212 | CSV (`Action, Time, ISIN, Ticker, Name, ...`) |
+| Tradeville | Tab-separated CSV with leading `SEP=\t` hint line (`id, data, op, simbol, cant, pret, comis, suma, valuta`) |
+| XTB | XLSX export with `Cash Operations` and `Closed Positions` sheets |
 
 Broker format is detected automatically from the file header — no need to label files.
 
@@ -18,6 +22,30 @@ Broker format is detected automatically from the file header — no need to labe
 
 ```bash
 go build ./...
+```
+
+## Running with Docker Compose
+
+The easiest way to run the full stack (server + web UI) is with Docker Compose:
+
+```bash
+docker compose up
+```
+
+The web UI will be available at [http://localhost:8080](http://localhost:8080). Use the Settings page to upload your broker CSV files.
+
+**Rebuild the image after code changes:**
+
+```bash
+docker compose up --build
+```
+
+**Run in the background:**
+
+```bash
+docker compose up -d
+docker compose logs -f   # stream logs
+docker compose down      # stop and remove the container
 ```
 
 ## Usage
@@ -132,17 +160,23 @@ Any transaction appearing more than once — across files or from overlapping ex
 ## Project structure
 
 ```
-cmd/brokers-sync/main.go    CLI entry point and text output
+cmd/
+  brokers-sync/main.go    CLI entry point and text output
+  server/main.go          HTTP server serving the web UI and JSON API
 internal/
-  model/transaction.go      Normalized Transaction type and TxType enum
+  model/transaction.go    Normalized Transaction type and TxType enum
   parser/
-    detect.go               Auto-detection of broker format + directory loader + dedup
-    revolut.go              Revolut CSV parser
-    ibkr.go                 IBKR multi-section CSV parser
-    trading212.go           Trading 212 CSV parser
-    util.go                 Shared helpers (column mapping, date parsing, ID hashing)
-  ledger/ledger.go          FIFO lot tracking, realized P&L, stock split adjustment
-  stats/stats.go            Period aggregations, unrealized P&L enrichment
-  prices/yahoo.go           Yahoo Finance chart API, parallel price fetch
-  output/report.go          JSON and CSV report writers
+    detect.go             Auto-detection of broker format + directory loader + dedup
+    revolut.go            Revolut CSV parser
+    ibkr.go               IBKR multi-section CSV parser
+    trading212.go         Trading 212 CSV parser
+    tradeville.go         Tradeville tab-separated CSV parser
+    xtb.go                XTB XLSX parser
+    util.go               Shared helpers (column mapping, date parsing, ID hashing)
+  ledger/ledger.go        FIFO lot tracking, realized P&L, stock split adjustment
+  stats/stats.go          Period aggregations, unrealized P&L enrichment
+  prices/yahoo.go         Yahoo Finance chart API, parallel price fetch
+  output/report.go        JSON and CSV report writers
+web/                      React + Vite frontend (served by cmd/server)
+infra/                    AWS CDK stack (Lambda + API Gateway deployment)
 ```

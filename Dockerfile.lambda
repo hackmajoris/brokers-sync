@@ -1,0 +1,24 @@
+FROM --platform=linux/arm64 golang:1.24-alpine AS builder
+WORKDIR /app
+ENV GOTOOLCHAIN=auto
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/server ./cmd/server
+
+FROM --platform=linux/arm64 public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 AS lwa
+
+FROM --platform=linux/arm64 alpine:3.21
+WORKDIR /app
+# Lambda Web Adapter extension — proxies Lambda invocation events to the HTTP server
+COPY --from=lwa /lambda-adapter /opt/extensions/lambda-adapter
+COPY --from=builder /app/bin/server ./server
+# Empty dirs so the FileServer handler doesn't panic on startup.
+# The SPA is served from S3/CloudFront; Lambda only handles /api/* routes.
+RUN mkdir -p /app/web/dist
+EXPOSE 8080
+ENV PORT=8080
+ENV AWS_LWA_PORT=8080
+ENV AWS_LWA_READINESS_CHECK_PATH=/
+ENV AWS_LWA_READINESS_CHECK_PROTOCOL=HTTP
+CMD ["./server", "-addr", ":8080", "-data", "/tmp/data", "-web", "/app/web/dist"]
