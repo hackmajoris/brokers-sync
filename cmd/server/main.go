@@ -186,15 +186,29 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	combinedLedger.Process(txs)
 	combinedStats := stats.Compute(combinedLedger, txs, time.Now(), fxRates, baseCurrency)
 
-	allSymbols := uniqueSymbols(combinedStats.OpenPositions)
-	logf(fmt.Sprintf("fetching prices for %d symbol(s)…", len(allSymbols)))
-	priceMap, err := prices.FetchQuotes(context.Background(), allSymbols)
+	yahooTickers, reverseMap := buildYahooTickerMap(combinedStats.OpenPositions)
+	log.Printf("fetching prices for %d symbol(s): %v", len(yahooTickers), yahooTickers)
+	logf(fmt.Sprintf("fetching prices for %d symbol(s): %v", len(yahooTickers), yahooTickers))
+	priceMap, err := prices.FetchQuotes(context.Background(), yahooTickers)
 	if err != nil {
+		log.Printf("price fetch error: %v", err)
 		logf("warning: price fetch failed — unrealized P&L unavailable")
 	} else {
-		logf(fmt.Sprintf("prices fetched for %d/%d symbols", len(priceMap)/2, len(allSymbols)))
+		for yahooTicker, origSymbol := range reverseMap {
+			if p, ok := priceMap[yahooTicker]; ok {
+				priceMap[origSymbol] = p
+				log.Printf("  mapped %s → %s = %.4f", yahooTicker, origSymbol, p)
+				logf(fmt.Sprintf("  mapped %s → %s = %.4f", yahooTicker, origSymbol, p))
+			} else {
+				log.Printf("  warning: no price returned for %s", yahooTicker)
+				logf(fmt.Sprintf("  warning: no price returned for %s", yahooTicker))
+			}
+		}
+		log.Printf("prices fetched for %d/%d symbols", len(priceMap)/2, len(yahooTickers))
+		logf(fmt.Sprintf("prices fetched for %d/%d symbols", len(priceMap)/2, len(yahooTickers)))
 	}
-	stats.EnrichWithPrices(&combinedStats, priceMap)
+	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
+	stats.RecalcGainPct(&combinedStats)
 
 	var brokerReports []output.BrokerReport
 	for _, b := range brokersInOrder(txs) {
@@ -203,7 +217,8 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		bl := ledger.New()
 		bl.Process(brokerTxs)
 		bs := stats.Compute(bl, brokerTxs, time.Now(), nil, nativeCur)
-		stats.EnrichWithPrices(&bs, priceMap)
+		stats.EnrichWithPrices(&bs, priceMap, nil)
+		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}
 
@@ -228,12 +243,16 @@ func uniqueCurrencies(txs []model.Transaction) []string {
 	return out
 }
 
-func uniqueSymbols(positions []stats.PositionSummary) []string {
-	out := make([]string, 0, len(positions))
+func buildYahooTickerMap(positions []stats.PositionSummary) (tickers []string, reverseMap map[string]string) {
+	reverseMap = make(map[string]string)
 	for _, p := range positions {
-		out = append(out, p.Symbol)
+		yahoo := prices.YahooTicker(p.Symbol, p.Currency)
+		tickers = append(tickers, yahoo)
+		if yahoo != p.Symbol {
+			reverseMap[yahoo] = p.Symbol
+		}
 	}
-	return out
+	return tickers, reverseMap
 }
 
 func brokersInOrder(txs []model.Transaction) []string {

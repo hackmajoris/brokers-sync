@@ -33,6 +33,13 @@ var tradevilleOps = map[string]model.TxType{
 
 var currencyRe = regexp.MustCompile(`^[A-Z]{3}$`)
 
+// knownCurrencies is the set of ISO currency codes seen in Tradeville exports.
+// Stock tickers also match the 3-letter regex, so we use an allowlist to avoid
+// treating symbols like TLV as currency codes.
+var knownCurrencies = map[string]bool{
+	"RON": true, "EUR": true, "USD": true, "GBP": true, "CHF": true,
+}
+
 var tradevilleDateFormats = []string{
 	"2006-01-02 15:04:05.000",
 	"2006-01-02 15:04:05",
@@ -116,9 +123,17 @@ func parseTradevilleRow(r []string, idx map[string]int) (model.Transaction, erro
 			tx.Currency = "RON"
 		}
 	} else {
-		// For non-trade rows, simbol holds the currency (e.g. "RON", "EUR").
-		if cur := strings.TrimSpace(r[idx["simbol"]]); currencyRe.MatchString(cur) {
-			tx.Currency = cur
+		simbol := strings.TrimSpace(r[idx["simbol"]])
+		if knownCurrencies[simbol] {
+			tx.Currency = simbol
+		} else if op == "in" && currencyRe.MatchString(simbol) {
+			// Capital increase / stock distribution: "in" with a stock symbol (e.g. TLV).
+			// Treat as a buy at zero cost — shares are received for free.
+			tx.Type = model.TxBuy
+			tx.Symbol = simbol
+			tx.Currency = "RON"
+			tx.Price = 0
+			// tx.Net stays 0; ledger.buy uses qty*price as fallback → cost basis 0
 		} else {
 			tx.Currency = "RON"
 		}

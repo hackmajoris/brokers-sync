@@ -131,17 +131,24 @@ func main() {
 	// and combined sections.
 	var priceMap map[string]float64
 	if !*noPrices {
-		allSymbols := uniqueSymbols(combinedStats.OpenPositions)
-		fmt.Fprintf(os.Stderr, "Fetching prices for %d symbols...\n", len(allSymbols))
+		yahooTickers, reverseMap := buildYahooTickerMap(combinedStats.OpenPositions)
+		fmt.Fprintf(os.Stderr, "Fetching prices for %d symbols...\n", len(yahooTickers))
 		var err error
-		priceMap, err = prices.FetchQuotes(context.Background(), allSymbols)
+		priceMap, err = prices.FetchQuotes(context.Background(), yahooTickers)
 		if err != nil {
 			fmt.Fprintf(os.Stderr, "Warning: price fetch failed (%v) — unrealized P&L unavailable\n", err)
 		} else {
-			fmt.Fprintf(os.Stderr, "Prices fetched for %d/%d symbols\n\n", len(priceMap)/2, len(allSymbols))
+			fmt.Fprintf(os.Stderr, "Prices fetched for %d/%d symbols\n\n", len(priceMap)/2, len(yahooTickers))
+			// Re-key prices by original symbol so EnrichWithPrices can match them.
+			for yahooTicker, origSymbol := range reverseMap {
+				if p, ok := priceMap[yahooTicker]; ok {
+					priceMap[origSymbol] = p
+				}
+			}
 		}
 	}
-	stats.EnrichWithPrices(&combinedStats, priceMap)
+	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
+	stats.RecalcGainPct(&combinedStats)
 
 	now := time.Now()
 
@@ -158,7 +165,8 @@ func main() {
 		bl := ledger.New()
 		bl.Process(brokerTxs)
 		bs := stats.Compute(bl, brokerTxs, now, nil, nativeCur)
-		stats.EnrichWithPrices(&bs, priceMap)
+		stats.EnrichWithPrices(&bs, priceMap, nil)
+		stats.RecalcGainPct(&bs)
 		brokerEntries = append(brokerEntries, brokerEntry{b, bs, bl})
 	}
 
@@ -246,12 +254,19 @@ func brokerNativeCurrency(txs []model.Transaction) string {
 	return best
 }
 
-func uniqueSymbols(positions []stats.PositionSummary) []string {
-	out := make([]string, 0, len(positions))
+// buildYahooTickerMap returns the Yahoo Finance tickers to fetch and a reverse
+// map of yahooTicker → originalSymbol for re-keying the price map afterward.
+// Symbols whose Yahoo ticker equals the original symbol are not in reverseMap.
+func buildYahooTickerMap(positions []stats.PositionSummary) (tickers []string, reverseMap map[string]string) {
+	reverseMap = make(map[string]string)
 	for _, p := range positions {
-		out = append(out, p.Symbol)
+		yahoo := prices.YahooTicker(p.Symbol, p.Currency)
+		tickers = append(tickers, yahoo)
+		if yahoo != p.Symbol {
+			reverseMap[yahoo] = p.Symbol
+		}
 	}
-	return out
+	return tickers, reverseMap
 }
 
 func printSectionHeader(name, currency string) {

@@ -264,7 +264,7 @@ export function BrokersTab({ data, accent }: Props) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 700 }}>
                 <thead>
                   <tr style={{ background: '#080808' }}>
-                    {['Broker', 'Currency', 'Cash', 'Deposits', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Open Positions'].map(h => (
+                    {['Broker', 'Currency', 'Cash', 'Deposits', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Unrealized P&L', 'Open Positions'].map(h => (
                       <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Broker' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -295,6 +295,9 @@ export function BrokersTab({ data, accent }: Props) {
                         <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: clr(b.mtdGain) + '22', color: clr(b.mtdGain) }}>{fmtPct(b.mtdGain)}</span>
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#facc15' }}>{fmtCurrency(Math.abs(b.dividends), b.currency)}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600, color: clr(b.positions.reduce((s, p) => s + (p.pnl ?? 0), 0)) }}>
+                        {b.positions.some(p => p.pnl != null) ? fmtCurrency(b.positions.reduce((s, p) => s + (p.pnl ?? 0), 0), b.currency) : '—'}
+                      </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 12, color: '#c0c0c0' }}>
                         {b.positions.filter(p => p.mv != null).length}{' '}
                         <span style={{ color: '#555555', fontSize: 10 }}>/ {b.positions.length}</span>
@@ -319,6 +322,9 @@ export function BrokersTab({ data, accent }: Props) {
                       <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 12, fontWeight: 700, background: clr(data.mtd.gainPct) + '22', color: clr(data.mtd.gainPct) }}>{fmtPct(data.mtd.gainPct)}</span>
                     </td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#facc15' }}>{fmtCurrency(data.allTime.dividends)}</td>
+                    {(() => { const totalUpnl = data.openPositions.reduce((s, p) => s + (p.pnl ?? 0), 0); return (
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: clr(totalUpnl) }}>{fmtCurrency(totalUpnl)}</td>
+                    )})()}
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 12, color: '#c0c0c0' }}>{data.openPositions.length}</td>
                   </tr>
                 </tbody>
