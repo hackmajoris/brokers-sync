@@ -8,6 +8,7 @@ AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Accou
 
 .PHONY: help \
         dev build build-web build-server run \
+        compose-up compose-build compose-up-d compose-logs compose-down \
         cdk-diff cdk-deploy cdk-destroy \
         cdk-bootstrap ecr-setup
 
@@ -45,6 +46,23 @@ build-server: ## Build the Go server binary
 
 run: build ## Build, then run the server locally
 	./bin/server -data data -web web/dist
+
+## ==== Docker Compose ====
+
+compose-up: ## Run full stack (server + web) at http://localhost:8080
+	docker compose up
+
+compose-build: ## Rebuild image and run (use after code changes)
+	docker compose up --build
+
+compose-up-d: ## Run in the background (detached)
+	docker compose up -d
+
+compose-logs: ## Stream logs from running containers
+	docker compose logs -f
+
+compose-down: ## Stop and remove containers
+	docker compose down
 
 ## ==== AWS / CDK ====
 
