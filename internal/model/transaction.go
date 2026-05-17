@@ -12,8 +12,11 @@ const (
 	TxDeposit        TxType = "DEPOSIT"
 	TxWithdrawal     TxType = "WITHDRAWAL"
 	TxFee            TxType = "FEE"
+	TxInterest       TxType = "INTEREST" // credit/debit interest — a cash movement, not investment income
 	TxStockSplit     TxType = "STOCK_SPLIT"
 	TxForex          TxType = "FOREX"
+	TxTransferOut    TxType = "TRANSFER_OUT" // shares moved out to another broker (no P&L)
+	TxTransferIn     TxType = "TRANSFER_IN"  // shares moved in from another broker; establishes a lot at carried cost basis (no cash flow)
 	TxUnknown        TxType = "UNKNOWN"
 )
 
@@ -34,5 +37,6 @@ type Transaction struct {
 	Net        float64 // Gross + Commission
 	FXRate     float64 // price currency → base currency (0 means unknown)
 	BrokerPnL  float64 // broker-reported realized P&L for sells (0 = not provided)
+	Liquidate  bool    // sell closes the ENTIRE remaining position (delisting write-off; stated Quantity unreliable)
 	Notes      string
 }

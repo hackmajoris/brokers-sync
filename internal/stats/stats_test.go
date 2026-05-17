@@ -1,6 +1,7 @@
 package stats_test
 
 import (
+	"io"
 	"math"
 	"os"
 	"testing"
@@ -190,8 +191,9 @@ func TestRecalcGainPct_YTDUnrealizedGain(t *testing.T) {
 	stats.EnrichWithPrices(&s, map[string]float64{"SNP": 1.1}, nil)
 	stats.RecalcGainPct(&s)
 
-	// Unrealized = 10000*(1.1-1.0) = 1000 RON; deposits = 10000 RON → 10%
-	near(t, "YTD.GainPct after 10% price move", s.YTD.GainPct, 10.0, 0.1)
+	// Return on current value: unrealized = 10000*(1.1-1.0) = 1000 RON, and the
+	// position is now worth 11000 RON → 1000 / 11000 = 9.0909%.
+	near(t, "YTD.GainPct after 10% price move", s.YTD.GainPct, 9.0909, 0.1)
 }
 
 // ---- integration test against the real Tradeville CSV (all amounts RON) ----
@@ -351,4 +353,101 @@ func getPosition(s stats.Summary, symbol string) *stats.PositionSummary {
 		}
 	}
 	return nil
+}
+
+// A delisted holding (e.g. FRC after its FDIC seizure) has no live price and no
+// disposal row in the broker export, so it lingers as a phantom position. When
+// the price batch mostly succeeds, AutoWriteOffs must book it as a zero-proceeds
+// Liquidate sell (full loss) — but must NOT touch live positions, non-USD or
+// exchange-suffixed tickers, or write anything off during a fetch outage.
+func TestAutoWriteOffsDelistedOnly(t *testing.T) {
+	d := func(s string) time.Time { tm, _ := time.Parse("2006-01-02", s); return tm }
+	l := ledger.New()
+	l.Process([]model.Transaction{
+		{Date: d("2023-03-14"), Broker: "ibkr", Type: model.TxBuy, Symbol: "FRC", Currency: "USD", Quantity: 11, Net: -537.69},
+		{Date: d("2023-01-02"), Broker: "ibkr", Type: model.TxBuy, Symbol: "VICI", Currency: "USD", Quantity: 10, Net: -300},
+		{Date: d("2023-01-02"), Broker: "ibkr", Type: model.TxBuy, Symbol: "AAPL", Currency: "USD", Quantity: 5, Net: -800},
+		{Date: d("2023-01-02"), Broker: "xtb", Type: model.TxBuy, Symbol: "TLV", Currency: "RON", Quantity: 100, Net: -2500},
+	})
+	now := d("2026-07-20")
+
+	// VICI + AAPL priced (2 of 4 open → passes the ≥half guard). FRC and the RON
+	// TLV are absent, but only FRC is an eligible plain-USD ticker.
+	prices := map[string]float64{"VICI": 26.0, "AAPL": 200.0}
+	wo := stats.AutoWriteOffs(l, prices, now, io.Discard)
+
+	if len(wo) != 1 {
+		t.Fatalf("got %d write-offs, want 1 (FRC only); TLV is RON, VICI/AAPL are live", len(wo))
+	}
+	tx := wo[0]
+	if tx.Symbol != "FRC" || tx.Type != model.TxSell || !tx.Liquidate || tx.Net != 0 {
+		t.Errorf("FRC write-off malformed: %+v (want Sell, Liquidate, Net 0)", tx)
+	}
+	if tx.Quantity != 11 || tx.Broker != "ibkr" {
+		t.Errorf("FRC write-off qty/broker wrong: %+v", tx)
+	}
+
+	// Booking it must realize the full −537.69 loss and remove the position.
+	l.Process([]model.Transaction{tx})
+	if p := l.Positions["FRC"]; p != nil && p.Quantity > 1e-9 {
+		t.Errorf("FRC still open after write-off: qty %.4f", p.Quantity)
+	}
+	var frcPnL float64
+	for _, r := range l.Realized {
+		if r.Symbol == "FRC" {
+			frcPnL += r.PnL
+		}
+	}
+	if frcPnL < -537.70 || frcPnL > -537.68 {
+		t.Errorf("FRC realized P&L = %.2f, want −537.69 (full cost written off)", frcPnL)
+	}
+}
+
+// A fetch outage (few/no symbols priced) must write nothing off, so a network
+// blip never masquerades as a portfolio of delistings.
+func TestAutoWriteOffsSkipsOnOutage(t *testing.T) {
+	d := func(s string) time.Time { tm, _ := time.Parse("2006-01-02", s); return tm }
+	l := ledger.New()
+	l.Process([]model.Transaction{
+		{Date: d("2023-01-02"), Broker: "ibkr", Type: model.TxBuy, Symbol: "FRC", Currency: "USD", Quantity: 11, Net: -537.69},
+		{Date: d("2023-01-02"), Broker: "ibkr", Type: model.TxBuy, Symbol: "VICI", Currency: "USD", Quantity: 10, Net: -300},
+		{Date: d("2023-01-02"), Broker: "ibkr", Type: model.TxBuy, Symbol: "AAPL", Currency: "USD", Quantity: 5, Net: -800},
+	})
+	// Only 1 of 3 priced → below half → treat as outage, write nothing off.
+	if wo := stats.AutoWriteOffs(l, map[string]float64{"VICI": 26.0}, d("2026-07-20"), io.Discard); wo != nil {
+		t.Errorf("outage: got %d write-offs, want 0", len(wo))
+	}
+	// Empty price map → nil.
+	if wo := stats.AutoWriteOffs(l, nil, d("2026-07-20"), io.Discard); wo != nil {
+		t.Errorf("empty prices: got %d write-offs, want 0", len(wo))
+	}
+}
+
+// Cash must use each IBKR row's own transaction-time Exchange Rate, not today's
+// spot. That makes a foreign trade's cash impact independent of the fxRates map,
+// so the per-broker view (nil map) and the combined view (spot map) agree — the
+// asymmetry that made "ALL" cash diverge from (and go negative vs) the IBKR row.
+func TestCashUsesPerRowFXRateConsistently(t *testing.T) {
+	txs := []model.Transaction{
+		// USD deposit: already base currency (blank price currency), no FXRate.
+		{Date: d("2025-01-01"), Broker: "ibkr", Type: model.TxDeposit, Currency: "-", Net: 2000},
+		// EUR-denominated IBKR buy: Net is in EUR; FXRate is EUR→USD on the trade
+		// date. The per-row rate is trusted only for IBKR (see amtBase).
+		{Date: d("2025-02-01"), Broker: "ibkr", Type: model.TxBuy, Symbol: "VUAA", Currency: "EUR", Quantity: 10, Net: -1000, FXRate: 1.10},
+	}
+	l1 := ledger.New()
+	l1.Process(txs)
+	l2 := ledger.New()
+	l2.Process(txs)
+
+	// Spot map deliberately differs (EUR=1.30) to prove the row's 1.10 wins.
+	combined := stats.Compute(l1, txs, time.Now(), map[string]float64{"USD": 1.0, "EUR": 1.30}, "USD")
+	perBroker := stats.Compute(l2, txs, time.Now(), nil, "USD")
+
+	// 2000 − 1000×1.10 = 900, using the trade-time rate (not spot 1.30 → 700).
+	near(t, "combined cash", combined.CashBalance, 900, 0.01)
+	near(t, "per-broker cash", perBroker.CashBalance, 900, 0.01)
+	if math.Abs(combined.CashBalance-perBroker.CashBalance) > 0.01 {
+		t.Errorf("combined %.2f != per-broker %.2f — cash must be FX-consistent across views", combined.CashBalance, perBroker.CashBalance)
+	}
 }

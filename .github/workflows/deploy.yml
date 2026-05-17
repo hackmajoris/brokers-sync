@@ -18,6 +18,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Dockerfile.lambda's final stage is arm64 and runs apk (poppler-utils);
+      # emulate arm64 so the image builds on this amd64 runner.
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
       - name: Configure AWS credentials (OIDC)
         uses: aws-actions/configure-aws-credentials@v4
         with:

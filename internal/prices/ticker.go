@@ -4,7 +4,11 @@ import "strings"
 
 // yahooOverrides maps internal symbols to their Yahoo Finance tickers,
 // overriding the currency-based suffix rules below.
-var yahooOverrides = map[string]string{}
+var yahooOverrides = map[string]string{
+	// VUAA is USD-denominated (traded on the LSE USD line); the currency-based
+	// suffix rules would leave it as plain "VUAA", which Yahoo does not list.
+	"VUAA": "VUAA.L",
+}
 
 // YahooTicker returns the Yahoo Finance ticker for a given symbol and currency.
 // Rules (applied in order):

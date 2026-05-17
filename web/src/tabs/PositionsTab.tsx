@@ -1,4 +1,5 @@
-import type { PortfolioData } from '../types/portfolio'
+import { useState } from 'react'
+import type { PortfolioData, Position } from '../types/portfolio'
 import { fmt, fmtCurrency, fmtPct, fmtK, clr } from '../utils/format'
 import { BROKER_COLORS } from '../constants'
 import { HorizBar } from '../components/charts/HorizBar'
@@ -11,7 +12,49 @@ interface Props {
   accent: string
 }
 
+type ExportFormat = 'csv' | 'md'
+
+const EXPORT_HEADERS = ['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return %', 'Allocation %']
+
+function exportRow(p: Position, totalMV: number): (string | number)[] {
+  const alloc = totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0
+  const r2 = (n: number) => Number(n.toFixed(2))
+  return [p.symbol, p.quantity ?? 0, r2(p.mv ?? 0), r2(p.cost), r2(p.pnl ?? 0), r2(p.pct ?? 0), r2(alloc)]
+}
+
+function toCsv(positions: Position[], totalMV: number): string {
+  const esc = (v: string | number) => {
+    const s = String(v)
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s
+  }
+  const lines = [EXPORT_HEADERS.join(',')]
+  for (const p of positions) lines.push(exportRow(p, totalMV).map(esc).join(','))
+  return lines.join('\n')
+}
+
+function toMarkdown(positions: Position[], totalMV: number): string {
+  const lines = [
+    `| ${EXPORT_HEADERS.join(' | ')} |`,
+    `| ${EXPORT_HEADERS.map(() => '---').join(' | ')} |`,
+  ]
+  for (const p of positions) lines.push(`| ${exportRow(p, totalMV).join(' | ')} |`)
+  return lines.join('\n')
+}
+
+function downloadPositions(positions: Position[], totalMV: number, format: ExportFormat) {
+  const content = format === 'csv' ? toCsv(positions, totalMV) : toMarkdown(positions, totalMV)
+  const mime = format === 'csv' ? 'text/csv' : 'text/markdown'
+  const blob = new Blob([content], { type: `${mime};charset=utf-8` })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `positions.${format}`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
 export function PositionsTab({ data, accent }: Props) {
+  const [format, setFormat] = useState<ExportFormat>('csv')
   const totalMV = data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0)
   const totalUPnl = data.openPositions.reduce((s, p) => s + (p.pnl ?? 0), 0)
 
@@ -37,14 +80,31 @@ export function PositionsTab({ data, accent }: Props) {
 
       {/* All positions table */}
       <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <SectionLabel>Open Positions</SectionLabel>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+            <select
+              value={format}
+              onChange={e => setFormat(e.target.value as ExportFormat)}
+              style={{ background: '#080808', color: '#c0c0c0', border: '1px solid #1a1a1a', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+            >
+              <option value="csv">CSV</option>
+              <option value="md">Markdown</option>
+            </select>
+            <button
+              onClick={() => downloadPositions(sorted, totalMV, format)}
+              disabled={sorted.length === 0}
+              style={{ background: accent + '22', color: accent, border: `1px solid ${accent}33`, borderRadius: 6, padding: '5px 12px', fontSize: 11, fontWeight: 600, cursor: sorted.length === 0 ? 'default' : 'pointer', opacity: sorted.length === 0 ? 0.5 : 1 }}
+            >
+              Download
+            </button>
+          </div>
         </div>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
             <thead>
               <tr style={{ background: '#080808' }}>
-                {['Symbol', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', 'Allocation'].map(h => (
+                {['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', 'Allocation'].map(h => (
                   <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -65,6 +125,7 @@ export function PositionsTab({ data, accent }: Props) {
                       <span style={{ fontWeight: 600, fontSize: 13 }}>{p.symbol}</span>
                     </div>
                   </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }}>{p.quantity != null ? p.quantity.toLocaleString('en-US', { maximumFractionDigits: 4 }) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontFamily: "'DM Mono', monospace", fontSize: 13 }}>{fmtCurrency(p.mv)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', color: '#888888', fontFamily: "'DM Mono', monospace", fontSize: 12 }}>{fmtCurrency(p.cost)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontFamily: "'DM Mono', monospace", fontSize: 13, color: clr(p.pnl) }}>{fmtCurrency(p.pnl)}</td>

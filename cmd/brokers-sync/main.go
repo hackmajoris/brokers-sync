@@ -147,6 +147,17 @@ func main() {
 			}
 		}
 	}
+	// Positions with no live price after a mostly-successful fetch are presumed
+	// delisted/worthless (IBKR's export never records the disposal). Book them as
+	// zero-proceeds write-offs and recompute so the loss is realized and the
+	// combined + per-broker sections below (which filter allTxs) stay consistent.
+	if writeoffs := stats.AutoWriteOffs(combinedLedger, priceMap, time.Now(), os.Stderr); len(writeoffs) > 0 {
+		allTxs = append(allTxs, writeoffs...)
+		combinedLedger = ledger.New()
+		combinedLedger.Process(allTxs)
+		combinedStats = stats.Compute(combinedLedger, allTxs, time.Now(), fxRates, baseCurrency)
+	}
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.RecalcGainPct(&combinedStats)
 

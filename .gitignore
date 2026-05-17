@@ -3,6 +3,7 @@ data/*
 web/node_modules
 web/dist
 /server
+/tmp
 infra/cdk.out
 infra/cdk-outputs.json
 /infra/brokers-sync-infra

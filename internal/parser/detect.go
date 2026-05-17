@@ -20,13 +20,28 @@ const (
 	BrokerTrading212 = "trading212"
 	BrokerXTB        = "xtb"
 	BrokerTradeville = "tradeville"
+	// BrokerIBKRTransfers routes IBKR "Transferred In/Out Positions" reports.
+	// Parsed transactions still carry Broker == "ibkr" so they merge into the
+	// same ledger.
+	BrokerIBKRTransfers = "ibkr-transfers"
 )
 
 // Detect reads a file and returns the broker name.
 // For .xlsx files it checks for the XTB Cash Operations sheet; for CSV files it inspects the first line.
 func Detect(path string) (string, error) {
-	if strings.HasSuffix(strings.ToLower(path), ".xlsx") {
+	lower := strings.ToLower(path)
+	if strings.HasSuffix(lower, ".xlsx") {
 		return detectXlsx(path)
+	}
+	if strings.HasSuffix(lower, ".pdf") {
+		text, err := pdftotextLayout(path)
+		if err != nil {
+			return "", fmt.Errorf("detect %s: %w", path, err)
+		}
+		if strings.Contains(text, "Revolut") {
+			return BrokerRevolut, nil
+		}
+		return "", fmt.Errorf("unrecognised PDF format in %s", filepath.Base(path))
 	}
 
 	f, err := os.Open(path)
@@ -41,6 +56,8 @@ func Detect(path string) (string, error) {
 	}
 
 	switch {
+	case strings.HasPrefix(line, `"ClientAccountID","Symbol"`):
+		return BrokerIBKRTransfers, nil
 	case strings.Contains(line, "Statement,") && strings.Contains(line, "Header"):
 		return BrokerIBKR, nil
 	case strings.HasPrefix(line, "Action,") && strings.Contains(line, "ISIN"):
@@ -70,6 +87,15 @@ func AutoParse(path string) (string, []model.Transaction, error) {
 		return broker, txs, nil
 	}
 
+	// Revolut PDF statements are parsed by path (pdftotext shell-out).
+	if strings.HasSuffix(strings.ToLower(path), ".pdf") {
+		txs, err := ParseRevolutPDF(path)
+		if err != nil {
+			return broker, nil, fmt.Errorf("%s (%s): %w", broker, filepath.Base(path), err)
+		}
+		return broker, txs, nil
+	}
+
 	f, err := os.Open(path)
 	if err != nil {
 		return broker, nil, err
@@ -82,6 +108,8 @@ func AutoParse(path string) (string, []model.Transaction, error) {
 		txs, err = ParseRevolut(f)
 	case BrokerIBKR:
 		txs, err = ParseIBKR(f)
+	case BrokerIBKRTransfers:
+		txs, err = ParseIBKRTransfers(f)
 	case BrokerTrading212:
 		txs, err = ParseTrading212(f)
 	case BrokerTradeville:
@@ -111,7 +139,7 @@ func LoadDir(dir string, warn io.Writer) ([]model.Transaction, error) {
 		}
 		name := e.Name()
 		lower := strings.ToLower(name)
-		if !strings.HasSuffix(lower, ".csv") && !strings.HasSuffix(lower, ".xlsx") {
+		if !strings.HasSuffix(lower, ".csv") && !strings.HasSuffix(lower, ".xlsx") && !strings.HasSuffix(lower, ".pdf") {
 			continue
 		}
 

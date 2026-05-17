@@ -4,7 +4,6 @@ import (
 	"encoding/csv"
 	"fmt"
 	"io"
-	"regexp"
 	"strconv"
 	"strings"
 
@@ -12,38 +11,31 @@ import (
 )
 
 // Tradeville exports a tab-separated CSV with a leading "SEP=\t" hint line.
-// Columns used: id, data, op, simbol, cant, pret, comis, suma, valuta
 //
-// op mapping:
-//   cump  → BUY
-//   vanz  → SELL
-//   in    → DEPOSIT
-//   out   → WITHDRAWAL
-//   div   → DIVIDEND
-//   comis → FEE
+// Columns: Tip, Data, Simbol, Suma, Cantitate, Pret
+//   Tip       full-word Romanian transaction type (see tradevilleOps)
+//   Data      DD/MM/YYYY (no time component)
+//   Simbol    ticker for trades/dividends; currency code for cash rows
+//   Suma      signed net cash effect with inline currency, e.g. "-1,176.54 RON"
+//   Cantitate share count for trades; cash amount for non-trades (thousands-grouped)
+//   Pret      price per share for trades; "-" otherwise
+//
+// This export omits per-trade commission and dividend tax, so those stay 0.
+// Schimb valutar / Transferuri interne are currency plumbing, not external cash
+// flow, so they map to TxForex (ignored by the ledger and cash-flow stats).
 
 var tradevilleOps = map[string]model.TxType{
-	"cump":  model.TxBuy,
-	"vanz":  model.TxSell,
-	"in":    model.TxDeposit,
-	"out":   model.TxWithdrawal,
-	"div":   model.TxDividend,
-	"comis": model.TxFee,
+	"cumparare":           model.TxBuy,
+	"vanzare":             model.TxSell,
+	"alimentare":          model.TxDeposit,
+	"retragere":           model.TxWithdrawal,
+	"dividend":            model.TxDividend,
+	"comision":            model.TxFee,
+	"schimb valutar":      model.TxForex,
+	"transferuri interne": model.TxForex,
 }
 
-var currencyRe = regexp.MustCompile(`^[A-Z]{3}$`)
-
-// knownCurrencies is the set of ISO currency codes seen in Tradeville exports.
-// Stock tickers also match the 3-letter regex, so we use an allowlist to avoid
-// treating symbols like TLV as currency codes.
-var knownCurrencies = map[string]bool{
-	"RON": true, "EUR": true, "USD": true, "GBP": true, "CHF": true,
-}
-
-var tradevilleDateFormats = []string{
-	"2006-01-02 15:04:05.000",
-	"2006-01-02 15:04:05",
-}
+var tradevilleDateFormats = []string{"02/01/2006"}
 
 func ParseTradeville(r io.Reader) ([]model.Transaction, error) {
 	cr := csv.NewReader(r)
@@ -54,18 +46,18 @@ func ParseTradeville(r io.Reader) ([]model.Transaction, error) {
 	cr.ReuseRecord = false
 
 	// First line is either "SEP=\t" or the real header; skip it if it's the hint.
-	first, err := cr.Read()
+	header, err := cr.Read()
 	if err != nil {
 		return nil, fmt.Errorf("tradeville: read first line: %w", err)
 	}
-	if strings.HasPrefix(strings.TrimRight(first[0], "\r"), "SEP=") {
-		first, err = cr.Read()
+	if strings.HasPrefix(strings.TrimRight(header[0], "\r"), "SEP=") {
+		header, err = cr.Read()
 		if err != nil {
 			return nil, fmt.Errorf("tradeville: read header: %w", err)
 		}
 	}
 
-	idx, err := mapColumns(first, []string{"id", "data", "op", "simbol", "cant", "pret", "comis", "suma", "valuta"})
+	idx, err := mapColumns(header, []string{"Tip", "Data", "Simbol", "Suma", "Cantitate", "Pret"})
 	if err != nil {
 		return nil, fmt.Errorf("tradeville: %w", err)
 	}
@@ -95,103 +87,100 @@ func ParseTradeville(r io.Reader) ([]model.Transaction, error) {
 
 func parseTradevilleRow(r []string, idx map[string]int) (model.Transaction, error) {
 	var tx model.Transaction
-	var err error
 
-	dateStr := strings.TrimSpace(r[idx["data"]])
-	tx.Date, err = parseAnyTime(tradevilleDateFormats, dateStr)
-	if err != nil {
-		return tx, fmt.Errorf("date %q: %w", dateStr, err)
-	}
-
-	op := strings.TrimSpace(r[idx["op"]])
-	txType, ok := tradevilleOps[op]
+	tip := strings.TrimSpace(r[idx["Tip"]])
+	txType, ok := tradevilleOps[strings.ToLower(tip)]
 	if !ok {
 		txType = model.TxUnknown
 	}
 	tx.Type = txType
-	tx.Notes = op
+	tx.Notes = tip
 
-	// Trade rows (cump/vanz) have 24 fields; non-trade rows (in/out/div/comis) have 18/17
-	// because the pret column is absent, shifting comis, suma, valuta left by one.
-	isTrade := op == "cump" || op == "vanz"
+	dateStr := strings.TrimSpace(r[idx["Data"]])
+	t, err := parseAnyTime(tradevilleDateFormats, dateStr)
+	if err != nil {
+		return tx, fmt.Errorf("date %q: %w", dateStr, err)
+	}
+	tx.Date = t
 
-	if isTrade {
-		tx.Symbol = strings.TrimSpace(r[idx["simbol"]])
-		if cur := strings.TrimSpace(r[idx["valuta"]]); currencyRe.MatchString(cur) {
-			tx.Currency = cur
-		} else {
-			tx.Currency = "RON"
-		}
+	amount, currency, err := parseTradevilleAmount(r[idx["Suma"]])
+	if err != nil {
+		return tx, fmt.Errorf("suma %q: %w", r[idx["Suma"]], err)
+	}
+	tx.Net = amount
+	tx.Gross = amount
+	if currency != "" {
+		tx.Currency = currency
 	} else {
-		simbol := strings.TrimSpace(r[idx["simbol"]])
-		if knownCurrencies[simbol] {
-			tx.Currency = simbol
-		} else if op == "in" && currencyRe.MatchString(simbol) {
-			// Capital increase / stock distribution: "in" with a stock symbol (e.g. TLV).
-			// Treat as a buy at zero cost — shares are received for free.
-			tx.Type = model.TxBuy
-			tx.Symbol = simbol
-			tx.Currency = "RON"
-			tx.Price = 0
-			// tx.Net stays 0; ledger.buy uses qty*price as fallback → cost basis 0
-		} else {
-			tx.Currency = "RON"
-		}
-		// Extract stock symbol from description for dividends (e.g. "DIVIDEND TLV" → "TLV").
-		if op == "div" {
-			parts := strings.Fields(strings.TrimSpace(r[idx["descr"]]))
-			if len(parts) >= 2 {
-				tx.Symbol = parts[len(parts)-1]
-			}
-		}
+		tx.Currency = "RON"
 	}
 
-	if s := strings.TrimSpace(r[idx["cant"]]); s != "" {
-		tx.Quantity, err = strconv.ParseFloat(s, 64)
+	simbol := strings.TrimSpace(r[idx["Simbol"]])
+	qty, err := parseTradevilleNum(r[idx["Cantitate"]])
+	if err != nil {
+		return tx, fmt.Errorf("cantitate %q: %w", r[idx["Cantitate"]], err)
+	}
+
+	// "Transferuri interne" is overloaded: with a currency in Simbol it is an
+	// internal cash move (kept as TxForex, ignored); with a stock ticker and
+	// zero Suma it is a free-share distribution — a zero-cost BUY.
+	if txType == model.TxForex && strings.EqualFold(tip, "transferuri interne") && !tradevilleCurrencies[simbol] {
+		tx.Type = model.TxBuy
+		tx.Symbol = simbol
+		tx.Quantity = qty
+		tx.Price = 0
+		tx.Net = 0 // zero cost basis (ledger.buy falls back to qty×price = 0)
+		tx.Gross = 0
+		return tx, nil
+	}
+
+	// Symbol is a ticker only for trades and dividends; cash rows carry a
+	// currency code in Simbol, which we ignore (currency comes from Suma).
+	switch txType {
+	case model.TxBuy, model.TxSell:
+		tx.Symbol = simbol
+		tx.Quantity = qty
+		price, err := parseTradevilleNum(r[idx["Pret"]])
 		if err != nil {
-			return tx, fmt.Errorf("cant %q: %w", s, err)
+			return tx, fmt.Errorf("pret %q: %w", r[idx["Pret"]], err)
 		}
-	}
-
-	if isTrade {
-		if s := strings.TrimSpace(r[idx["pret"]]); s != "" {
-			tx.Price, err = strconv.ParseFloat(s, 64)
-			if err != nil {
-				return tx, fmt.Errorf("pret %q: %w", s, err)
-			}
-		}
-	}
-
-	// For non-trade rows, the commission sits at the pret position (shifted left by 1).
-	commisCol := idx["comis"]
-	if !isTrade {
-		commisCol = idx["pret"]
-	}
-	if s := strings.TrimSpace(r[commisCol]); s != "" {
-		v, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return tx, fmt.Errorf("comis %q: %w", s, err)
-		}
-		if v > 0 {
-			v = -v
-		}
-		tx.Commission = v
-	}
-
-	// For non-trade rows, suma sits at the comis position (shifted left by 1).
-	// "suma" is the net cash effect (negative for buys/withdrawals, positive for sells/deposits).
-	sumaCol := idx["suma"]
-	if !isTrade {
-		sumaCol = idx["comis"]
-	}
-	if s := strings.TrimSpace(r[sumaCol]); s != "" {
-		v, err := strconv.ParseFloat(s, 64)
-		if err != nil {
-			return tx, fmt.Errorf("suma %q: %w", s, err)
-		}
-		tx.Net = v
-		tx.Gross = v - tx.Commission
+		tx.Price = price
+	case model.TxDividend:
+		tx.Symbol = simbol
 	}
 
 	return tx, nil
+}
+
+// tradevilleCurrencies is the ISO code allowlist used to tell a currency in the
+// Simbol column apart from a stock ticker (both are short uppercase strings).
+var tradevilleCurrencies = map[string]bool{
+	"RON": true, "EUR": true, "USD": true, "GBP": true, "CHF": true,
+}
+
+// parseTradevilleAmount parses a signed amount with an inline currency suffix and
+// thousands separators, e.g. "-1,176.54 RON" → (-1176.54, "RON").
+func parseTradevilleAmount(s string) (float64, string, error) {
+	fields := strings.Fields(s)
+	if len(fields) == 0 {
+		return 0, "", nil
+	}
+	var currency string
+	if len(fields) >= 2 {
+		currency = fields[len(fields)-1]
+	}
+	v, err := strconv.ParseFloat(strings.ReplaceAll(fields[0], ",", ""), 64)
+	if err != nil {
+		return 0, currency, err
+	}
+	return v, currency, nil
+}
+
+// parseTradevilleNum parses a thousands-grouped number, treating "" and "-" as 0.
+func parseTradevilleNum(s string) (float64, error) {
+	s = strings.TrimSpace(s)
+	if s == "" || s == "-" {
+		return 0, nil
+	}
+	return strconv.ParseFloat(strings.ReplaceAll(s, ",", ""), 64)
 }

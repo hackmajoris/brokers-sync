@@ -10,19 +10,21 @@ import (
 
 // csvWithHeader wraps rows in a valid Tradeville CSV (SEP hint + header + data).
 func csvWithHeader(rows ...string) string {
-	header := "SEP=\t\nid\tdata\top\tdescr\tsimbol\tcant\tpret\tcomis\tsuma\tsoldlei\tsoldact\tprofit\tnrtranz\tvaluta\tobs\tcostm\telei\ttxcnlei\tidord\tcont\tmarket\tytm\timpozlei\tsimbolb\tdirty\tpiata\tcant1an\tcost\tnrzecDynamic\tnrzecFractionar\tdataConf\n"
+	header := "SEP=\t\nTip\tData\tSimbol\tSuma\tCantitate\tPret\n"
 	return header + strings.Join(rows, "\n")
 }
 
-// trade row (24 fields) - cump or vanz
-const buyRow = "23432347\t2026-04-24 11:18:08.637\tcump\tSNP\tSNP\t970\t1.02\t5.78214\t-995.77578\t14.256\t20818\t\t29812317\tRON\t\t0.87\t0\t0.59\tA17038616\tE3FD39\tREGS\t\t\tSNP\t\t\t\t1.02\t[object Object]\t<5\t<img>"
-const sellRow = "20835631\t2025-11-11 13:39:14.297\tvanz\tSNP\tSNP\t3055\t0.957\t12.57163\t2897.41667\t7567.26\t13643\t454.89\t28333959\tRON\t\t0.80\t0\t0\tA15662135\tE3FD39\tREGS\t\t13.65\tSNP\t\t\t\t0.94\t[object Object]\t<5\t<img>"
-
-// non-trade rows (18 fields — pret column absent, cols shift left)
-const depositRow = "23431470\t2026-04-24 10:56:27.033\tin\tDEPUNERE CONT CLIENT\tRON\t1000\t0\t1000\t1010.03268\t\t\t\t\tRON\tDEPUNERE CONT CLIENT\t\t1\t\tA2650519\tE3FD39\t\t\t\t\t\t\t\t\t[object Object]\t2\t<img>"
-const dividendRow = "21282648\t2025-12-11 12:05:06.730\tdiv\tDIVIDEND TLV\tRON\t105.16\t1.0516\t104.1084\t117.39\t\t\tTLV\tRON\tdividend TLV\t\t1\t\t\tE3FD39\t\t\t\tTLV\t\t\t\t\t[object Object]\t2\t<img>"
-const feeRow = "20861264\t2025-11-13 08:44:59.903\tcomis\tREFACTURARE CMS\tEUR\t0\t0.98\t-0.98\t1472.73\t\t\t\t\tEUR\tcomis\t\t1\t\tA2229193\tE3FD39-RE\t\t\t\t\t\t\t\t\t[object Object]\t2\t<img>"
-const freeSharesRow = "19355597\t2025-07-21 09:04:16.717\tin\tTLV - MCS GRATUITE\tTLV\t23\t0\t0\t21.82\t\t\t\t7/21/2025\tRON\tmcs gratuite\t25.03\t0\t0\t\tE3FD39\t\t\t\tTLV\t\t\t\t0\t[object Object]\t<5\t<img>"
+const (
+	buyRow       = "Cumparare\t10/07/2026\tTVBETETF\t-1,176.54 RON\t20\t58.52"
+	sellRow      = "Vanzare\t11/11/2025\tSNP\t2,897.42 RON\t3055\t0.96"
+	depositRow   = "Alimentare\t10/07/2026\tRON\t1,000 RON\t1,000\t-"
+	withdrawRow  = "Retragere\t01/06/2026\tEUR\t-1,472.02 EUR\t1,472.02\t-"
+	dividendRow  = "Dividend\t30/06/2026\tTLV\t194.34 RON\t196.3\t-"
+	feeRow       = "Comision\t13/11/2025\tEUR\t-0.98 EUR\t0\t-"
+	fxRow        = "Schimb valutar\t01/06/2026\tRON\t-7,499.98 RON\t7,499.98\t-"
+	transferRow  = "Transferuri interne\t01/06/2026\tEUR\t1,473.56 EUR\t1,473.56\t-"
+	freeShareRow = "Transferuri interne\t21/07/2025\tTLV\t0 RON\t23\t0"
+)
 
 func TestParseTradevilleRows(t *testing.T) {
 	tests := []struct {
@@ -34,69 +36,106 @@ func TestParseTradevilleRows(t *testing.T) {
 			name: "BUY trade row",
 			row:  buyRow,
 			want: model.Transaction{
-				Type:       model.TxBuy,
-				Symbol:     "SNP",
-				Currency:   "RON",
-				Quantity:   970,
-				Price:      1.02,
-				Commission: -5.78214,
-				Net:        -995.77578,
-				Broker:     "tradeville",
+				Type:     model.TxBuy,
+				Symbol:   "TVBETETF",
+				Currency: "RON",
+				Quantity: 20,
+				Price:    58.52,
+				Net:      -1176.54,
+				Broker:   "tradeville",
 			},
 		},
 		{
 			name: "SELL trade row",
 			row:  sellRow,
 			want: model.Transaction{
-				Type:       model.TxSell,
-				Symbol:     "SNP",
-				Currency:   "RON",
-				Quantity:   3055,
-				Price:      0.957,
-				Commission: -12.57163,
-				Net:        2897.41667,
-				Broker:     "tradeville",
+				Type:     model.TxSell,
+				Symbol:   "SNP",
+				Currency: "RON",
+				Quantity: 3055,
+				Price:    0.96,
+				Net:      2897.42,
+				Broker:   "tradeville",
 			},
 		},
 		{
-			name: "DEPOSIT (in RON)",
+			// Deposit currency comes from the Suma suffix, not the Simbol column;
+			// no ticker symbol is attached to cash rows.
+			name: "DEPOSIT (Alimentare RON)",
 			row:  depositRow,
 			want: model.Transaction{
 				Type:     model.TxDeposit,
 				Symbol:   "",
 				Currency: "RON",
-				Quantity: 1000,
 				Net:      1000,
 				Broker:   "tradeville",
 			},
 		},
 		{
-			name: "DIVIDEND with TLV symbol extracted from descr",
+			// Withdrawals keep Suma's negative sign so cash-flow stats subtract them.
+			name: "WITHDRAWAL (Retragere EUR)",
+			row:  withdrawRow,
+			want: model.Transaction{
+				Type:     model.TxWithdrawal,
+				Symbol:   "",
+				Currency: "EUR",
+				Net:      -1472.02,
+				Broker:   "tradeville",
+			},
+		},
+		{
+			// Suma is the net dividend actually received; this export carries no tax line.
+			name: "DIVIDEND with ticker from Simbol",
 			row:  dividendRow,
 			want: model.Transaction{
-				Type:       model.TxDividend,
-				Symbol:     "TLV",
-				Currency:   "RON",
-				Quantity:   105.16,
-				Net:        104.1084,
-				Commission: -1.0516,
-				Broker:     "tradeville",
+				Type:     model.TxDividend,
+				Symbol:   "TLV",
+				Currency: "RON",
+				Net:      194.34,
+				Broker:   "tradeville",
 			},
 		},
 		{
-			name: "FEE (comis op)",
+			name: "FEE (Comision)",
 			row:  feeRow,
 			want: model.Transaction{
-				Type:       model.TxFee,
-				Currency:   "EUR",
-				Net:        -0.98,
-				Commission: -0.98,
-				Broker:     "tradeville",
+				Type:     model.TxFee,
+				Currency: "EUR",
+				Net:      -0.98,
+				Broker:   "tradeville",
 			},
 		},
 		{
-			name: "Free shares (in + stock symbol = zero-cost BUY)",
-			row:  freeSharesRow,
+			// FX conversion is internal plumbing → TxForex, ignored by ledger/cash-flow.
+			name: "FX conversion (Schimb valutar)",
+			row:  fxRow,
+			want: model.Transaction{
+				Type:     model.TxForex,
+				Symbol:   "",
+				Currency: "RON",
+				Net:      -7499.98,
+				Broker:   "tradeville",
+			},
+		},
+		{
+			// Internal transfer is not external capital → TxForex, so it never counts
+			// as a deposit (which would inflate invested capital and distort gain%).
+			name: "Internal transfer (Transferuri interne)",
+			row:  transferRow,
+			want: model.Transaction{
+				Type:     model.TxForex,
+				Symbol:   "",
+				Currency: "EUR",
+				Net:      1473.56,
+				Broker:   "tradeville",
+			},
+		},
+		{
+			// Same "Transferuri interne" label but Simbol is a ticker with zero Suma:
+			// a free-share distribution, recorded as a zero-cost BUY so the shares
+			// count toward quantity without adding cost basis.
+			name: "Free shares (Transferuri interne + ticker)",
+			row:  freeShareRow,
 			want: model.Transaction{
 				Type:     model.TxBuy,
 				Symbol:   "TLV",
@@ -132,11 +171,11 @@ func TestParseTradevilleRows(t *testing.T) {
 			if !approxEq(got.Quantity, tc.want.Quantity, 1e-6) {
 				t.Errorf("Quantity: got %.6f, want %.6f", got.Quantity, tc.want.Quantity)
 			}
+			if !approxEq(got.Price, tc.want.Price, 1e-6) {
+				t.Errorf("Price: got %.6f, want %.6f", got.Price, tc.want.Price)
+			}
 			if !approxEq(got.Net, tc.want.Net, 1e-4) {
 				t.Errorf("Net: got %.6f, want %.6f", got.Net, tc.want.Net)
-			}
-			if !approxEq(got.Commission, tc.want.Commission, 1e-4) {
-				t.Errorf("Commission: got %.6f, want %.6f", got.Commission, tc.want.Commission)
 			}
 			if got.Broker != tc.want.Broker {
 				t.Errorf("Broker: got %q, want %q", got.Broker, tc.want.Broker)
@@ -146,28 +185,15 @@ func TestParseTradevilleRows(t *testing.T) {
 }
 
 func TestParseTradevilleDate(t *testing.T) {
-	tests := []struct {
-		name    string
-		row     string
-		wantDay time.Time
-	}{
-		{
-			name:    "millisecond precision date",
-			row:     buyRow,
-			wantDay: time.Date(2026, 4, 24, 0, 0, 0, 0, time.UTC),
-		},
+	// DD/MM/YYYY: day 10, month 07 — must not be read as month 10.
+	txs, err := ParseTradeville(strings.NewReader(csvWithHeader(buyRow)))
+	if err != nil {
+		t.Fatalf("parse error: %v", err)
 	}
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			txs, err := ParseTradeville(strings.NewReader(csvWithHeader(tc.row)))
-			if err != nil {
-				t.Fatalf("parse error: %v", err)
-			}
-			got := txs[0].Date
-			if got.Year() != tc.wantDay.Year() || got.Month() != tc.wantDay.Month() || got.Day() != tc.wantDay.Day() {
-				t.Errorf("Date: got %v, want %v", got, tc.wantDay)
-			}
-		})
+	want := time.Date(2026, 7, 10, 0, 0, 0, 0, time.UTC)
+	got := txs[0].Date
+	if got.Year() != want.Year() || got.Month() != want.Month() || got.Day() != want.Day() {
+		t.Errorf("Date: got %v, want %v", got, want)
 	}
 }
 

@@ -85,6 +85,10 @@ func (l *Ledger) apply(tx model.Transaction) {
 		l.sell(tx)
 	case model.TxStockSplit:
 		l.split(tx)
+	case model.TxTransferOut:
+		l.transferOut(tx)
+	case model.TxTransferIn:
+		l.transferIn(tx)
 	case model.TxDividend, model.TxTaxWithholding:
 		l.Dividends = append(l.Dividends, tx)
 	case model.TxFee:
@@ -148,7 +152,12 @@ func (l *Ledger) sell(tx model.Transaction) {
 		proceeds = tx.Quantity * tx.Price
 	}
 
+	// Delisting write-off: the broker's stated quantity is unreliable (e.g. an
+	// unrecorded reverse split), so close the whole remaining position.
 	remaining := tx.Quantity
+	if tx.Liquidate {
+		remaining = p.Quantity
+	}
 	var costBasis float64
 
 	for i := 0; i < len(p.Lots) && remaining > 0; i++ {
@@ -189,6 +198,58 @@ func (l *Ledger) sell(tx model.Transaction) {
 		CostBasis: costBasis,
 		PnL:       pnl,
 	})
+}
+
+// transferOut removes shares moved to another broker. It drops lots FIFO like a
+// sell but records NO realized P&L and NO proceeds — the position simply leaves.
+func (l *Ledger) transferOut(tx model.Transaction) {
+	if tx.Symbol == "" || tx.Quantity == 0 {
+		return
+	}
+	p := l.positionFor(tx.Symbol)
+
+	remaining := tx.Quantity
+	for i := 0; i < len(p.Lots) && remaining > 0; i++ {
+		lot := &p.Lots[i]
+		if lot.Quantity == 0 {
+			continue
+		}
+		take := min(lot.Quantity, remaining)
+		lotCostPerShare := lot.CostBasis / lot.Quantity
+		lot.Quantity -= take
+		lot.CostBasis -= take * lotCostPerShare
+		p.Quantity -= take
+		p.TotalCost -= take * lotCostPerShare
+		remaining -= take
+	}
+
+	active := p.Lots[:0]
+	for _, lot := range p.Lots {
+		if lot.Quantity > 1e-9 {
+			active = append(active, lot)
+		}
+	}
+	p.Lots = active
+}
+
+// transferIn adds shares moved in from another broker. It creates a lot at the
+// carried cost basis (tx.Net, positive) with NO cash flow and NO commission —
+// the position simply arrives. Mirrors buy but takes cost basis directly rather
+// than deriving it from a cash amount.
+func (l *Ledger) transferIn(tx model.Transaction) {
+	if tx.Symbol == "" || tx.Quantity == 0 {
+		return
+	}
+	p := l.positionFor(tx.Symbol)
+	p.Lots = append(p.Lots, Lot{
+		Date:      tx.Date,
+		Broker:    tx.Broker,
+		Currency:  tx.Currency,
+		Quantity:  tx.Quantity,
+		CostBasis: tx.Net,
+	})
+	p.Quantity += tx.Quantity
+	p.TotalCost += tx.Net
 }
 
 // split adjusts lot quantities and cost bases for a stock split.

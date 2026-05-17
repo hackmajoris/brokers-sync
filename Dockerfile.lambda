@@ -5,14 +5,18 @@ COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN CGO_ENABLED=0 GOOS=linux GOARCH=arm64 go build -o bin/server ./cmd/server
-# Create empty web/dist here (builder runs natively) so the final arm64 stage
-# needs no RUN commands and works on amd64 CI without QEMU.
+# Create empty web/dist here (builder runs natively) to keep the final arm64 stage
+# lean. Note: the final stage installs poppler-utils, so amd64 CI builds require QEMU.
 RUN mkdir -p /app/web/dist
 
 FROM --platform=linux/arm64 public.ecr.aws/awsguru/aws-lambda-adapter:0.8.4 AS lwa
 
 FROM --platform=linux/arm64 alpine:3.21
 WORKDIR /app
+# pdftotext (poppler-utils) is required to parse Revolut PDF statements. This RUN
+# executes in the arm64 stage, so building on amd64 CI needs QEMU emulation
+# (docker/setup-qemu-action in deploy.yml).
+RUN apk add --no-cache poppler-utils
 # Lambda Web Adapter extension — proxies Lambda invocation events to the HTTP server
 COPY --from=lwa /lambda-adapter /opt/extensions/lambda-adapter
 COPY --from=builder /app/bin/server ./server

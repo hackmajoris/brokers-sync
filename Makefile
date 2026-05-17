@@ -31,9 +31,9 @@ fmt: ## Run Go formatters
 
 ## ==== Local development ====
 
-dev: ## Run Go server and Vite dev server together
+dev: build-web ## Build web, then run Go server (live-reload via air) and Vite dev server together
 	@trap 'kill 0' EXIT; \
-	go run ./cmd/server -data data -web web/dist & \
+	go run github.com/air-verse/air@latest & \
 	cd web && npm run dev
 
 build: build-web build-server ## Build web and server

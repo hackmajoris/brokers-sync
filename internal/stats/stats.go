@@ -2,7 +2,9 @@ package stats
 
 import (
 	"fmt"
+	"io"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -24,7 +26,7 @@ type PeriodSummary struct {
 	Withdrawals float64   `json:"withdrawals"`
 	BuyVolume   float64   `json:"buy_volume"`
 	SellVolume  float64   `json:"sell_volume"`
-	GainPct     float64   `json:"gain_pct"`          // (Realized + Dividends) / Deposits * 100
+	GainPct     float64   `json:"gain_pct"`          // total return: (Realized + Dividends + Unrealized) / capital base * 100
 	MWRPct      float64   `json:"mwr_pct,omitempty"` // Modified Dietz money-weighted return
 }
 
@@ -67,6 +69,15 @@ type Summary struct {
 	ytdLotCost map[string]float64
 	mtdLotQty  map[string]float64
 	mtdLotCost map[string]float64
+
+	// Per-year (keyed by lot open year) qty/cost of still-open lots, and the
+	// GainPct denominator for that year. RecalcGainPct uses these to fold each
+	// year's unrealized appreciation into its return, so the yearly rows use the
+	// same total-return metric as All Time and reconcile with it.
+	yearLotQty  map[int]map[string]float64
+	yearLotCost map[int]map[string]float64
+	yearBase    map[int]float64
+	currentYear int
 
 	// MWR (Modified Dietz) inputs pre-computed during Compute.
 	// OpenCostBasis is the accumulated portfolio cost going INTO each period start
@@ -121,6 +132,23 @@ func toBase(amount float64, currency string, fxRates map[string]float64) float64
 	return amount
 }
 
+// amtBase converts a transaction amount to the base currency for cash-flow
+// accounting. Only IBKR's per-row Exchange Rate carries the meaning this needs:
+// Net is denominated in the price currency and the rate converts it straight to
+// base, so a foreign trade lands in base currency at the rate that actually
+// moved cash on the trade date — not today's spot — and the result is
+// independent of the spot fxRates map (per-broker and combined views agree).
+// Other brokers report Total already in an account currency and set FXRate to an
+// unrelated price→total factor, so they must convert via the spot fxRates map.
+// Rows already in the base currency carry a blank price currency ("-") and fall
+// through to toBase, which leaves them at face value.
+func amtBase(amount float64, tx model.Transaction, fxRates map[string]float64) float64 {
+	if tx.Broker == "ibkr" && tx.FXRate > 0 && tx.Currency != "" && tx.Currency != "-" {
+		return amount * tx.FXRate
+	}
+	return toBase(amount, tx.Currency, fxRates)
+}
+
 // Compute builds the Summary from the ledger state and all transactions.
 // fxRates maps currency codes to spot rates relative to baseCurrency (e.g. {"EUR":1.09,"RON":0.22}).
 // Pass nil fxRates to skip normalization (amounts stay in their original currencies).
@@ -152,6 +180,7 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 	}
 
 	s := Summary{
+		currentYear:  now.Year(),
 		BaseCurrency: baseCurrency,
 		Realized:     l.Realized,
 		YTD:          PeriodSummary{Label: "YTD", Start: ytdStart, End: now},
@@ -200,6 +229,8 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 	s.ytdLotCost = make(map[string]float64)
 	s.mtdLotQty = make(map[string]float64)
 	s.mtdLotCost = make(map[string]float64)
+	s.yearLotQty = make(map[int]map[string]float64)
+	s.yearLotCost = make(map[int]map[string]float64)
 	for sym, pos := range l.Positions {
 		if pos.Quantity <= 1e-4 {
 			continue
@@ -209,6 +240,13 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 				continue
 			}
 			lotCost := toBase(lot.CostBasis, lot.Currency, fxRates)
+			y := lot.Date.Year()
+			if s.yearLotQty[y] == nil {
+				s.yearLotQty[y] = make(map[string]float64)
+				s.yearLotCost[y] = make(map[string]float64)
+			}
+			s.yearLotQty[y][sym] += lot.Quantity
+			s.yearLotCost[y][sym] += lotCost
 			if !lot.Date.Before(ytdStart) {
 				s.ytdLotQty[sym] += lot.Quantity
 				s.ytdLotCost[sym] += lotCost
@@ -400,6 +438,7 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 	// Roll the open cost basis forward year by year.
 	// GainPct denominator = portfolio cost basis at start of year + new deposits that year.
 	var openCostBasis float64
+	s.yearBase = make(map[int]float64)
 	for y := minYear; y <= maxYear; y++ {
 		if y == now.Year() {
 			// Capture the portfolio cost basis carried INTO this year (before any
@@ -408,6 +447,7 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 		}
 		yp := yearMap[y]
 		base := openCostBasis + yp.Deposits
+		s.yearBase[y] = base
 		if base > 0.01 {
 			yp.GainPct = (yp.Realized + yp.Dividends) / base * 100
 		}
@@ -449,13 +489,16 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 		return s.BySymbol[i].Gross > s.BySymbol[j].Gross
 	})
 
-	// Cash balance: uninvested cash remaining in the account.
+	// Cash balance: uninvested cash remaining in the account. amtBase converts
+	// each leg with the transaction's own FX rate where available (see below), so
+	// a foreign trade lands in base currency at the rate that actually moved cash
+	// — and per-broker and combined views agree.
 	for _, tx := range allTxs {
 		switch tx.Type {
 		case model.TxDeposit:
-			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+			s.CashBalance += amtBase(tx.Net, tx, fxRates)
 		case model.TxWithdrawal:
-			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+			s.CashBalance += amtBase(tx.Net, tx, fxRates)
 		case model.TxBuy:
 			var cost float64
 			switch {
@@ -466,17 +509,22 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 			default:
 				cost = tx.Quantity * tx.Price
 			}
-			s.CashBalance -= toBase(cost, tx.Currency, fxRates)
+			s.CashBalance -= amtBase(cost, tx, fxRates)
 		case model.TxSell:
 			proceeds := tx.Net
 			if proceeds <= 0 {
 				proceeds = tx.Quantity * tx.Price
 			}
-			s.CashBalance += toBase(proceeds, tx.Currency, fxRates)
+			s.CashBalance += amtBase(proceeds, tx, fxRates)
 		case model.TxDividend, model.TxTaxWithholding:
-			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
-		case model.TxFee:
-			s.CashBalance += toBase(tx.Net, tx.Currency, fxRates)
+			s.CashBalance += amtBase(tx.Net, tx, fxRates)
+		case model.TxFee, model.TxInterest:
+			s.CashBalance += amtBase(tx.Net, tx, fxRates)
+		case model.TxForex:
+			// Currency conversions and internal transfers are real cash movements
+			// between currency sub-accounts (RON out, EUR in, …); each signed leg
+			// nets into cash even though it is not external capital.
+			s.CashBalance += amtBase(tx.Net, tx, fxRates)
 		}
 	}
 
@@ -487,14 +535,20 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 // have been enriched with live prices, so that unrealized appreciation is
 // reflected in the return figures (not just realized P&L and dividends).
 func RecalcGainPct(s *Summary) {
-	// Build a symbol→currentPrice map from enriched positions.
+	// Build a symbol→currentPrice map from enriched positions, and the total
+	// current market value (fall back to cost basis for unpriced positions).
 	priceBySymbol := make(map[string]float64, len(s.OpenPositions))
-	var totalUnrealized float64
+	var totalUnrealized, totalMV float64
 	for _, p := range s.OpenPositions {
 		if p.CurrentPrice > 0 {
 			priceBySymbol[p.Symbol] = p.CurrentPrice
 		}
 		totalUnrealized += p.UnrealizedPnL
+		if p.MarketValue > 0 {
+			totalMV += p.MarketValue
+		} else {
+			totalMV += p.TotalCost
+		}
 	}
 
 	// Compute unrealized P&L for lots opened within each period window.
@@ -509,10 +563,10 @@ func RecalcGainPct(s *Summary) {
 	}
 	mtdUnrealized := periodUnrealized(s.mtdLotQty, s.mtdLotCost)
 
-	// AllTime: net capital = deposits + withdrawals (withdrawals are stored as negative).
+	// AllTime: return on current market value, matching the per-year rows.
 	totalDeposited := s.AllTime.Deposits + s.AllTime.Withdrawals
-	if totalDeposited > 0.01 {
-		s.AllTime.GainPct = (s.AllTime.Realized + s.AllTime.Dividends + totalUnrealized) / totalDeposited * 100
+	if totalMV > 0.01 {
+		s.AllTime.GainPct = (s.AllTime.Realized + s.AllTime.Dividends + totalUnrealized) / totalMV * 100
 	}
 
 	// YTD: denominator = cost basis carried into the year + new deposits this year.
@@ -527,6 +581,36 @@ func RecalcGainPct(s *Summary) {
 	// MTD: pre-month portfolio cost + new deposits this month.
 	if mtdBase := s.mtdBMV + s.MTD.Deposits; mtdBase > 0.01 {
 		s.MTD.GainPct = (s.MTD.Realized + s.MTD.Dividends + mtdUnrealized) / mtdBase * 100
+	}
+
+	// Return on current value = (Realized + Dividends + Unrealized) / MarketValue.
+	// The current year measures the whole portfolio as it stands now (this is the
+	// "return this year" figure brokers show); prior years measure the cohort of
+	// positions opened that year and still held, valued at today's price.
+	for i := range s.ByYear {
+		y, err := strconv.Atoi(s.ByYear[i].Label)
+		if err != nil {
+			continue
+		}
+		if y == s.currentYear {
+			if totalMV > 0.01 {
+				s.ByYear[i].GainPct = (s.ByYear[i].Realized + s.ByYear[i].Dividends + totalUnrealized) / totalMV * 100
+			}
+			continue
+		}
+		u := periodUnrealized(s.yearLotQty[y], s.yearLotCost[y])
+		var cost float64
+		for _, c := range s.yearLotCost[y] {
+			cost += c
+		}
+		mv := cost + u
+		if mv > 0.01 {
+			s.ByYear[i].GainPct = (s.ByYear[i].Realized + s.ByYear[i].Dividends + u) / mv * 100
+		}
+	}
+	// Keep the YTD headline consistent with the current-year row.
+	if totalMV > 0.01 {
+		s.YTD.GainPct = (s.YTD.Realized + s.YTD.Dividends + totalUnrealized) / totalMV * 100
 	}
 
 	// ---- MWR (Modified Dietz) ----
@@ -584,6 +668,83 @@ func EnrichWithPrices(s *Summary, prices map[string]float64, fxRates map[string]
 			p.UnrealizedPct = p.UnrealizedPnL / p.TotalCost * 100
 		}
 	}
+}
+
+// AutoWriteOffs returns Liquidate sell transactions (zero proceeds) for open
+// positions that have no live price after a mostly-successful price fetch —
+// presumed delisted/worthless (e.g. FRC after its FDIC seizure, which IBKR's
+// transaction export never records as a disposal).
+//
+// Yahoo gives no positive delisting signal: a delisted symbol is simply absent
+// from the price map, indistinguishable from a symbol we failed to map. To
+// avoid zeroing a live holding we only write off:
+//   - plain USD tickers (no exchange suffix) — suffix-guessed .DE/.RO/.L
+//     absences are far more likely mapping errors than delistings; and
+//   - only when at least half of the open positions did get a price, so a
+//     network/global outage (few or none priced) writes off nothing.
+//
+// Each write-off is logged to warn. Returns nil when prices is empty or the
+// batch looks like an outage.
+func AutoWriteOffs(l *ledger.Ledger, prices map[string]float64, now time.Time, warn io.Writer) []model.Transaction {
+	if len(prices) == 0 {
+		return nil
+	}
+
+	hasPrice := func(symbol string) bool {
+		if _, ok := prices[symbol]; ok {
+			return true
+		}
+		_, ok := prices[strings.ReplaceAll(symbol, " ", "-")] // Yahoo-normalized (e.g. "BRK B" → "BRK-B")
+		return ok
+	}
+
+	var open, priced int
+	for _, p := range l.Positions {
+		if p.Quantity <= 1e-9 {
+			continue
+		}
+		open++
+		if hasPrice(p.Symbol) {
+			priced++
+		}
+	}
+	// Outage guard: if fewer than half the open positions priced, assume the
+	// fetch — not the market — is at fault and write nothing off.
+	if open == 0 || priced*2 < open {
+		return nil
+	}
+
+	var out []model.Transaction
+	for _, p := range l.Positions {
+		if p.Quantity <= 1e-9 || hasPrice(p.Symbol) {
+			continue
+		}
+		// Guardrail: only plain USD tickers (no exchange suffix).
+		if strings.Contains(p.Symbol, ".") {
+			continue
+		}
+		broker, currency := "", "USD"
+		if len(p.Lots) > 0 {
+			broker, currency = p.Lots[0].Broker, p.Lots[0].Currency
+		}
+		if currency != "USD" {
+			continue
+		}
+		tx := model.Transaction{
+			Date:      now,
+			Broker:    broker,
+			Type:      model.TxSell,
+			Symbol:    p.Symbol,
+			Quantity:  p.Quantity,
+			Currency:  currency,
+			Net:       0, // zero proceeds → full loss
+			Liquidate: true,
+			Notes:     "auto write-off (no live price — presumed delisted)",
+		}
+		out = append(out, tx)
+		_, _ = fmt.Fprintf(warn, "  auto write-off: %s −%.2f (no live price — presumed delisted)\n", p.Symbol, p.TotalCost)
+	}
+	return out
 }
 
 // RealizedBySymbol returns realized P&L grouped by symbol.

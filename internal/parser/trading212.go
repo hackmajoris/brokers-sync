@@ -25,6 +25,8 @@ import (
 var t212DateFormats = []string{
 	"2006-01-02 15:04:05",
 	"2006-01-02 15:04:05.999999",
+	"2006-01-02 15:04:05Z07:00",        // newer exports: space separator + UTC offset
+	"2006-01-02 15:04:05.999999Z07:00", // same, with fractional seconds
 	time.RFC3339,
 }
 
@@ -44,6 +46,12 @@ func ParseTrading212(r io.Reader) ([]model.Transaction, error) {
 	header, err := cr.Read()
 	if err != nil {
 		return nil, fmt.Errorf("trading212: read header: %w", err)
+	}
+	// Newer exports label the timestamp column "Time (UTC)" instead of "Time".
+	for i, h := range header {
+		if strings.TrimSpace(h) == "Time (UTC)" {
+			header[i] = "Time"
+		}
 	}
 	idx, err := mapColumns(header, []string{
 		"Action", "Time", "ISIN", "Ticker", "Name",
@@ -66,6 +74,22 @@ func ParseTrading212(r io.Reader) ([]model.Transaction, error) {
 		}
 		lineNum++
 
+		// Currency conversion rows move cash between currency sub-accounts at the
+		// broker's historical rate; emit them as separate forex legs so per-currency
+		// cash stays accurate (a single Transaction can hold only one currency).
+		if strings.TrimSpace(record[idx["Action"]]) == "Currency conversion" {
+			legs, err := parseT212Conversion(record, idx)
+			if err != nil {
+				return nil, fmt.Errorf("trading212: line %d: %w", lineNum, err)
+			}
+			for _, tx := range legs {
+				tx.Broker = "trading212"
+				tx.ID = syntheticID(tx)
+				txs = append(txs, tx)
+			}
+			continue
+		}
+
 		tx, err := parseT212Row(record, idx)
 		if err != nil {
 			return nil, fmt.Errorf("trading212: line %d: %w", lineNum, err)
@@ -75,6 +99,55 @@ func ParseTrading212(r io.Reader) ([]model.Transaction, error) {
 		txs = append(txs, tx)
 	}
 	return txs, nil
+}
+
+// parseT212Conversion turns one "Currency conversion" row into per-currency cash
+// legs: the debited from-amount, the credited to-amount, and the fee. Each leg is
+// a TxForex so the ledger and cash-balance logic move cash between currencies
+// without treating it as external capital. Legs with no amount/currency are omitted.
+func parseT212Conversion(r []string, idx map[string]int) ([]model.Transaction, error) {
+	date, err := parseAnyTime(t212DateFormats, strings.TrimSpace(r[idx["Time"]]))
+	if err != nil {
+		return nil, fmt.Errorf("date %q: %w", strings.TrimSpace(r[idx["Time"]]), err)
+	}
+
+	col := func(name string) string {
+		if i, ok := idx[name]; ok && i < len(r) {
+			return strings.TrimSpace(r[i])
+		}
+		return ""
+	}
+	num := func(s string) float64 {
+		v, _ := strconv.ParseFloat(strings.ReplaceAll(s, ",", ""), 64)
+		return v
+	}
+
+	leg := func(amount float64, currency string) (model.Transaction, bool) {
+		if currency == "" || amount == 0 {
+			return model.Transaction{}, false
+		}
+		return model.Transaction{
+			Date:     date,
+			Type:     model.TxForex,
+			Currency: currency,
+			Net:      amount,
+			Gross:    amount,
+			Notes:    "Currency conversion",
+		}, true
+	}
+
+	var legs []model.Transaction
+	if tx, ok := leg(-num(col("Currency conversion from amount")), col("Currency (Currency conversion from amount)")); ok {
+		legs = append(legs, tx)
+	}
+	if tx, ok := leg(num(col("Currency conversion to amount")), col("Currency (Currency conversion to amount)")); ok {
+		legs = append(legs, tx)
+	}
+	// Total carries the conversion fee (negative) in Currency (Total).
+	if tx, ok := leg(num(col("Total")), col("Currency (Total)")); ok {
+		legs = append(legs, tx)
+	}
+	return legs, nil
 }
 
 func parseT212Row(r []string, idx map[string]int) (model.Transaction, error) {
@@ -141,6 +214,13 @@ func parseT212Row(r []string, idx map[string]int) (model.Transaction, error) {
 		}
 	}
 
+	// A sell at a nominal price (e.g. 0.0001) is a delisting write-off: the broker
+	// closes the whole position but the exported share count can be off (unrecorded
+	// reverse splits), so flag it to liquidate all remaining shares in the ledger.
+	if tx.Type == model.TxSell && tx.Price > 0 && tx.Price < 0.001 {
+		tx.Liquidate = true
+	}
+
 	// Sum optional fee columns (present only in newer export versions) into Commission.
 	for _, col := range t212FeeColumns {
 		colIdx, ok := idx[col]
@@ -166,13 +246,16 @@ func parseT212Row(r []string, idx map[string]int) (model.Transaction, error) {
 }
 
 func mapT212Type(s string) model.TxType {
+	// T212 uses many dividend labels: "Dividend", "Dividend (Dividend)",
+	// "Dividend (Ordinary)", "Dividend (Dividends paid by us corporations)", …
+	if strings.HasPrefix(s, "Dividend") {
+		return model.TxDividend
+	}
 	switch s {
 	case "Market buy", "Limit buy":
 		return model.TxBuy
 	case "Market sell", "Limit sell":
 		return model.TxSell
-	case "Dividend", "Dividend (Dividend)", "Dividend (Ordinary)":
-		return model.TxDividend
 	case "Deposit":
 		return model.TxDeposit
 	case "Withdrawal":
@@ -181,6 +264,8 @@ func mapT212Type(s string) model.TxType {
 		return model.TxDividend
 	case "ADR Fee":
 		return model.TxFee
+	case "Transfer out":
+		return model.TxTransferOut
 	default:
 		return model.TxUnknown
 	}

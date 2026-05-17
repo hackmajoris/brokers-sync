@@ -15,6 +15,8 @@ RUN go build -o bin/server ./cmd/server
 
 FROM alpine:3.21
 WORKDIR /app
+# pdftotext (poppler-utils) is required to parse Revolut PDF statements.
+RUN apk add --no-cache poppler-utils
 COPY --from=server /app/bin/server ./server
 COPY --from=web /app/web/dist ./web/dist
 RUN mkdir -p data

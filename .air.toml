@@ -1,0 +1,14 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+  cmd = "go build -o ./tmp/server ./cmd/server"
+  entrypoint = "./tmp/server"
+  args_bin = ["-data", "data", "-web", "web/dist"]
+  include_ext = ["go"]
+  exclude_dir = ["web", "tmp", "bin", "data", "infra", "vendor"]
+  delay = 300
+  stop_on_error = true
+
+[misc]
+  clean_on_exit = true

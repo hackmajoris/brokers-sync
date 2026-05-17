@@ -105,7 +105,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// Extract CSV/XLSX files from the zip into a temp directory.
+	// Extract CSV/XLSX/PDF files from the zip into a temp directory.
 	tmpDir, err := os.MkdirTemp("", "brokers-upload-*")
 	if err != nil {
 		fail("create temp dir: " + err.Error())
@@ -117,7 +117,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	for _, zf := range zr.File {
 		name := filepath.Base(zf.Name)
 		lower := strings.ToLower(name)
-		if !strings.HasSuffix(lower, ".csv") && !strings.HasSuffix(lower, ".xlsx") {
+		if !strings.HasSuffix(lower, ".csv") && !strings.HasSuffix(lower, ".xlsx") && !strings.HasSuffix(lower, ".pdf") {
 			continue
 		}
 		rc, err := zf.Open()
@@ -144,7 +144,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if extracted == 0 {
-		fail("no CSV or XLSX files found in the zip")
+		fail("no CSV, XLSX, or PDF files found in the zip")
 		return
 	}
 
@@ -207,6 +207,20 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		log.Printf("prices fetched for %d/%d symbols", len(priceMap)/2, len(yahooTickers))
 		logf(fmt.Sprintf("prices fetched for %d/%d symbols", len(priceMap)/2, len(yahooTickers)))
 	}
+	// Positions with no live price after a mostly-successful fetch are presumed
+	// delisted/worthless; book zero-proceeds write-offs and recompute so the loss
+	// is realized and the per-broker reports below (which filter txs) stay consistent.
+	if writeoffs := stats.AutoWriteOffs(combinedLedger, priceMap, time.Now(), io.Discard); len(writeoffs) > 0 {
+		for _, wo := range writeoffs {
+			log.Printf("auto write-off: %s (no live price — presumed delisted)", wo.Symbol)
+			logf(fmt.Sprintf("auto write-off: %s (no live price — presumed delisted)", wo.Symbol))
+		}
+		txs = append(txs, writeoffs...)
+		combinedLedger = ledger.New()
+		combinedLedger.Process(txs)
+		combinedStats = stats.Compute(combinedLedger, txs, time.Now(), fxRates, baseCurrency)
+	}
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.RecalcGainPct(&combinedStats)
 
