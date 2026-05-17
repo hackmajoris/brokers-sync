@@ -160,6 +160,32 @@ nav::-webkit-scrollbar {
   }
 }
 
+/* ── Mobile side drawer ──────────────────────────────────────────────────────*/
+
+@keyframes slideInLeft { from { transform: translateX(-100%); } to { transform: none; } }
+
+.mobile-drawer-backdrop {
+  position: fixed; inset: 0; background: rgba(0,0,0,.6);
+  z-index: 100; backdrop-filter: blur(2px);
+  animation: fadeIn .15s ease;
+}
+.mobile-drawer {
+  position: fixed; top: 0; left: 0; bottom: 0;
+  width: 78vw; max-width: 300px;
+  background: #0a0a0a; border-right: 1px solid #1a1a1a;
+  z-index: 101; display: flex; flex-direction: column;
+  animation: slideInLeft .2s ease;
+}
+.mobile-drawer-header {
+  display: flex; align-items: center; justify-content: space-between;
+  height: 52px; padding: 0 12px 0 16px;
+  border-bottom: 1px solid #1a1a1a; flex-shrink: 0;
+}
+.mobile-drawer-nav {
+  display: flex; flex-direction: column; gap: 4px;
+  padding: 12px; overflow-y: auto;
+}
+
 /* ── 600 px breakpoint ───────────────────────────────────────────────────────*/
 @media (max-width: 600px) {
   .kpi-5 {
@@ -182,4 +208,8 @@ nav::-webkit-scrollbar {
   .date-label {
     display: none !important;
   }
+
+  /* swap inline nav for hamburger + drawer */
+  .desktop-nav { display: none !important; }
+  .mobile-nav-toggle { display: inline-flex !important; }
 }
