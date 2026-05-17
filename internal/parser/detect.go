@@ -33,7 +33,7 @@ func Detect(path string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	line, err := firstLine(f)
 	if err != nil {
@@ -74,7 +74,7 @@ func AutoParse(path string) (string, []model.Transaction, error) {
 	if err != nil {
 		return broker, nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	var txs []model.Transaction
 	switch broker {
@@ -118,12 +118,12 @@ func LoadDir(dir string, warn io.Writer) ([]model.Transaction, error) {
 		path := filepath.Join(dir, name)
 		broker, txs, err := AutoParse(path)
 		if err != nil {
-			fmt.Fprintf(warn, "  skip %s: %v\n", name, err)
+			_, _ = fmt.Fprintf(warn, "  skip %s: %v\n", name, err)
 			continue
 		}
 		counts[broker] += len(txs)
 		all = append(all, txs...)
-		fmt.Fprintf(warn, "  %-14s → %-12s (%d transactions)\n", name, broker, len(txs))
+		_, _ = fmt.Fprintf(warn, "  %-14s → %-12s (%d transactions)\n", name, broker, len(txs))
 	}
 
 	kept, dropped := Dedup(all)
@@ -131,9 +131,9 @@ func LoadDir(dir string, warn io.Writer) ([]model.Transaction, error) {
 	if len(dropped) > 0 {
 		logPath := filepath.Join(dir, "dedup.log.csv")
 		if err := WriteDedupeLog(logPath, dropped); err != nil {
-			fmt.Fprintf(warn, "  dedup: warning: could not write log: %v\n", err)
+			_, _ = fmt.Fprintf(warn, "  dedup: warning: could not write log: %v\n", err)
 		} else {
-			fmt.Fprintf(warn, "  dedup: removed %d duplicate(s) — logged to %s\n", len(dropped), logPath)
+			_, _ = fmt.Fprintf(warn, "  dedup: removed %d duplicate(s) — logged to %s\n", len(dropped), logPath)
 		}
 	}
 
@@ -161,7 +161,7 @@ func WriteDedupeLog(path string, dropped []model.Transaction) error {
 	if err != nil {
 		return err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	w := csv.NewWriter(f)
 	_ = w.Write([]string{"id", "date", "broker", "account", "type", "symbol", "quantity", "net", "notes"})

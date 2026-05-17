@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"time"
@@ -16,7 +17,7 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	txs, err := parser.ParseTradeville(f)
 	if err != nil {
@@ -51,7 +52,7 @@ func main() {
 	yahooTickers, reverseMap := buildYahooTickerMap(s.OpenPositions)
 	fmt.Printf("\nYahoo tickers to fetch: %v\n", yahooTickers)
 
-	priceMap, err := prices.FetchQuotes(nil, yahooTickers)
+	priceMap, err := prices.FetchQuotes(context.TODO(), yahooTickers)
 	if err != nil {
 		fmt.Printf("price fetch error: %v — using hardcoded fallback\n", err)
 		priceMap = map[string]float64{"SNP": 1.002, "TLV": 37.3, "TVBETETF": 48.1}

@@ -16,6 +16,18 @@ help: ## Show this help
 		/^## ====/ {sub(/^## ==== /, ""); sub(/ ====$$/, ""); printf "\n\033[1m%s\033[0m\n", $$0; next} \
 		/^[a-zA-Z_-]+:.*?## / {printf "  \033[36m%-16s\033[0m %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
+## ==== Quality ====
+
+test: ## Run Go tests
+	go test -race -cover ./...
+
+lint: ## Run Go lint
+	golangci-lint run ./...
+
+fmt: ## Run Go formatters
+	find . -name "*.go" -not -path "*/vendor/*" | xargs gofmt -w
+	find . -name "*.go" -not -path "*/vendor/*" | xargs goimports -w
+
 ## ==== Local development ====
 
 dev: ## Run Go server and Vite dev server together

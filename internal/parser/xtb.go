@@ -18,7 +18,7 @@ func detectXlsx(path string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("detect %s: %w", filepath.Base(path), err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	sheets := make(map[string]bool, len(f.GetSheetList()))
 	for _, s := range f.GetSheetList() {
@@ -36,7 +36,7 @@ func ParseXTB(path string) ([]model.Transaction, error) {
 	if err != nil {
 		return nil, fmt.Errorf("xtb: open: %w", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	account := xtbAccount(f)
 

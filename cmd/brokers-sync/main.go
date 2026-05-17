@@ -286,53 +286,7 @@ func openWriter(path string) (io.Writer, func()) {
 	if err != nil {
 		log.Fatalf("open output: %v", err)
 	}
-	return f, func() { f.Close() }
-}
-
-// openPositionsByBroker returns open positions from the combined ledger whose
-// remaining FIFO lots were contributed by the given broker. Positions whose
-// lots were fully consumed by sells at another broker (e.g. post-migration)
-// will not appear.
-func openPositionsByBroker(l *ledger.Ledger, broker string, fxRates map[string]float64) []stats.PositionSummary {
-	var result []stats.PositionSummary
-	for sym, pos := range l.Positions {
-		var qty, cost float64
-		var currency string
-		for _, lot := range pos.Lots {
-			if lot.Broker == broker {
-				qty += lot.Quantity
-				cost += toBaseRate(lot.CostBasis, lot.Currency, fxRates)
-				if currency == "" {
-					currency = lot.Currency
-				}
-			}
-		}
-		if qty > 1e-6 {
-			avgCost := 0.0
-			if qty > 0 {
-				avgCost = cost / qty
-			}
-			result = append(result, stats.PositionSummary{
-				Symbol:    sym,
-				Currency:  currency,
-				Quantity:  qty,
-				AvgCost:   avgCost,
-				TotalCost: cost,
-			})
-		}
-	}
-	sort.Slice(result, func(i, j int) bool { return result[i].Symbol < result[j].Symbol })
-	return result
-}
-
-func toBaseRate(amount float64, currency string, fxRates map[string]float64) float64 {
-	if len(fxRates) == 0 {
-		return amount
-	}
-	if rate, ok := fxRates[currency]; ok {
-		return amount * rate
-	}
-	return amount
+	return f, func() { _ = f.Close() }
 }
 
 func contains(ss []string, s string) bool {
@@ -375,7 +329,7 @@ func parseFile(path string, fn func(r io.Reader) ([]model.Transaction, error)) (
 	if err != nil {
 		return nil, err
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	return fn(f)
 }
 

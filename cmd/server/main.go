@@ -56,7 +56,7 @@ func main() {
 // sseEvent writes a single SSE event to w and flushes immediately.
 func sseEvent(w http.ResponseWriter, payload any) {
 	b, _ := json.Marshal(payload)
-	fmt.Fprintf(w, "data: %s\n\n", b)
+	_, _ = fmt.Fprintf(w, "data: %s\n\n", b)
 	if f, ok := w.(http.Flusher); ok {
 		f.Flush()
 	}
@@ -86,7 +86,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		fail("read file: " + err.Error())
 		return
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	buf, err := io.ReadAll(f)
 	if err != nil {
@@ -111,7 +111,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		fail("create temp dir: " + err.Error())
 		return
 	}
-	defer os.RemoveAll(tmpDir)
+	defer func() { _ = os.RemoveAll(tmpDir) }()
 
 	extracted := 0
 	for _, zf := range zr.File {
@@ -128,13 +128,13 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		dst := filepath.Join(tmpDir, name)
 		out, err := os.Create(dst)
 		if err != nil {
-			rc.Close()
+			_ = rc.Close()
 			logf(fmt.Sprintf("skip %s: %v", name, err))
 			continue
 		}
 		_, err = io.Copy(out, rc)
-		rc.Close()
-		out.Close()
+		_ = rc.Close()
+		_ = out.Close()
 		if err != nil {
 			logf(fmt.Sprintf("skip %s: %v", name, err))
 			continue

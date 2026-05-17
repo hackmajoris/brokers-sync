@@ -201,7 +201,7 @@ func TestTradevilleCSV_Integration(t *testing.T) {
 	if err != nil {
 		t.Skip("test data not available:", err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 
 	txs, err := parser.ParseTradeville(f)
 	if err != nil {
