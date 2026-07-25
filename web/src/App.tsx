@@ -65,6 +65,7 @@ export function App() {
   const generatedDate = data
     ? new Date(data.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
     : '…'
+  const buildDate = new Date(__BUILD_DATE__).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
 
   return (
     <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff' }}>
@@ -118,6 +119,9 @@ export function App() {
               ? <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
               : <>As of <span style={{ color: '#c0c0c0' }}>{generatedDate}</span></>
             }
+          </div>
+          <div style={{ fontSize: 10, color: '#3a3a3a' }} className="date-label">
+            build: {buildDate}
           </div>
         </div>
       </header>
