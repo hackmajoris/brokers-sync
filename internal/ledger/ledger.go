@@ -44,18 +44,34 @@ type RealizedTx struct {
 	PnL       float64 // Proceeds - CostBasis
 }
 
+// TransferTx captures an in-kind position transfer (no cash, no realized P&L).
+// Value is the cost basis moved: for TransferOut it's the FIFO cost basis of the
+// removed lots (the source report rarely states a monetary value for these rows);
+// for TransferIn it's the carried-in cost basis from the transferring broker.
+type TransferTx struct {
+	Date     time.Time
+	Symbol   string
+	Broker   string
+	Currency string
+	Quantity float64
+	Value    float64 // positive
+}
+
 // Ledger processes transactions in chronological order and tracks:
 // - open positions (FIFO lots)
 // - realized P&L
 // - dividends
 // - explicit fees (custody, platform)
 // - per-trade commissions from buy/sell transactions
+// - in-kind position transfers
 type Ledger struct {
-	Positions   map[string]*Position
-	Realized    []RealizedTx
-	Dividends   []model.Transaction
-	Fees        []model.Transaction // TxFee type (custody fees, platform charges)
-	Commissions []model.Transaction // Commission field on buy/sell transactions
+	Positions    map[string]*Position
+	Realized     []RealizedTx
+	Dividends    []model.Transaction
+	Fees         []model.Transaction // TxFee type (custody fees, platform charges)
+	Commissions  []model.Transaction // Commission field on buy/sell transactions
+	TransfersIn  []TransferTx
+	TransfersOut []TransferTx
 }
 
 func New() *Ledger {
@@ -209,6 +225,7 @@ func (l *Ledger) transferOut(tx model.Transaction) {
 	p := l.positionFor(tx.Symbol)
 
 	remaining := tx.Quantity
+	var removedCost float64
 	for i := 0; i < len(p.Lots) && remaining > 0; i++ {
 		lot := &p.Lots[i]
 		if lot.Quantity == 0 {
@@ -216,6 +233,7 @@ func (l *Ledger) transferOut(tx model.Transaction) {
 		}
 		take := min(lot.Quantity, remaining)
 		lotCostPerShare := lot.CostBasis / lot.Quantity
+		removedCost += take * lotCostPerShare
 		lot.Quantity -= take
 		lot.CostBasis -= take * lotCostPerShare
 		p.Quantity -= take
@@ -230,6 +248,15 @@ func (l *Ledger) transferOut(tx model.Transaction) {
 		}
 	}
 	p.Lots = active
+
+	l.TransfersOut = append(l.TransfersOut, TransferTx{
+		Date:     tx.Date,
+		Symbol:   tx.Symbol,
+		Broker:   tx.Broker,
+		Currency: tx.Currency,
+		Quantity: tx.Quantity,
+		Value:    removedCost,
+	})
 }
 
 // transferIn adds shares moved in from another broker. It creates a lot at the
@@ -250,6 +277,15 @@ func (l *Ledger) transferIn(tx model.Transaction) {
 	})
 	p.Quantity += tx.Quantity
 	p.TotalCost += tx.Net
+
+	l.TransfersIn = append(l.TransfersIn, TransferTx{
+		Date:     tx.Date,
+		Symbol:   tx.Symbol,
+		Broker:   tx.Broker,
+		Currency: tx.Currency,
+		Quantity: tx.Quantity,
+		Value:    tx.Net,
+	})
 }
 
 // split adjusts lot quantities and cost bases for a stock split.

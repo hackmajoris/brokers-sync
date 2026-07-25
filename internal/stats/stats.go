@@ -278,6 +278,38 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 		}
 	}
 
+	// In-kind position transfers. Value is the FIFO cost basis moved (see
+	// ledger.TransferTx) rather than a report-stated cash amount — most brokers
+	// don't state a monetary value for share transfers.
+	for _, t := range l.TransfersIn {
+		y := t.Date.Year()
+		v := toBase(t.Value, t.Currency, fxRates)
+		s.AllTime.TransferIn += v
+		if !t.Date.Before(ytdStart) {
+			s.YTD.TransferIn += v
+		}
+		if !t.Date.Before(mtdStart) {
+			s.MTD.TransferIn += v
+		}
+		if p, ok := yearMap[y]; ok {
+			p.TransferIn += v
+		}
+	}
+	for _, t := range l.TransfersOut {
+		y := t.Date.Year()
+		v := toBase(t.Value, t.Currency, fxRates)
+		s.AllTime.TransferOut += v
+		if !t.Date.Before(ytdStart) {
+			s.YTD.TransferOut += v
+		}
+		if !t.Date.Before(mtdStart) {
+			s.MTD.TransferOut += v
+		}
+		if p, ok := yearMap[y]; ok {
+			p.TransferOut += v
+		}
+	}
+
 	// Dividends + tax withholding
 	divMap := make(map[string]*DividendBySymbol)
 	for _, tx := range l.Dividends {
@@ -387,30 +419,6 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 				yp.Withdrawals += wd
 			}
 			accumulateWeightedCF(&s, wd, tx.Date, now, ytdStart, mtdStart, allTimeStart)
-		case model.TxTransferIn:
-			ti := toBase(tx.Net, tx.Currency, fxRates)
-			s.AllTime.TransferIn += ti
-			if !tx.Date.Before(ytdStart) {
-				s.YTD.TransferIn += ti
-			}
-			if !tx.Date.Before(mtdStart) {
-				s.MTD.TransferIn += ti
-			}
-			if yp != nil {
-				yp.TransferIn += ti
-			}
-		case model.TxTransferOut:
-			to := toBase(tx.Net, tx.Currency, fxRates)
-			s.AllTime.TransferOut += to
-			if !tx.Date.Before(ytdStart) {
-				s.YTD.TransferOut += to
-			}
-			if !tx.Date.Before(mtdStart) {
-				s.MTD.TransferOut += to
-			}
-			if yp != nil {
-				yp.TransferOut += to
-			}
 		case model.TxBuy:
 			vol := toBase(tx.Quantity*tx.Price, tx.Currency, fxRates)
 			s.AllTime.BuyVolume += vol
