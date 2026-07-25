@@ -261,10 +261,10 @@ export function BrokersTab({ data, accent }: Props) {
               <SectionLabel>Broker Comparison</SectionLabel>
             </div>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
                 <thead>
                   <tr style={{ background: '#080808' }}>
-                    {['Broker', 'Currency', 'Value', 'Cash', 'Deposits', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Unrealized P&L', 'Open Positions'].map(h => (
+                    {['Broker', 'Currency', 'Value', 'Cash', 'Deposits', 'Transfer In', 'Transfer Out', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Unrealized P&L', 'Open Positions'].map(h => (
                       <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Broker' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
@@ -283,6 +283,8 @@ export function BrokersTab({ data, accent }: Props) {
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600, color: '#ffffff' }}>{fmtCurrency(b.positions.reduce((s, p) => s + (p.mv ?? 0), 0) + b.cashBalance, b.currency)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 600, color: b.cashBalance >= 0 ? '#34d399' : '#f87171' }}>{fmtCurrency(b.cashBalance, b.currency)}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#c0c0c0' }}>{fmtCurrency(b.deposits, b.currency)}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#c0c0c0' }}>{b.transferIn > 0 ? fmtCurrency(b.transferIn, b.currency) : '—'}</td>
+                      <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#c0c0c0' }}>{b.transferOut > 0 ? fmtCurrency(b.transferOut, b.currency) : '—'}</td>
                       <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                         <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: clr(b.allTimeGain) + '22', color: clr(b.allTimeGain) }}>{fmtPct(b.allTimeGain)}</span>
                       </td>
@@ -311,6 +313,8 @@ export function BrokersTab({ data, accent }: Props) {
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0) + data.cashBalance)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: data.cashBalance >= 0 ? '#34d399' : '#f87171' }}>{fmtCurrency(data.cashBalance)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.allTime.deposits)}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.allTime.transferIn)}</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.allTime.transferOut)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                       <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 12, fontWeight: 700, background: clr(data.allTime.gainPct) + '22', color: clr(data.allTime.gainPct) }}>{fmtPct(data.allTime.gainPct)}</span>
                     </td>

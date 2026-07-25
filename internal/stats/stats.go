@@ -24,6 +24,8 @@ type PeriodSummary struct {
 	Commissions float64   `json:"commissions"` // per-trade commissions on buy/sell
 	Deposits    float64   `json:"deposits"`
 	Withdrawals float64   `json:"withdrawals"`
+	TransferIn  float64   `json:"transfer_in"`  // in-kind positions transferred in from another broker, at carried cost basis
+	TransferOut float64   `json:"transfer_out"` // in-kind positions transferred out to another broker, at carried cost basis
 	BuyVolume   float64   `json:"buy_volume"`
 	SellVolume  float64   `json:"sell_volume"`
 	GainPct     float64   `json:"gain_pct"`          // total return: (Realized + Dividends + Unrealized) / capital base * 100
@@ -385,6 +387,30 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 				yp.Withdrawals += wd
 			}
 			accumulateWeightedCF(&s, wd, tx.Date, now, ytdStart, mtdStart, allTimeStart)
+		case model.TxTransferIn:
+			ti := toBase(tx.Net, tx.Currency, fxRates)
+			s.AllTime.TransferIn += ti
+			if !tx.Date.Before(ytdStart) {
+				s.YTD.TransferIn += ti
+			}
+			if !tx.Date.Before(mtdStart) {
+				s.MTD.TransferIn += ti
+			}
+			if yp != nil {
+				yp.TransferIn += ti
+			}
+		case model.TxTransferOut:
+			to := toBase(tx.Net, tx.Currency, fxRates)
+			s.AllTime.TransferOut += to
+			if !tx.Date.Before(ytdStart) {
+				s.YTD.TransferOut += to
+			}
+			if !tx.Date.Before(mtdStart) {
+				s.MTD.TransferOut += to
+			}
+			if yp != nil {
+				yp.TransferOut += to
+			}
 		case model.TxBuy:
 			vol := toBase(tx.Quantity*tx.Price, tx.Currency, fxRates)
 			s.AllTime.BuyVolume += vol

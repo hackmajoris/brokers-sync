@@ -11,6 +11,8 @@ export interface RawPeriod {
   commissions: number
   deposits: number
   withdrawals: number
+  transfer_in: number
+  transfer_out: number
   buy_volume: number
   sell_volume: number
   gain_pct: number
@@ -98,6 +100,8 @@ export interface YearStat {
   rPnl: number
   divs: number
   deposits: number
+  transferIn: number
+  transferOut: number
   buyVol: number
   sellVol: number
 }
@@ -109,6 +113,8 @@ export interface PeriodSummary {
   fees: number
   deposits: number
   withdrawals: number
+  transferIn: number
+  transferOut: number
   gainPct: number
   buyVol: number
   sellVol: number
@@ -127,6 +133,8 @@ export interface BrokerData {
   mtdRPnl: number
   deposits: number
   withdrawals: number
+  transferIn: number
+  transferOut: number
   dividends: number
   buyVol: number
   sellVol: number

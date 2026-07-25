@@ -19,6 +19,8 @@ function scalePeriod(p: RawPeriod): RawPeriod {
     commissions: p.commissions * SCALE,
     deposits: p.deposits * SCALE,
     withdrawals: p.withdrawals * SCALE,
+    transfer_in: (p.transfer_in ?? 0) * SCALE,
+    transfer_out: (p.transfer_out ?? 0) * SCALE,
     buy_volume: p.buy_volume * SCALE,
     sell_volume: p.sell_volume * SCALE,
   }
