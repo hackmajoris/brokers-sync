@@ -3,6 +3,7 @@ package parser
 import (
 	"bytes"
 	"fmt"
+	"math"
 	"os/exec"
 	"regexp"
 	"strconv"
@@ -172,10 +173,16 @@ func parseRevolutPDFRow(dateStr, rest, currency string) (model.Transaction, bool
 		tx.Type = model.TxStockSplit
 		tx.Quantity = qty
 	default: // both Transfer variants
-		tx.Type = model.TxTransferOut
 		if qty < 0 {
 			qty = -qty
 		}
+		// Real external transfers move whole shares. A fractional quantity here
+		// is Revolut's internal UK->EU legal-entity migration noise (same
+		// account, no shares actually leaving), not an external transfer.
+		if math.Abs(qty-math.Round(qty)) > 1e-6 {
+			return tx, false, nil
+		}
+		tx.Type = model.TxTransferOut
 		tx.Quantity = qty
 	}
 

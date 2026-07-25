@@ -9,6 +9,8 @@ import (
 // Representative rows from a real Revolut PDF (pdftotext -layout output), chosen to
 // pin down the parsing decisions that actually matter:
 //   - the whole-share "Transfer" rows the CSV export OMITS (the bug that started this)
+//   - the fractional "Transfer" row from Revolut's UK->EU entity migration, which
+//     must be dropped (real external transfers only move whole shares)
 //   - the symbol glued to the type ("GOOGLTrade") and thousands separators in amounts
 //   - each type mapping to the correct model.TxType
 const revolutPDFSample = `USD Transactions
@@ -29,8 +31,8 @@ func TestParseRevolutPDFText(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if len(txs) != 8 {
-		t.Fatalf("got %d transactions, want 8", len(txs))
+	if len(txs) != 7 {
+		t.Fatalf("got %d transactions, want 7", len(txs))
 	}
 
 	type want struct {
@@ -47,7 +49,6 @@ func TestParseRevolutPDFText(t *testing.T) {
 		{model.TxSell, "AAPL", 41.2982572, 4999.88, "sell: thousands separator stripped"},
 		{model.TxFee, "", 0, -0.04, "custody fee: negative, no symbol"},
 		{model.TxTransferOut, "AAPL", 12, 0, "whole-share transfer (CSV omits this)"},
-		{model.TxTransferOut, "AMZN", 0.0971436, 0, "fractional residue transfer"},
 		{model.TxSell, "GOOGL", 4, 1498.05, "symbol glued to type must still parse"},
 	}
 
@@ -68,6 +69,15 @@ func TestParseRevolutPDFText(t *testing.T) {
 	// (the whole point — the CSV lacked them and positions never closed).
 	if txs[5].Quantity <= 0 {
 		t.Errorf("whole transfer qty must be positive for removal, got %v", txs[5].Quantity)
+	}
+
+	// The fractional "Transfer" row (AMZN, entity-migration residue — real
+	// external transfers only move whole shares) must be dropped, not parsed
+	// as a TRANSFER_OUT.
+	for _, tx := range txs {
+		if tx.Symbol == "AMZN" {
+			t.Errorf("fractional transfer row should have been dropped, got %+v", tx)
+		}
 	}
 }
 

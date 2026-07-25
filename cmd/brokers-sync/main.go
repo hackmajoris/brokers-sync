@@ -95,6 +95,8 @@ func main() {
 		flag.Usage()
 		os.Exit(1)
 	}
+	allTxs = ledger.ReconcileTransfers(allTxs)
+
 	fmt.Fprintf(os.Stderr, "Total:       %d transactions\n\n", len(allTxs))
 
 	// Validate broker filter if provided.
@@ -175,8 +177,9 @@ func main() {
 		nativeCur := brokerNativeCurrency(brokerTxs)
 		bl := ledger.New()
 		bl.Process(brokerTxs)
-		bs := stats.Compute(bl, brokerTxs, now, nil, nativeCur)
-		stats.EnrichWithPrices(&bs, priceMap, nil)
+		brokerFxRates := rebaseFXRates(fxRates, nativeCur)
+		bs := stats.Compute(bl, brokerTxs, now, brokerFxRates, nativeCur)
+		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
 		stats.RecalcGainPct(&bs)
 		brokerEntries = append(brokerEntries, brokerEntry{b, bs, bl})
 	}
@@ -244,6 +247,21 @@ func brokersInOrder(txs []model.Transaction) []string {
 	}
 	sort.Strings(extra)
 	return append(out, extra...)
+}
+
+// rebaseFXRates converts a fxRates map (currency -> rate to its original base)
+// into one expressed relative to newBase, so amounts in any currency convert
+// correctly into newBase instead of being left at face value.
+func rebaseFXRates(fxRates map[string]float64, newBase string) map[string]float64 {
+	baseRate, ok := fxRates[newBase]
+	if !ok || baseRate == 0 {
+		return fxRates
+	}
+	rebased := make(map[string]float64, len(fxRates))
+	for c, rate := range fxRates {
+		rebased[c] = rate / baseRate
+	}
+	return rebased
 }
 
 // brokerNativeCurrency returns the most common currency among buy/sell/deposit transactions

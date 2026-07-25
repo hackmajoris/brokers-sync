@@ -28,6 +28,7 @@ export function App() {
   const [isDemo, setIsDemo] = useState(false)
   const [activeTab, setActiveTab] = useState<TabId>('overview')
   const [refreshing, setRefreshing] = useState(false)
+  const [refreshError, setRefreshError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const accent = ACCENT_DEFAULT
 
@@ -46,8 +47,12 @@ export function App() {
             cacheRawPortfolio(raw)
             setData(mapRawPortfolio(raw))
             setNoData(false)
+            setRefreshError(null)
           }
-        } catch { /* silent — stale data is still shown */ }
+        } catch (err) {
+          // Background refresh failed — the data shown above is stale, not fresh.
+          setRefreshError(err instanceof Error ? err.message : 'Background refresh failed')
+        }
         setRefreshing(false)
       } else {
         const real = await fetchPortfolioData().catch(() => null)
@@ -106,6 +111,17 @@ export function App() {
           ))}
         </nav>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+          {refreshError && (
+            <span
+              title={refreshError}
+              style={{
+                fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
+                background: '#f8717122', border: '1px solid #f8717155',
+                color: '#f87171', borderRadius: 4, padding: '2px 7px',
+                userSelect: 'none', cursor: 'help',
+              }}
+            >STALE DATA — refresh failed</span>
+          )}
           {isDemo && (
             <span style={{
               fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',

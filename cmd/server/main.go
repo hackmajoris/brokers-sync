@@ -165,6 +165,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		fail("no transactions found in the uploaded files")
 		return
 	}
+	txs = ledger.ReconcileTransfers(txs)
 	logf(fmt.Sprintf("total: %d transactions", len(txs)))
 
 	// Pipeline.
@@ -230,8 +231,9 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		nativeCur := brokerNativeCurrency(brokerTxs)
 		bl := ledger.New()
 		bl.Process(brokerTxs)
-		bs := stats.Compute(bl, brokerTxs, time.Now(), nil, nativeCur)
-		stats.EnrichWithPrices(&bs, priceMap, nil)
+		brokerFxRates := rebaseFXRates(fxRates, nativeCur)
+		bs := stats.Compute(bl, brokerTxs, time.Now(), brokerFxRates, nativeCur)
+		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}
@@ -311,6 +313,21 @@ func brokerNativeCurrency(txs []model.Transaction) string {
 		}
 	}
 	return best
+}
+
+// rebaseFXRates converts a fxRates map (currency -> rate to its original base)
+// into one expressed relative to newBase, so amounts in any currency convert
+// correctly into newBase instead of being left at face value.
+func rebaseFXRates(fxRates map[string]float64, newBase string) map[string]float64 {
+	baseRate, ok := fxRates[newBase]
+	if !ok || baseRate == 0 {
+		return fxRates
+	}
+	rebased := make(map[string]float64, len(fxRates))
+	for c, rate := range fxRates {
+		rebased[c] = rate / baseRate
+	}
+	return rebased
 }
 
 func filterByBroker(txs []model.Transaction, broker string) []model.Transaction {

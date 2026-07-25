@@ -278,9 +278,9 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 		}
 	}
 
-	// In-kind position transfers. Value is the FIFO cost basis moved (see
-	// ledger.TransferTx) rather than a report-stated cash amount — most brokers
-	// don't state a monetary value for share transfers.
+	// In-kind position transfers. Value is the receiving broker's recorded
+	// arrival amount when a matching TRANSFER_IN was found (see
+	// ledger.ReconcileTransfers), else the FIFO cost basis moved.
 	for _, t := range l.TransfersIn {
 		y := t.Date.Year()
 		v := toBase(t.Value, t.Currency, fxRates)

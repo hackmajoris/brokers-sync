@@ -45,9 +45,10 @@ type RealizedTx struct {
 }
 
 // TransferTx captures an in-kind position transfer (no cash, no realized P&L).
-// Value is the cost basis moved: for TransferOut it's the FIFO cost basis of the
-// removed lots (the source report rarely states a monetary value for these rows);
-// for TransferIn it's the carried-in cost basis from the transferring broker.
+// For TransferIn, Value is the carried-in cost basis from the transferring
+// broker. For TransferOut, Value is the receiving broker's recorded arrival
+// amount when ReconcileTransfers found a match (so both ends of the same
+// transfer agree), else the FIFO cost basis of the removed lots.
 type TransferTx struct {
 	Date     time.Time
 	Symbol   string
@@ -249,13 +250,22 @@ func (l *Ledger) transferOut(tx model.Transaction) {
 	}
 	p.Lots = active
 
+	// Report the receiving broker's recorded arrival value when known (set by
+	// ReconcileTransfers) rather than our own FIFO cost basis — the two are
+	// different valuations of the same shares, and only the arrival side has a
+	// real stated amount for transfers that don't carry cost-basis data.
+	value := removedCost
+	if tx.Net > 0 {
+		value = tx.Net
+	}
+
 	l.TransfersOut = append(l.TransfersOut, TransferTx{
 		Date:     tx.Date,
 		Symbol:   tx.Symbol,
 		Broker:   tx.Broker,
 		Currency: tx.Currency,
 		Quantity: tx.Quantity,
-		Value:    removedCost,
+		Value:    value,
 	})
 }
 
