@@ -1,5 +1,6 @@
 # brokers-sync
 
+
 [![Deploy](https://github.com/hackmajoris/brokers-sync/actions/workflows/deploy.yml/badge.svg)](https://github.com/hackmajoris/brokers-sync/actions/workflows/deploy.yml)
 
 Parses and normalizes transaction exports from multiple brokers into a unified ledger, then computes portfolio statistics: open positions with unrealized P&L, realized P&L (FIFO), dividends, year-by-year breakdowns, and more.
