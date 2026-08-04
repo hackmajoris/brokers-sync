@@ -168,9 +168,29 @@ func LoadDir(dir string, warn io.Writer) ([]model.Transaction, error) {
 	return kept, nil
 }
 
+// symbolAliases maps a broker-reported symbol to the canonical symbol it
+// should be merged under. Some brokers report exchange-suffixed tickers
+// (e.g. "VWCE.DE") for instruments other brokers report without a suffix
+// (e.g. "VWCE"), which would otherwise split one holding into two positions.
+var symbolAliases = map[string]string{
+	"VWCE.DE": "VWCE",
+}
+
+// NormalizeSymbols rewrites known broker-specific symbol variants to a
+// canonical form in place, so positions, realized P&L, and dividends for
+// the same underlying instrument merge under one symbol.
+func NormalizeSymbols(txs []model.Transaction) {
+	for i, tx := range txs {
+		if canonical, ok := symbolAliases[tx.Symbol]; ok {
+			txs[i].Symbol = canonical
+		}
+	}
+}
+
 // Dedup removes transactions with duplicate IDs, keeping the first occurrence.
 // Returns (kept, dropped).
 func Dedup(txs []model.Transaction) (kept, dropped []model.Transaction) {
+	NormalizeSymbols(txs)
 	seen := make(map[string]struct{}, len(txs))
 	for _, tx := range txs {
 		if _, ok := seen[tx.ID]; ok {
