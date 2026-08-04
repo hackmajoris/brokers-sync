@@ -15,6 +15,64 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'alloc'
+type SortDir = 'asc' | 'desc'
+
+interface Column {
+  key: SortKey
+  label: string
+  align?: 'left' | 'right'
+}
+
+const COLUMNS: Column[] = [
+  { key: 'symbol', label: 'Symbol', align: 'left' },
+  { key: 'quantity', label: 'Quantity' },
+  { key: 'mv', label: 'Market Value' },
+  { key: 'cost', label: 'Cost Basis' },
+  { key: 'pnl', label: 'Unrealized P&L' },
+  { key: 'pct', label: 'Return' },
+  { key: 'range', label: '52 Week Low/High' },
+  { key: 'alloc', label: 'Allocation' },
+]
+
+function rangePct(p: Position): number {
+  if (p.weekLow52 == null || p.weekHigh52 == null || p.currentPrice == null) return -Infinity
+  if (p.weekHigh52 <= p.weekLow52) return -Infinity
+  return (p.currentPrice - p.weekLow52) / (p.weekHigh52 - p.weekLow52)
+}
+
+function sortValue(p: Position, key: SortKey): number | string {
+  switch (key) {
+    case 'symbol':
+      return p.symbol
+    case 'quantity':
+      return p.quantity ?? -Infinity
+    case 'mv':
+    case 'alloc':
+      return p.mv ?? -Infinity
+    case 'cost':
+      return p.cost
+    case 'pnl':
+      return p.pnl ?? -Infinity
+    case 'pct':
+      return p.pct ?? -Infinity
+    case 'range':
+      return rangePct(p)
+  }
+}
+
+function sortPositions(positions: Position[], key: SortKey, dir: SortDir): Position[] {
+  const mul = dir === 'asc' ? 1 : -1
+  return positions.slice().sort((a, b) => {
+    const va = sortValue(a, key)
+    const vb = sortValue(b, key)
+    if (typeof va === 'string' || typeof vb === 'string') {
+      return mul * String(va).localeCompare(String(vb))
+    }
+    return mul * (va - vb)
+  })
+}
+
 const EXPORT_HEADERS = ['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return %', 'Allocation %']
 
 function exportRow(p: Position, totalMV: number): (string | number)[] {
@@ -56,6 +114,8 @@ function downloadPositions(positions: Position[], totalMV: number, format: Expor
 
 export function PositionsTab({ data, accent }: Props) {
   const [format, setFormat] = useState<ExportFormat>('csv')
+  const [sortKey, setSortKey] = useState<SortKey>('mv')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const totalMV = data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0)
   const totalUPnl = data.openPositions.reduce((s, p) => s + (p.pnl ?? 0), 0)
 
@@ -64,7 +124,16 @@ export function PositionsTab({ data, accent }: Props) {
     data.openPositions[0]
   )
 
-  const sorted = data.openPositions.slice().sort((a, b) => (b.mv ?? 0) - (a.mv ?? 0))
+  const sorted = sortPositions(data.openPositions, sortKey, sortDir)
+
+  function handleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'symbol' ? 'asc' : 'desc')
+    }
+  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -105,8 +174,28 @@ export function PositionsTab({ data, accent }: Props) {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
             <thead>
               <tr style={{ background: '#080808' }}>
-                {['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', '52 Week Low/High', 'Allocation'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                {COLUMNS.map(col => (
+                  <th
+                    key={col.key}
+                    onClick={() => handleSort(col.key)}
+                    style={{
+                      padding: '8px 14px',
+                      textAlign: col.align ?? 'right',
+                      fontSize: 10,
+                      fontWeight: 600,
+                      color: sortKey === col.key ? '#c0c0c0' : '#555555',
+                      letterSpacing: '0.08em',
+                      textTransform: 'uppercase',
+                      whiteSpace: 'nowrap',
+                      cursor: 'pointer',
+                      userSelect: 'none',
+                    }}
+                  >
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
+                      {col.label}
+                      <span style={{ fontSize: 8, opacity: sortKey === col.key ? 1 : 0.25 }}>{sortKey === col.key && sortDir === 'asc' ? '▲' : '▼'}</span>
+                    </span>
+                  </th>
                 ))}
               </tr>
             </thead>
