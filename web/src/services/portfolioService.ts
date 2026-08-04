@@ -37,6 +37,8 @@ function mapPosition(p: RawPosition): Position {
     quantity: p.quantity,
     avgCost: p.avg_cost,
     currentPrice: p.current_price,
+    weekLow52: p.week_52_low,
+    weekHigh52: p.week_52_high,
   }
 }
 

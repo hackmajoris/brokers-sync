@@ -222,7 +222,26 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		combinedStats = stats.Compute(combinedLedger, txs, time.Now(), fxRates, baseCurrency)
 	}
 
+	logf(fmt.Sprintf("fetching 52-week ranges for %d symbol(s)…", len(yahooTickers)))
+	rangeMap, err := prices.FetchFiftyTwoWeekRanges(context.Background(), yahooTickers)
+	lowMap := make(map[string]float64, len(rangeMap))
+	highMap := make(map[string]float64, len(rangeMap))
+	if err != nil {
+		log.Printf("52-week range fetch error: %v", err)
+		logf("warning: 52-week range fetch failed")
+	} else {
+		for yahooTicker, rng := range rangeMap {
+			lowMap[yahooTicker] = rng.Low
+			highMap[yahooTicker] = rng.High
+			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				lowMap[origSymbol] = rng.Low
+				highMap[origSymbol] = rng.High
+			}
+		}
+	}
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
+	stats.EnrichWithFiftyTwoWeekRange(&combinedStats, lowMap, highMap, fxRates)
 	stats.RecalcGainPct(&combinedStats)
 
 	var brokerReports []output.BrokerReport
@@ -234,6 +253,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		brokerFxRates := rebaseFXRates(fxRates, nativeCur)
 		bs := stats.Compute(bl, brokerTxs, time.Now(), brokerFxRates, nativeCur)
 		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
+		stats.EnrichWithFiftyTwoWeekRange(&bs, lowMap, highMap, brokerFxRates)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}

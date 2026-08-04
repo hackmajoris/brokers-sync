@@ -51,6 +51,8 @@ type PositionSummary struct {
 	MarketValue   float64 `json:"market_value,omitempty"`
 	UnrealizedPnL float64 `json:"unrealized_pnl,omitempty"`
 	UnrealizedPct float64 `json:"unrealized_pct_omitempty,omitempty"`
+	WeekLow52     float64 `json:"week_52_low,omitempty"`
+	WeekHigh52    float64 `json:"week_52_high,omitempty"`
 }
 
 // Summary aggregates stats from a fully-processed ledger + raw transactions.
@@ -701,6 +703,28 @@ func EnrichWithPrices(s *Summary, prices map[string]float64, fxRates map[string]
 		if p.TotalCost > 0.01 {
 			p.UnrealizedPct = p.UnrealizedPnL / p.TotalCost * 100
 		}
+	}
+}
+
+// EnrichWithFiftyTwoWeekRange adds 52-week high/low data to open positions.
+// low/high are maps of symbol (or Yahoo-normalized symbol) → price in the
+// symbol's native currency. fxRates converts to the summary's base currency
+// (pass nil to skip conversion).
+func EnrichWithFiftyTwoWeekRange(s *Summary, low, high map[string]float64, fxRates map[string]float64) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		lo, ok := low[p.Symbol]
+		hi, okHi := high[p.Symbol]
+		if !ok || !okHi {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			lo, ok = low[norm]
+			hi, okHi = high[norm]
+		}
+		if !ok || !okHi {
+			continue
+		}
+		p.WeekLow52 = toBase(lo, p.Currency, fxRates)
+		p.WeekHigh52 = toBase(hi, p.Currency, fxRates)
 	}
 }
 

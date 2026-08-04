@@ -2,6 +2,7 @@ package prices
 
 import (
 	"context"
+	"sync"
 
 	"github.com/hackmajoris/go-finance/pkg/yahoo"
 )
@@ -24,4 +25,52 @@ func FetchFXRates(ctx context.Context, currencies []string, base string) (map[st
 		return nil, err
 	}
 	return client.FetchFXRates(ctx, currencies, base)
+}
+
+// FiftyTwoWeekRange holds the 52-week trading range for a symbol.
+type FiftyTwoWeekRange struct {
+	Low  float64
+	High float64
+}
+
+// FetchFiftyTwoWeekRanges fetches 52-week high/low ranges for a list of ticker
+// symbols in parallel. Symbols that fail to resolve are omitted from the result.
+func FetchFiftyTwoWeekRanges(ctx context.Context, symbols []string) (map[string]FiftyTwoWeekRange, error) {
+	client, err := yahoo.New()
+	if err != nil {
+		return nil, err
+	}
+
+	type result struct {
+		sym string
+		rng FiftyTwoWeekRange
+		ok  bool
+	}
+
+	ch := make(chan result, len(symbols))
+	var wg sync.WaitGroup
+
+	for _, sym := range symbols {
+		wg.Add(1)
+		go func(sym string) {
+			defer wg.Done()
+			rng, err := client.FetchFiftyTwoWeekRange(ctx, sym)
+			if err != nil {
+				ch <- result{sym: sym}
+				return
+			}
+			ch <- result{sym: sym, rng: FiftyTwoWeekRange{Low: rng.Low, High: rng.High}, ok: true}
+		}(sym)
+	}
+
+	wg.Wait()
+	close(ch)
+
+	out := make(map[string]FiftyTwoWeekRange, len(symbols))
+	for r := range ch {
+		if r.ok {
+			out[r.sym] = r.rng
+		}
+	}
+	return out, nil
 }

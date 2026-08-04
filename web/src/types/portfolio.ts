@@ -28,6 +28,8 @@ export interface RawPosition {
   market_value: number
   unrealized_pnl: number
   unrealized_pct_omitempty: number
+  week_52_low?: number
+  week_52_high?: number
 }
 
 export interface RawRealizedBySymbol {
@@ -80,6 +82,8 @@ export interface Position {
   quantity?: number
   avgCost?: number
   currentPrice?: number
+  weekLow52?: number
+  weekHigh52?: number
 }
 
 export interface RealizedBySymbol {

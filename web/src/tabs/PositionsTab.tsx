@@ -3,6 +3,7 @@ import type { PortfolioData, Position } from '../types/portfolio'
 import { fmt, fmtCurrency, fmtPct, fmtK, clr } from '../utils/format'
 import { BROKER_COLORS } from '../constants'
 import { HorizBar } from '../components/charts/HorizBar'
+import { RangeGauge } from '../components/charts/RangeGauge'
 import { StatCard } from '../components/ui/StatCard'
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { BrokerPill } from '../components/ui/BrokerPill'
@@ -104,7 +105,7 @@ export function PositionsTab({ data, accent }: Props) {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
             <thead>
               <tr style={{ background: '#080808' }}>
-                {['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', 'Allocation'].map(h => (
+                {['Symbol', 'Quantity', 'Market Value', 'Cost Basis', 'Unrealized P&L', 'Return', '52 Week Low/High', 'Allocation'].map(h => (
                   <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
@@ -131,6 +132,15 @@ export function PositionsTab({ data, accent }: Props) {
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontWeight: 600, fontFamily: "'DM Mono', monospace", fontSize: 13, color: clr(p.pnl) }}>{fmtCurrency(p.pnl)}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: clr(p.pct) + '22', color: clr(p.pct) }}>{fmtPct(p.pct)}</span>
+                  </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+                    {p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null ? (
+                      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                        <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
+                      </div>
+                    ) : (
+                      <span style={{ color: '#555555' }}>—</span>
+                    )}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>

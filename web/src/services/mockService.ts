@@ -34,6 +34,8 @@ function scalePosition(p: RawPosition): RawPosition {
     current_price: sc(p.current_price),
     market_value: sc(p.market_value),
     unrealized_pnl: sc(p.unrealized_pnl),
+    week_52_low: p.week_52_low != null ? sc(p.week_52_low) : p.week_52_low,
+    week_52_high: p.week_52_high != null ? sc(p.week_52_high) : p.week_52_high,
   }
 }
 
