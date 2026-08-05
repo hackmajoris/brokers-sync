@@ -74,3 +74,51 @@ func FetchFiftyTwoWeekRanges(ctx context.Context, symbols []string) (map[string]
 	}
 	return out, nil
 }
+
+// PERatio holds the trailing and forward price/earnings ratios for a symbol.
+type PERatio struct {
+	PE        float64
+	ForwardPE float64
+}
+
+// FetchPERatios fetches trailing and forward P/E ratios for a list of ticker
+// symbols in parallel. Symbols that fail to resolve are omitted from the result.
+func FetchPERatios(ctx context.Context, symbols []string) (map[string]PERatio, error) {
+	client, err := yahoo.New()
+	if err != nil {
+		return nil, err
+	}
+
+	type result struct {
+		sym string
+		pe  PERatio
+		ok  bool
+	}
+
+	ch := make(chan result, len(symbols))
+	var wg sync.WaitGroup
+
+	for _, sym := range symbols {
+		wg.Add(1)
+		go func(sym string) {
+			defer wg.Done()
+			pe, err := client.GetPE(ctx, sym)
+			if err != nil {
+				ch <- result{sym: sym}
+				return
+			}
+			ch <- result{sym: sym, pe: PERatio{PE: pe.PE, ForwardPE: pe.ForwardPE}, ok: true}
+		}(sym)
+	}
+
+	wg.Wait()
+	close(ch)
+
+	out := make(map[string]PERatio, len(symbols))
+	for r := range ch {
+		if r.ok {
+			out[r.sym] = r.pe
+		}
+	}
+	return out, nil
+}

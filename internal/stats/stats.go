@@ -53,6 +53,8 @@ type PositionSummary struct {
 	UnrealizedPct float64 `json:"unrealized_pct_omitempty,omitempty"`
 	WeekLow52     float64 `json:"week_52_low,omitempty"`
 	WeekHigh52    float64 `json:"week_52_high,omitempty"`
+	PE            float64 `json:"pe,omitempty"`
+	ForwardPE     float64 `json:"forward_pe,omitempty"`
 }
 
 // Summary aggregates stats from a fully-processed ledger + raw transactions.
@@ -725,6 +727,27 @@ func EnrichWithFiftyTwoWeekRange(s *Summary, low, high map[string]float64, fxRat
 		}
 		p.WeekLow52 = toBase(lo, p.Currency, fxRates)
 		p.WeekHigh52 = toBase(hi, p.Currency, fxRates)
+	}
+}
+
+// EnrichWithPERatio adds trailing/forward P/E ratio data to open positions.
+// pe/forwardPE are maps of symbol (or Yahoo-normalized symbol) → ratio.
+// Ratios are dimensionless, so no currency conversion is applied.
+func EnrichWithPERatio(s *Summary, pe, forwardPE map[string]float64) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		trailing, ok := pe[p.Symbol]
+		forward := forwardPE[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			trailing, ok = pe[norm]
+			forward = forwardPE[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.PE = trailing
+		p.ForwardPE = forward
 	}
 }
 

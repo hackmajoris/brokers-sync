@@ -15,7 +15,7 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
-type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'alloc'
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'alloc'
 type SortDir = 'asc' | 'desc'
 
 interface Column {
@@ -32,6 +32,8 @@ const COLUMNS: Column[] = [
   { key: 'pnl', label: 'Unrealized P&L' },
   { key: 'pct', label: 'Return' },
   { key: 'range', label: '52 Week Low/High' },
+  { key: 'pe', label: 'P/E' },
+  { key: 'forwardPe', label: 'Forward P/E' },
   { key: 'alloc', label: 'Allocation' },
 ]
 
@@ -58,6 +60,10 @@ function sortValue(p: Position, key: SortKey): number | string {
       return p.pct ?? -Infinity
     case 'range':
       return rangePct(p)
+    case 'pe':
+      return p.pe ?? -Infinity
+    case 'forwardPe':
+      return p.forwardPE ?? -Infinity
   }
 }
 
@@ -231,6 +237,8 @@ export function PositionsTab({ data, accent }: Props) {
                       <span style={{ color: '#555555' }}>—</span>
                     )}
                   </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
                       <span style={{ fontSize: 11, color: '#c0c0c0' }}>{fmt(totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0, 1)}%</span>

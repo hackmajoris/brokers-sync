@@ -39,6 +39,8 @@ function mapPosition(p: RawPosition): Position {
     currentPrice: p.current_price,
     weekLow52: p.week_52_low,
     weekHigh52: p.week_52_high,
+    pe: p.pe,
+    forwardPE: p.forward_pe,
   }
 }
 

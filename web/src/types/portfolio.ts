@@ -30,6 +30,8 @@ export interface RawPosition {
   unrealized_pct_omitempty: number
   week_52_low?: number
   week_52_high?: number
+  pe?: number
+  forward_pe?: number
 }
 
 export interface RawRealizedBySymbol {
@@ -84,6 +86,8 @@ export interface Position {
   currentPrice?: number
   weekLow52?: number
   weekHigh52?: number
+  pe?: number
+  forwardPE?: number
 }
 
 export interface RealizedBySymbol {

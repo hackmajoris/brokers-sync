@@ -240,8 +240,27 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	logf(fmt.Sprintf("fetching P/E ratios for %d symbol(s)…", len(yahooTickers)))
+	peRatioMap, err := prices.FetchPERatios(context.Background(), yahooTickers)
+	peMap := make(map[string]float64, len(peRatioMap))
+	forwardPEMap := make(map[string]float64, len(peRatioMap))
+	if err != nil {
+		log.Printf("P/E ratio fetch error: %v", err)
+		logf("warning: P/E ratio fetch failed")
+	} else {
+		for yahooTicker, r := range peRatioMap {
+			peMap[yahooTicker] = r.PE
+			forwardPEMap[yahooTicker] = r.ForwardPE
+			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				peMap[origSymbol] = r.PE
+				forwardPEMap[origSymbol] = r.ForwardPE
+			}
+		}
+	}
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.EnrichWithFiftyTwoWeekRange(&combinedStats, lowMap, highMap, fxRates)
+	stats.EnrichWithPERatio(&combinedStats, peMap, forwardPEMap)
 	stats.RecalcGainPct(&combinedStats)
 
 	var brokerReports []output.BrokerReport
@@ -254,6 +273,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		bs := stats.Compute(bl, brokerTxs, time.Now(), brokerFxRates, nativeCur)
 		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
 		stats.EnrichWithFiftyTwoWeekRange(&bs, lowMap, highMap, brokerFxRates)
+		stats.EnrichWithPERatio(&bs, peMap, forwardPEMap)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}
