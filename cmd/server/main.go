@@ -351,6 +351,8 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	healthMap, healthReasonMap, valuationMap, valuationReasonMap := prices.ClassifyRatings(yahooTickers, fcfResultMap, cfqResultMap, deResultMap, peRatioMap, evResultMap)
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.EnrichWithFiftyTwoWeekRange(&combinedStats, lowMap, highMap, fxRates)
 	stats.EnrichWithPERatio(&combinedStats, peMap, forwardPEMap)
@@ -359,6 +361,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	stats.EnrichWithEVToEBITDA(&combinedStats, evMap, evInterpMap)
 	stats.EnrichWithDebtToEquity(&combinedStats, deMap, deInterpMap)
 	stats.EnrichWithCashFlowQuality(&combinedStats, cfqMap, cfqInterpMap)
+	stats.EnrichWithRatings(&combinedStats, healthMap, healthReasonMap, valuationMap, valuationReasonMap)
 	stats.RecalcGainPct(&combinedStats)
 
 	var brokerReports []output.BrokerReport
@@ -377,6 +380,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		stats.EnrichWithEVToEBITDA(&bs, evMap, evInterpMap)
 		stats.EnrichWithDebtToEquity(&bs, deMap, deInterpMap)
 		stats.EnrichWithCashFlowQuality(&bs, cfqMap, cfqInterpMap)
+		stats.EnrichWithRatings(&bs, healthMap, healthReasonMap, valuationMap, valuationReasonMap)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}

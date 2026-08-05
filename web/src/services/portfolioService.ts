@@ -52,6 +52,10 @@ function mapPosition(p: RawPosition): Position {
     debtToEquityInterpretation: p.debt_to_equity_interpretation,
     cashFlowQuality: p.cash_flow_quality,
     cashFlowQualityInterpretation: p.cash_flow_quality_interpretation,
+    healthRating: p.health_rating,
+    healthReason: p.health_reason,
+    valuationRating: p.valuation_rating,
+    valuationReason: p.valuation_reason,
   }
 }
 

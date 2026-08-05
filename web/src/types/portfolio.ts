@@ -43,6 +43,10 @@ export interface RawPosition {
   debt_to_equity_interpretation?: string
   cash_flow_quality?: number
   cash_flow_quality_interpretation?: string
+  health_rating?: string
+  health_reason?: string
+  valuation_rating?: string
+  valuation_reason?: string
 }
 
 export interface RawRealizedBySymbol {
@@ -110,6 +114,10 @@ export interface Position {
   debtToEquityInterpretation?: string
   cashFlowQuality?: number
   cashFlowQualityInterpretation?: string
+  healthRating?: string
+  healthReason?: string
+  valuationRating?: string
+  valuationReason?: string
 }
 
 export interface RealizedBySymbol {

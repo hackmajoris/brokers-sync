@@ -253,6 +253,7 @@ func FetchDebtToEquities(ctx context.Context, symbols []string) (map[string]Debt
 // (the "earnings quality" ratio) for a symbol, plus a plain-language interpretation.
 type CashFlowQuality struct {
 	Ratio          float64
+	NetIncome      float64
 	Interpretation string
 }
 
@@ -265,6 +266,63 @@ func FetchCashFlowQualities(ctx context.Context, symbols []string) (map[string]C
 		if err != nil {
 			return CashFlowQuality{}, false
 		}
-		return CashFlowQuality{Ratio: cfq.Ratio, Interpretation: cfq.Interpretation}, true
+		return CashFlowQuality{Ratio: cfq.Ratio, NetIncome: cfq.NetIncome, Interpretation: cfq.Interpretation}, true
 	})
+}
+
+// ClassifyRatings runs go-finance's health and valuation classifiers over
+// already-fetched FCF, cash-flow-quality, debt-to-equity, P/E, and EV/EBITDA
+// results for a list of ticker symbols. Symbols missing all inputs are omitted.
+func ClassifyRatings(
+	symbols []string,
+	fcf map[string]FreeCashFlow,
+	cfq map[string]CashFlowQuality,
+	d2e map[string]DebtToEquity,
+	pe map[string]PERatio,
+	ev map[string]EVToEBITDA,
+) (health map[string]string, healthReason map[string]string, valuation map[string]string, valuationReason map[string]string) {
+	health = make(map[string]string, len(symbols))
+	healthReason = make(map[string]string, len(symbols))
+	valuation = make(map[string]string, len(symbols))
+	valuationReason = make(map[string]string, len(symbols))
+
+	for _, sym := range symbols {
+		var fcfPtr *yahoo.FreeCashFlow
+		if v, ok := fcf[sym]; ok {
+			fcfPtr = &yahoo.FreeCashFlow{FCF: v.FCF}
+		}
+		var cfqPtr *yahoo.CashFlowQuality
+		if v, ok := cfq[sym]; ok {
+			cfqPtr = &yahoo.CashFlowQuality{Ratio: v.Ratio, NetIncome: v.NetIncome}
+		}
+		var d2ePtr *yahoo.DebtToEquity
+		if v, ok := d2e[sym]; ok {
+			d2ePtr = &yahoo.DebtToEquity{Ratio: v.Ratio}
+		}
+		var pePtr *yahoo.PERatio
+		if v, ok := pe[sym]; ok {
+			pePtr = &yahoo.PERatio{PE: v.PE, ForwardPE: v.ForwardPE}
+		}
+		var evPtr *yahoo.EVToEBITDA
+		if v, ok := ev[sym]; ok {
+			evPtr = &yahoo.EVToEBITDA{Ratio: v.Ratio}
+		}
+
+		if fcfPtr == nil && cfqPtr == nil && d2ePtr == nil {
+			// no health inputs for this symbol
+		} else {
+			rating, reason := yahoo.ClassifyHealth(fcfPtr, cfqPtr, d2ePtr)
+			health[sym] = string(rating)
+			healthReason[sym] = reason
+		}
+
+		if pePtr == nil && evPtr == nil {
+			// no valuation inputs for this symbol
+		} else {
+			rating, reason := yahoo.ClassifyValuation(pePtr, evPtr)
+			valuation[sym] = string(rating)
+			valuationReason[sym] = reason
+		}
+	}
+	return health, healthReason, valuation, valuationReason
 }

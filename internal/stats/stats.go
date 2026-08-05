@@ -67,6 +67,11 @@ type PositionSummary struct {
 	DebtToEquityInterpretation    string  `json:"debt_to_equity_interpretation,omitempty"`
 	CashFlowQuality               float64 `json:"cash_flow_quality,omitempty"`
 	CashFlowQualityInterpretation string  `json:"cash_flow_quality_interpretation,omitempty"`
+
+	HealthRating    string `json:"health_rating,omitempty"`
+	HealthReason    string `json:"health_reason,omitempty"`
+	ValuationRating string `json:"valuation_rating,omitempty"`
+	ValuationReason string `json:"valuation_reason,omitempty"`
 }
 
 // Summary aggregates stats from a fully-processed ledger + raw transactions.
@@ -867,6 +872,31 @@ func EnrichWithCashFlowQuality(s *Summary, ratio map[string]float64, interpretat
 		}
 		p.CashFlowQuality = v
 		p.CashFlowQualityInterpretation = txt
+	}
+}
+
+// EnrichWithRatings adds go-finance's health and valuation classifications to
+// open positions. Maps are keyed by symbol (or Yahoo-normalized symbol).
+func EnrichWithRatings(s *Summary, health, healthReason, valuation, valuationReason map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		norm := strings.ReplaceAll(p.Symbol, " ", "-")
+
+		if v, ok := health[p.Symbol]; ok {
+			p.HealthRating = v
+			p.HealthReason = healthReason[p.Symbol]
+		} else if v, ok := health[norm]; ok {
+			p.HealthRating = v
+			p.HealthReason = healthReason[norm]
+		}
+
+		if v, ok := valuation[p.Symbol]; ok {
+			p.ValuationRating = v
+			p.ValuationReason = valuationReason[p.Symbol]
+		} else if v, ok := valuation[norm]; ok {
+			p.ValuationRating = v
+			p.ValuationReason = valuationReason[norm]
+		}
 	}
 }
 

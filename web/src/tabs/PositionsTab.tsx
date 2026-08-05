@@ -14,6 +14,26 @@ const INDICATOR_INFO: Partial<Record<SortKey, string>> = {
   evToEbitda: 'Enterprise value ÷ trailing twelve-month EBITDA. Capital-structure neutral valuation multiple (accounts for debt and cash), more comparable across companies with different leverage than P/E.',
   debtToEquity: 'Total debt as a percentage of total equity. Higher values mean more leverage — compare against sector peers rather than an absolute threshold.',
   cashFlowQuality: 'Operating cash flow ÷ net income. Near 1 means earnings are roughly cash-backed (healthy); well below 1 suggests earnings rely on accruals; well above 1 often reflects heavy non-cash charges.',
+  health: 'Coarse read on financial soundness from free cash flow, cash flow quality, and debt-to-equity. Says nothing about valuation — pair with the Valuation column.',
+  valuation: 'Coarse read on whether the market price looks cheap or expensive, from forward-vs-trailing P/E and EV/EBITDA. Says nothing about financial health — pair with the Health column.',
+}
+
+const HEALTH_COLORS: Record<string, string> = {
+  healthy: '#34d399',
+  fair: '#fbbf24',
+  weak: '#fb923c',
+  unhealthy: '#f87171',
+}
+
+const VALUATION_COLORS: Record<string, string> = {
+  undervalued: '#34d399',
+  fair: '#fbbf24',
+  overvalued: '#f87171',
+  unclear: '#555555',
+}
+
+function ratingLabel(v: string): string {
+  return v.charAt(0).toUpperCase() + v.slice(1)
 }
 
 interface Props {
@@ -23,7 +43,7 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
-type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'ytd' | 'threeYr' | 'fiveYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'alloc'
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'ytd' | 'threeYr' | 'fiveYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'health' | 'valuation' | 'alloc'
 type SortDir = 'asc' | 'desc'
 
 interface Column {
@@ -49,6 +69,8 @@ const COLUMNS: Column[] = [
   { key: 'evToEbitda', label: 'EV/EBITDA' },
   { key: 'debtToEquity', label: 'Debt/Equity' },
   { key: 'cashFlowQuality', label: 'CF Quality' },
+  { key: 'health', label: 'Health' },
+  { key: 'valuation', label: 'Valuation' },
   { key: 'alloc', label: 'Allocation' },
 ]
 
@@ -93,6 +115,10 @@ function sortValue(p: Position, key: SortKey): number | string {
       return p.debtToEquity ?? -Infinity
     case 'cashFlowQuality':
       return p.cashFlowQuality ?? -Infinity
+    case 'health':
+      return p.healthRating ?? ''
+    case 'valuation':
+      return p.valuationRating ?? ''
   }
 }
 
@@ -283,6 +309,24 @@ export function PositionsTab({ data, accent }: Props) {
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }} title={p.evToEbitdaInterpretation}>{p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }} title={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }} title={p.cashFlowQualityInterpretation}>{p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right' }} title={p.healthReason}>
+                    {p.healthRating ? (
+                      <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: (HEALTH_COLORS[p.healthRating] ?? '#555555') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#555555' }}>
+                        {ratingLabel(p.healthRating)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#555555' }}>—</span>
+                    )}
+                  </td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right' }} title={p.valuationReason}>
+                    {p.valuationRating ? (
+                      <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600, background: (VALUATION_COLORS[p.valuationRating] ?? '#555555') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#555555' }}>
+                        {ratingLabel(p.valuationRating)}
+                      </span>
+                    ) : (
+                      <span style={{ color: '#555555' }}>—</span>
+                    )}
+                  </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
                       <span style={{ fontSize: 11, color: '#c0c0c0' }}>{fmt(totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0, 1)}%</span>
