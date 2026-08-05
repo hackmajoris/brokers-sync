@@ -7,6 +7,55 @@ import (
 	"github.com/hackmajoris/go-finance/pkg/yahoo"
 )
 
+// fetchCrumbGuarded runs fetch for symbols[0] synchronously to force the shared
+// client's Yahoo auth "crumb" to populate, then fans the remaining symbols out
+// in parallel. The go-finance client fetches its crumb lazily on first use with
+// no internal locking, so calling it from many goroutines at once makes them
+// all race to populate c.crumb simultaneously — Yahoo answers that pile-up with
+// 401/429 for the whole batch. Serializing just the first call avoids the race
+// entirely since every later call sees a already-populated crumb.
+func fetchCrumbGuarded[T any](ctx context.Context, symbols []string, fetch func(context.Context, *yahoo.Client, string) (T, bool)) (map[string]T, error) {
+	client, err := yahoo.New()
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]T, len(symbols))
+	if len(symbols) == 0 {
+		return out, nil
+	}
+
+	first, rest := symbols[0], symbols[1:]
+	if v, ok := fetch(ctx, client, first); ok {
+		out[first] = v
+	}
+
+	type result struct {
+		sym string
+		val T
+		ok  bool
+	}
+	ch := make(chan result, len(rest))
+	var wg sync.WaitGroup
+	for _, sym := range rest {
+		wg.Add(1)
+		go func(sym string) {
+			defer wg.Done()
+			v, ok := fetch(ctx, client, sym)
+			ch <- result{sym: sym, val: v, ok: ok}
+		}(sym)
+	}
+	wg.Wait()
+	close(ch)
+
+	for r := range ch {
+		if r.ok {
+			out[r.sym] = r.val
+		}
+	}
+	return out, nil
+}
+
 // FetchQuotes fetches current prices for a list of ticker symbols in parallel.
 // Returns a map of both original and normalized symbol → price.
 func FetchQuotes(ctx context.Context, symbols []string) (map[string]float64, error) {
@@ -84,43 +133,13 @@ type PERatio struct {
 // FetchPERatios fetches trailing and forward P/E ratios for a list of ticker
 // symbols in parallel. Symbols that fail to resolve are omitted from the result.
 func FetchPERatios(ctx context.Context, symbols []string) (map[string]PERatio, error) {
-	client, err := yahoo.New()
-	if err != nil {
-		return nil, err
-	}
-
-	type result struct {
-		sym string
-		pe  PERatio
-		ok  bool
-	}
-
-	ch := make(chan result, len(symbols))
-	var wg sync.WaitGroup
-
-	for _, sym := range symbols {
-		wg.Add(1)
-		go func(sym string) {
-			defer wg.Done()
-			pe, err := client.GetPE(ctx, sym)
-			if err != nil {
-				ch <- result{sym: sym}
-				return
-			}
-			ch <- result{sym: sym, pe: PERatio{PE: pe.PE, ForwardPE: pe.ForwardPE}, ok: true}
-		}(sym)
-	}
-
-	wg.Wait()
-	close(ch)
-
-	out := make(map[string]PERatio, len(symbols))
-	for r := range ch {
-		if r.ok {
-			out[r.sym] = r.pe
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (PERatio, bool) {
+		pe, err := c.GetPE(ctx, sym)
+		if err != nil {
+			return PERatio{}, false
 		}
-	}
-	return out, nil
+		return PERatio{PE: pe.PE, ForwardPE: pe.ForwardPE}, true
+	})
 }
 
 // Performance holds trailing YTD, 3-year, and 5-year percentage price change for a symbol.
@@ -170,4 +189,82 @@ func FetchPerformances(ctx context.Context, symbols []string) (map[string]Perfor
 		}
 	}
 	return out, nil
+}
+
+// FreeCashFlow holds the trailing twelve-month free cash flow for a symbol,
+// in the symbol's reporting currency, plus a plain-language interpretation.
+type FreeCashFlow struct {
+	FCF            float64
+	Interpretation string
+}
+
+// FetchFreeCashFlows fetches trailing twelve-month free cash flow for a list of
+// ticker symbols in parallel. Symbols that fail to resolve are omitted from the result.
+func FetchFreeCashFlows(ctx context.Context, symbols []string) (map[string]FreeCashFlow, error) {
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (FreeCashFlow, bool) {
+		fcf, err := c.GetFreeCashFlow(ctx, sym)
+		if err != nil {
+			return FreeCashFlow{}, false
+		}
+		return FreeCashFlow{FCF: fcf.FCF, Interpretation: fcf.Interpretation}, true
+	})
+}
+
+// EVToEBITDA holds the enterprise-value-to-EBITDA ratio for a symbol,
+// plus a plain-language interpretation.
+type EVToEBITDA struct {
+	Ratio          float64
+	Interpretation string
+}
+
+// FetchEVToEBITDAs fetches EV/EBITDA ratios for a list of ticker symbols in
+// parallel. Symbols that fail to resolve are omitted from the result.
+func FetchEVToEBITDAs(ctx context.Context, symbols []string) (map[string]EVToEBITDA, error) {
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (EVToEBITDA, bool) {
+		ev, err := c.GetEVToEBITDA(ctx, sym)
+		if err != nil {
+			return EVToEBITDA{}, false
+		}
+		return EVToEBITDA{Ratio: ev.Ratio, Interpretation: ev.Interpretation}, true
+	})
+}
+
+// DebtToEquity holds the debt-to-equity ratio for a symbol (Yahoo reports it as
+// a percentage — 150.5 means total debt is 1.5x total equity), plus a
+// plain-language interpretation.
+type DebtToEquity struct {
+	Ratio          float64
+	Interpretation string
+}
+
+// FetchDebtToEquities fetches debt-to-equity ratios for a list of ticker symbols
+// in parallel. Symbols that fail to resolve are omitted from the result.
+func FetchDebtToEquities(ctx context.Context, symbols []string) (map[string]DebtToEquity, error) {
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (DebtToEquity, bool) {
+		de, err := c.GetDebtToEquity(ctx, sym)
+		if err != nil {
+			return DebtToEquity{}, false
+		}
+		return DebtToEquity{Ratio: de.Ratio, Interpretation: de.Interpretation}, true
+	})
+}
+
+// CashFlowQuality holds trailing twelve-month operating cash flow vs net income
+// (the "earnings quality" ratio) for a symbol, plus a plain-language interpretation.
+type CashFlowQuality struct {
+	Ratio          float64
+	Interpretation string
+}
+
+// FetchCashFlowQualities fetches operating-cash-flow-vs-net-income ratios for a
+// list of ticker symbols in parallel. Symbols that fail to resolve are omitted
+// from the result.
+func FetchCashFlowQualities(ctx context.Context, symbols []string) (map[string]CashFlowQuality, error) {
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (CashFlowQuality, bool) {
+		cfq, err := c.GetOperatingCashFlowVsNetIncome(ctx, sym)
+		if err != nil {
+			return CashFlowQuality{}, false
+		}
+		return CashFlowQuality{Ratio: cfq.Ratio, Interpretation: cfq.Interpretation}, true
+	})
 }

@@ -35,6 +35,14 @@ export interface RawPosition {
   ytd_return?: number
   three_year_return?: number
   five_year_return?: number
+  fcf?: number
+  fcf_interpretation?: string
+  ev_to_ebitda?: number
+  ev_to_ebitda_interpretation?: string
+  debt_to_equity?: number
+  debt_to_equity_interpretation?: string
+  cash_flow_quality?: number
+  cash_flow_quality_interpretation?: string
 }
 
 export interface RawRealizedBySymbol {
@@ -94,6 +102,14 @@ export interface Position {
   ytdReturn?: number
   threeYrReturn?: number
   fiveYrReturn?: number
+  fcf?: number
+  fcfInterpretation?: string
+  evToEbitda?: number
+  evToEbitdaInterpretation?: string
+  debtToEquity?: number
+  debtToEquityInterpretation?: string
+  cashFlowQuality?: number
+  cashFlowQualityInterpretation?: string
 }
 
 export interface RealizedBySymbol {

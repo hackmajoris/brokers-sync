@@ -44,6 +44,14 @@ function mapPosition(p: RawPosition): Position {
     ytdReturn: p.ytd_return,
     threeYrReturn: p.three_year_return,
     fiveYrReturn: p.five_year_return,
+    fcf: p.fcf,
+    fcfInterpretation: p.fcf_interpretation,
+    evToEbitda: p.ev_to_ebitda,
+    evToEbitdaInterpretation: p.ev_to_ebitda_interpretation,
+    debtToEquity: p.debt_to_equity,
+    debtToEquityInterpretation: p.debt_to_equity_interpretation,
+    cashFlowQuality: p.cash_flow_quality,
+    cashFlowQualityInterpretation: p.cash_flow_quality_interpretation,
   }
 }
 

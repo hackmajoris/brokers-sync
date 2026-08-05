@@ -58,6 +58,15 @@ type PositionSummary struct {
 	YTDReturn     float64 `json:"ytd_return,omitempty"`
 	ThreeYrReturn float64 `json:"three_year_return,omitempty"`
 	FiveYrReturn  float64 `json:"five_year_return,omitempty"`
+
+	FCF                           float64 `json:"fcf,omitempty"`
+	FCFInterpretation             string  `json:"fcf_interpretation,omitempty"`
+	EVToEBITDA                    float64 `json:"ev_to_ebitda,omitempty"`
+	EVToEBITDAInterpretation      string  `json:"ev_to_ebitda_interpretation,omitempty"`
+	DebtToEquity                  float64 `json:"debt_to_equity,omitempty"`
+	DebtToEquityInterpretation    string  `json:"debt_to_equity_interpretation,omitempty"`
+	CashFlowQuality               float64 `json:"cash_flow_quality,omitempty"`
+	CashFlowQualityInterpretation string  `json:"cash_flow_quality_interpretation,omitempty"`
 }
 
 // Summary aggregates stats from a fully-processed ledger + raw transactions.
@@ -776,6 +785,88 @@ func EnrichWithPerformance(s *Summary, ytd, threeYr, fiveYr map[string]float64) 
 		p.YTDReturn = y
 		p.ThreeYrReturn = t3
 		p.FiveYrReturn = t5
+	}
+}
+
+// EnrichWithFreeCashFlow adds trailing twelve-month free cash flow data to open
+// positions. fcf/interpretation are maps of symbol (or Yahoo-normalized symbol)
+// → value. FCF is in the symbol's native reporting currency; no conversion applied.
+func EnrichWithFreeCashFlow(s *Summary, fcf map[string]float64, interpretation map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		v, ok := fcf[p.Symbol]
+		txt := interpretation[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			v, ok = fcf[norm]
+			txt = interpretation[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.FCF = v
+		p.FCFInterpretation = txt
+	}
+}
+
+// EnrichWithEVToEBITDA adds enterprise-value-to-EBITDA ratio data to open positions.
+// ratio/interpretation are maps of symbol (or Yahoo-normalized symbol) → value.
+func EnrichWithEVToEBITDA(s *Summary, ratio map[string]float64, interpretation map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		v, ok := ratio[p.Symbol]
+		txt := interpretation[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			v, ok = ratio[norm]
+			txt = interpretation[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.EVToEBITDA = v
+		p.EVToEBITDAInterpretation = txt
+	}
+}
+
+// EnrichWithDebtToEquity adds debt-to-equity ratio data to open positions.
+// ratio/interpretation are maps of symbol (or Yahoo-normalized symbol) → value.
+func EnrichWithDebtToEquity(s *Summary, ratio map[string]float64, interpretation map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		v, ok := ratio[p.Symbol]
+		txt := interpretation[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			v, ok = ratio[norm]
+			txt = interpretation[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.DebtToEquity = v
+		p.DebtToEquityInterpretation = txt
+	}
+}
+
+// EnrichWithCashFlowQuality adds operating-cash-flow-vs-net-income ratio data to
+// open positions. ratio/interpretation are maps of symbol (or Yahoo-normalized
+// symbol) → value.
+func EnrichWithCashFlowQuality(s *Summary, ratio map[string]float64, interpretation map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		v, ok := ratio[p.Symbol]
+		txt := interpretation[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			v, ok = ratio[norm]
+			txt = interpretation[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.CashFlowQuality = v
+		p.CashFlowQualityInterpretation = txt
 	}
 }
 

@@ -13,6 +13,8 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 - **Automatic broker detection** — drop any mix of exports into one ZIP; the format is inferred from the file headers automatically.
 - **Per-broker statistics** — all-time return, all-time realized P&L, YTD realized P&L, total dividends received, annualized return, top realized gainers, top realized losers, and open positions summary — broken down per broker and aggregated across all of them.
 - **Open positions** — quantity, average cost, cost basis, current market value, unrealized P&L (amount and %), portfolio allocation weight, and return since purchase.
+- **Live market data per position** — 52-week high/low range, trailing and forward P/E, and YTD/3-year/5-year price performance, fetched from Yahoo Finance.
+- **Fundamental indicators per position** — free cash flow, EV/EBITDA, debt-to-equity, and operating cash flow vs. net income (cash flow quality), each with a plain-language interpretation shown via an info popup on the column header.
 - **Annual breakdown** — realized P&L, dividends, deposits, withdrawals, fees, buy volume, and sell volume — bucketed per calendar year.
 - **P&L statistics** — all-time and YTD realized gain/loss, FIFO lot matching, largest single winners and losers.
 - **Dividend statistics** — aggregated dividend income (all-time and YTD), annual dividend totals, year-over-year dividend progress, and per-symbol breakdown with gross amount, tax withheld, and net received.
