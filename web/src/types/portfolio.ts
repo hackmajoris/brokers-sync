@@ -32,6 +32,9 @@ export interface RawPosition {
   week_52_high?: number
   pe?: number
   forward_pe?: number
+  ytd_return?: number
+  three_year_return?: number
+  five_year_return?: number
 }
 
 export interface RawRealizedBySymbol {
@@ -88,6 +91,9 @@ export interface Position {
   weekHigh52?: number
   pe?: number
   forwardPE?: number
+  ytdReturn?: number
+  threeYrReturn?: number
+  fiveYrReturn?: number
 }
 
 export interface RealizedBySymbol {

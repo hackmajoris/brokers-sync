@@ -41,6 +41,9 @@ function mapPosition(p: RawPosition): Position {
     weekHigh52: p.week_52_high,
     pe: p.pe,
     forwardPE: p.forward_pe,
+    ytdReturn: p.ytd_return,
+    threeYrReturn: p.three_year_return,
+    fiveYrReturn: p.five_year_return,
   }
 }
 

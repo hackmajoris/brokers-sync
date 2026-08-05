@@ -258,9 +258,31 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	logf(fmt.Sprintf("fetching performance for %d symbol(s)…", len(yahooTickers)))
+	perfMap, err := prices.FetchPerformances(context.Background(), yahooTickers)
+	ytdMap := make(map[string]float64, len(perfMap))
+	threeYrMap := make(map[string]float64, len(perfMap))
+	fiveYrMap := make(map[string]float64, len(perfMap))
+	if err != nil {
+		log.Printf("performance fetch error: %v", err)
+		logf("warning: performance fetch failed")
+	} else {
+		for yahooTicker, p := range perfMap {
+			ytdMap[yahooTicker] = p.YTD
+			threeYrMap[yahooTicker] = p.ThreeYear
+			fiveYrMap[yahooTicker] = p.FiveYear
+			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				ytdMap[origSymbol] = p.YTD
+				threeYrMap[origSymbol] = p.ThreeYear
+				fiveYrMap[origSymbol] = p.FiveYear
+			}
+		}
+	}
+
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.EnrichWithFiftyTwoWeekRange(&combinedStats, lowMap, highMap, fxRates)
 	stats.EnrichWithPERatio(&combinedStats, peMap, forwardPEMap)
+	stats.EnrichWithPerformance(&combinedStats, ytdMap, threeYrMap, fiveYrMap)
 	stats.RecalcGainPct(&combinedStats)
 
 	var brokerReports []output.BrokerReport
@@ -274,6 +296,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
 		stats.EnrichWithFiftyTwoWeekRange(&bs, lowMap, highMap, brokerFxRates)
 		stats.EnrichWithPERatio(&bs, peMap, forwardPEMap)
+		stats.EnrichWithPerformance(&bs, ytdMap, threeYrMap, fiveYrMap)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}

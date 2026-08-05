@@ -55,6 +55,9 @@ type PositionSummary struct {
 	WeekHigh52    float64 `json:"week_52_high,omitempty"`
 	PE            float64 `json:"pe,omitempty"`
 	ForwardPE     float64 `json:"forward_pe,omitempty"`
+	YTDReturn     float64 `json:"ytd_return,omitempty"`
+	ThreeYrReturn float64 `json:"three_year_return,omitempty"`
+	FiveYrReturn  float64 `json:"five_year_return,omitempty"`
 }
 
 // Summary aggregates stats from a fully-processed ledger + raw transactions.
@@ -748,6 +751,31 @@ func EnrichWithPERatio(s *Summary, pe, forwardPE map[string]float64) {
 		}
 		p.PE = trailing
 		p.ForwardPE = forward
+	}
+}
+
+// EnrichWithPerformance adds trailing YTD/3-year/5-year price performance data to
+// open positions. ytd/threeYr/fiveYr are maps of symbol (or Yahoo-normalized
+// symbol) → percentage return. Percentages are dimensionless, so no currency
+// conversion is applied.
+func EnrichWithPerformance(s *Summary, ytd, threeYr, fiveYr map[string]float64) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		y, ok := ytd[p.Symbol]
+		t3 := threeYr[p.Symbol]
+		t5 := fiveYr[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			y, ok = ytd[norm]
+			t3 = threeYr[norm]
+			t5 = fiveYr[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.YTDReturn = y
+		p.ThreeYrReturn = t3
+		p.FiveYrReturn = t5
 	}
 }
 

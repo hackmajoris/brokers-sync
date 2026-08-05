@@ -15,7 +15,7 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
-type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'alloc'
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'ytd' | 'threeYr' | 'fiveYr' | 'alloc'
 type SortDir = 'asc' | 'desc'
 
 interface Column {
@@ -34,6 +34,9 @@ const COLUMNS: Column[] = [
   { key: 'range', label: '52 Week Low/High' },
   { key: 'pe', label: 'P/E' },
   { key: 'forwardPe', label: 'Forward P/E' },
+  { key: 'ytd', label: 'YTD' },
+  { key: 'threeYr', label: '3Y' },
+  { key: 'fiveYr', label: '5Y' },
   { key: 'alloc', label: 'Allocation' },
 ]
 
@@ -64,6 +67,12 @@ function sortValue(p: Position, key: SortKey): number | string {
       return p.pe ?? -Infinity
     case 'forwardPe':
       return p.forwardPE ?? -Infinity
+    case 'ytd':
+      return p.ytdReturn ?? -Infinity
+    case 'threeYr':
+      return p.threeYrReturn ?? -Infinity
+    case 'fiveYr':
+      return p.fiveYrReturn ?? -Infinity
   }
 }
 
@@ -239,6 +248,9 @@ export function PositionsTab({ data, accent }: Props) {
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p.ytdReturn != null ? clr(p.ytdReturn) : '#c0c0c0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p.threeYrReturn != null ? clr(p.threeYrReturn) : '#c0c0c0' }}>{p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}</td>
+                  <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#c0c0c0' }}>{p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'flex-end' }}>
                       <span style={{ fontSize: 11, color: '#c0c0c0' }}>{fmt(totalMV > 0 ? ((p.mv ?? 0) / totalMV) * 100 : 0, 1)}%</span>

@@ -122,3 +122,52 @@ func FetchPERatios(ctx context.Context, symbols []string) (map[string]PERatio, e
 	}
 	return out, nil
 }
+
+// Performance holds trailing YTD, 3-year, and 5-year percentage price change for a symbol.
+type Performance struct {
+	YTD       float64
+	ThreeYear float64
+	FiveYear  float64
+}
+
+// FetchPerformances fetches YTD, 3-year, and 5-year performance for a list of ticker
+// symbols in parallel. Symbols that fail to resolve are omitted from the result.
+func FetchPerformances(ctx context.Context, symbols []string) (map[string]Performance, error) {
+	client, err := yahoo.New()
+	if err != nil {
+		return nil, err
+	}
+
+	type result struct {
+		sym  string
+		perf Performance
+		ok   bool
+	}
+
+	ch := make(chan result, len(symbols))
+	var wg sync.WaitGroup
+
+	for _, sym := range symbols {
+		wg.Add(1)
+		go func(sym string) {
+			defer wg.Done()
+			perf, err := client.FetchPerformance(ctx, sym)
+			if err != nil {
+				ch <- result{sym: sym}
+				return
+			}
+			ch <- result{sym: sym, perf: Performance{YTD: perf.YTD, ThreeYear: perf.ThreeYear, FiveYear: perf.FiveYear}, ok: true}
+		}(sym)
+	}
+
+	wg.Wait()
+	close(ch)
+
+	out := make(map[string]Performance, len(symbols))
+	for r := range ch {
+		if r.ok {
+			out[r.sym] = r.perf
+		}
+	}
+	return out, nil
+}
