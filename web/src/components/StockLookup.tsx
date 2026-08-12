@@ -12,6 +12,8 @@ const CHART_RANGES = [
   { key: '6M', range: '6mo', interval: '1d' },
   { key: '1Y', range: '1y', interval: '1d' },
   { key: '5Y', range: '5y', interval: '1wk' },
+  { key: '10Y', range: '10y', interval: '1wk' },
+  { key: 'Max', range: 'max', interval: '1mo' },
 ] as const
 
 type ChartRangeKey = (typeof CHART_RANGES)[number]['key']
@@ -49,25 +51,79 @@ function RatingPill({ rating, colors }: { rating?: string; colors: Record<string
   )
 }
 
+function MetricGroup({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#c0c0c0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
+    </div>
+  )
+}
+
+const NA = <span style={{ color: '#555555' }}>N/A</span>
+const DASH = <span style={{ color: '#e0e0e0' }}>—</span>
+
+// pctColored renders a percentage tinted by sign, or an em dash when absent.
+function pctColored(v?: number): ReactNode {
+  if (v == null) return DASH
+  return <span style={{ color: clr(v) }}>{fmtPct(v)}</span>
+}
+
 function DetailBody({ p }: { p: Position }) {
   const hasRange = p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))', gap: 8 }}>
-      <Metric label="Price">{p.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}</Metric>
-      <Metric label="52 Week Range">
-        {hasRange ? <RangeGauge low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} width={80} /> : '—'}
-      </Metric>
-      <Metric label="P/E">{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</Metric>
-      <Metric label="Forward P/E">{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</Metric>
-      <Metric label="YTD"><span style={{ color: p.ytdReturn != null ? clr(p.ytdReturn) : '#e0e0e0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</span></Metric>
-      <Metric label="3Y"><span style={{ color: p.threeYrReturn != null ? clr(p.threeYrReturn) : '#e0e0e0' }}>{p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}</span></Metric>
-      <Metric label="5Y"><span style={{ color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#e0e0e0' }}>{p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}</span></Metric>
-      <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? clr(p.fcf) : '#e0e0e0' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
-      <Metric label="EV/EBITDA" note={p.evToEbitdaInterpretation}>{p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'}</Metric>
-      <Metric label="Debt/Equity" note={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</Metric>
-      <Metric label="CF Quality" note={p.cashFlowQualityInterpretation}>{p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'}</Metric>
-      <Metric label="Health" note={p.healthReason}><RatingPill rating={p.healthRating} colors={HEALTH_COLORS} /></Metric>
-      <Metric label="Valuation" note={p.valuationReason}><RatingPill rating={p.valuationRating} colors={VALUATION_COLORS} /></Metric>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+      {/* Performance strip — not part of the picture's five groups */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))', gap: 8 }}>
+        <Metric label="Price">{p.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}</Metric>
+        <Metric label="52 Week Range">
+          {hasRange ? <RangeGauge low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} width={80} /> : '—'}
+        </Metric>
+        <Metric label="YTD">{pctColored(p.ytdReturn)}</Metric>
+        <Metric label="3Y">{pctColored(p.threeYrReturn)}</Metric>
+        <Metric label="5Y">{pctColored(p.fiveYrReturn)}</Metric>
+      </div>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, alignItems: 'start' }}>
+        <MetricGroup title="Valuation">
+          <Metric label="Market Cap" note={p.marketCapInterpretation}>{p.marketCap != null ? fmtKMBT(p.marketCap) : DASH}</Metric>
+          <Metric label="P/E">{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</Metric>
+          <Metric label="Forward P/E">{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</Metric>
+          <Metric label="Price/Sales" note={p.priceToSalesInterpretation}>{p.priceToSales != null && p.priceToSales !== 0 ? fmt(p.priceToSales, 2) : DASH}</Metric>
+          <Metric label="EV/EBITDA" note={p.evToEbitdaInterpretation}>{p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'}</Metric>
+          <Metric label="Price/Book" note={p.priceToBookInterpretation}>{p.priceToBook != null && p.priceToBook !== 0 ? fmt(p.priceToBook, 2) : DASH}</Metric>
+          <Metric label="Valuation" note={p.valuationReason}><RatingPill rating={p.valuationRating} colors={VALUATION_COLORS} /></Metric>
+        </MetricGroup>
+
+        <MetricGroup title="Cash Flow">
+          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? clr(p.fcf) : '#e0e0e0' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
+          <Metric label="Free Cash Flow Yield" note={p.fcfYieldInterpretation}>{p.fcfYield != null ? pctColored(p.fcfYield) : DASH}</Metric>
+          <Metric label="SBC Adj. FCF Yield">{NA}</Metric>
+          <Metric label="SBC Impact">{NA}</Metric>
+          <Metric label="CF Quality" note={p.cashFlowQualityInterpretation}>{p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'}</Metric>
+        </MetricGroup>
+
+        <MetricGroup title="Margins & Growth">
+          <Metric label="Profit Margin" note={p.profitMarginInterpretation}>{pctColored(p.profitMargin)}</Metric>
+          <Metric label="Operating Margin" note={p.operatingMarginInterpretation}>{pctColored(p.operatingMargin)}</Metric>
+          <Metric label="Quarterly Earnings (YoY)" note={p.quarterlyEarningsGrowthInterpretation}>{pctColored(p.quarterlyEarningsGrowth)}</Metric>
+          <Metric label="Quarterly Revenue (YoY)" note={p.quarterlyRevenueGrowthInterpretation}>{pctColored(p.quarterlyRevenueGrowth)}</Metric>
+        </MetricGroup>
+
+        <MetricGroup title="Balance">
+          <Metric label="Cash" note={p.cashInterpretation}>{p.cash != null ? fmtKMBT(p.cash) : DASH}</Metric>
+          <Metric label="Debt" note={p.debtInterpretation}>{p.debt != null ? fmtKMBT(p.debt) : DASH}</Metric>
+          <Metric label="Net">{p.net != null ? <span style={{ color: clr(p.net) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
+          <Metric label="Debt/Equity" note={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</Metric>
+          <Metric label="Health" note={p.healthReason}><RatingPill rating={p.healthRating} colors={HEALTH_COLORS} /></Metric>
+        </MetricGroup>
+
+        <MetricGroup title="Dividend">
+          <Metric label="Dividend Yield" note={p.dividendYieldInterpretation}>{p.dividendYield != null ? fmtPct(p.dividendYield) : DASH}</Metric>
+          <Metric label="Payout Ratio" note={p.payoutRatioInterpretation}>{p.payoutRatio != null ? fmtPct(p.payoutRatio) : DASH}</Metric>
+          <Metric label="Payout Date" note={p.payoutDateInterpretation}>{p.payoutDate || DASH}</Metric>
+        </MetricGroup>
+      </div>
     </div>
   )
 }

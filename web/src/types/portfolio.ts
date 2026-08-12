@@ -43,6 +43,33 @@ export interface RawPosition {
   debt_to_equity_interpretation?: string
   cash_flow_quality?: number
   cash_flow_quality_interpretation?: string
+  market_cap?: number
+  market_cap_interpretation?: string
+  price_to_sales?: number
+  price_to_sales_interpretation?: string
+  price_to_book?: number
+  price_to_book_interpretation?: string
+  fcf_yield?: number
+  fcf_yield_interpretation?: string
+  profit_margin?: number
+  profit_margin_interpretation?: string
+  operating_margin?: number
+  operating_margin_interpretation?: string
+  quarterly_earnings_growth?: number
+  quarterly_earnings_growth_interpretation?: string
+  quarterly_revenue_growth?: number
+  quarterly_revenue_growth_interpretation?: string
+  cash?: number
+  cash_interpretation?: string
+  debt?: number
+  debt_interpretation?: string
+  net?: number
+  dividend_yield?: number
+  dividend_yield_interpretation?: string
+  payout_ratio?: number
+  payout_ratio_interpretation?: string
+  payout_date?: string
+  payout_date_interpretation?: string
   health_rating?: string
   health_reason?: string
   valuation_rating?: string
@@ -114,6 +141,33 @@ export interface Position {
   debtToEquityInterpretation?: string
   cashFlowQuality?: number
   cashFlowQualityInterpretation?: string
+  marketCap?: number
+  marketCapInterpretation?: string
+  priceToSales?: number
+  priceToSalesInterpretation?: string
+  priceToBook?: number
+  priceToBookInterpretation?: string
+  fcfYield?: number
+  fcfYieldInterpretation?: string
+  profitMargin?: number
+  profitMarginInterpretation?: string
+  operatingMargin?: number
+  operatingMarginInterpretation?: string
+  quarterlyEarningsGrowth?: number
+  quarterlyEarningsGrowthInterpretation?: string
+  quarterlyRevenueGrowth?: number
+  quarterlyRevenueGrowthInterpretation?: string
+  cash?: number
+  cashInterpretation?: string
+  debt?: number
+  debtInterpretation?: string
+  net?: number
+  dividendYield?: number
+  dividendYieldInterpretation?: string
+  payoutRatio?: number
+  payoutRatioInterpretation?: string
+  payoutDate?: string
+  payoutDateInterpretation?: string
   healthRating?: string
   healthReason?: string
   valuationRating?: string

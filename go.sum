@@ -1,13 +1,7 @@
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
-github.com/hackmajoris/go-finance v0.3.0 h1:SCg4A1c/TYvCmxLvU4UnF2N29VicVQ3ch/I8DD6qEdw=
-github.com/hackmajoris/go-finance v0.3.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
-github.com/hackmajoris/go-finance v0.4.0 h1:Y0t0v9astz433r2qf+1R10yuhxwXXH++qP24vyHZtGc=
-github.com/hackmajoris/go-finance v0.4.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
-github.com/hackmajoris/go-finance v0.5.0 h1:EDve2lOQmkLxzBCfC5ZzXd5GBw5bwpNhIRfVMEqvHpc=
-github.com/hackmajoris/go-finance v0.5.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
-github.com/hackmajoris/go-finance v0.6.0 h1:NyjvqZoMBm1ffWiIePQEyzS/zYjeLOVK17dvT94n+ss=
-github.com/hackmajoris/go-finance v0.6.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
+github.com/hackmajoris/go-finance v0.7.0 h1:XkG7zhB4NwI/wvNvSZwAYWXtt+kSEoKMoSzJHCEUWHA=
+github.com/hackmajoris/go-finance v0.7.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/richardlehane/mscfb v1.0.6 h1:eN3bvvZCp00bs7Zf52bxNwAx5lJDBK1tCuH19qq5aC8=

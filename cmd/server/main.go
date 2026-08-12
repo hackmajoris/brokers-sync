@@ -416,7 +416,7 @@ func handleSearch(w http.ResponseWriter, r *http.Request) {
 }
 
 var (
-	allowedRanges    = map[string]bool{"1mo": true, "6mo": true, "1y": true, "5y": true}
+	allowedRanges    = map[string]bool{"1mo": true, "6mo": true, "1y": true, "5y": true, "10y": true, "max": true}
 	allowedIntervals = map[string]bool{"1d": true, "1wk": true, "1mo": true}
 )
 
@@ -498,69 +498,73 @@ func handleTicker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	ctx := r.Context()
-	syms := []string{symbol}
-
-	quotes, _ := prices.FetchQuotes(ctx, syms)
-	ranges, _ := prices.FetchFiftyTwoWeekRanges(ctx, syms)
-	pe, _ := prices.FetchPERatios(ctx, syms)
-	perf, _ := prices.FetchPerformances(ctx, syms)
-	fcf, _ := prices.FetchFreeCashFlows(ctx, syms)
-	ev, _ := prices.FetchEVToEBITDAs(ctx, syms)
-	de, _ := prices.FetchDebtToEquities(ctx, syms)
-	cfq, _ := prices.FetchCashFlowQualities(ctx, syms)
-	health, healthReason, valuation, valuationReason := prices.ClassifyRatings(syms, fcf, cfq, de, pe, ev)
-
-	price, hasPrice := quotes[symbol]
-	rng, hasRange := ranges[symbol]
-
-	// Nothing resolved → unknown/invalid ticker.
-	if !hasPrice && !hasRange && len(pe) == 0 && len(perf) == 0 && len(fcf) == 0 {
+	ti, ok := prices.FetchTickerIndicators(r.Context(), symbol)
+	if !ok {
 		http.Error(w, "no data for symbol", http.StatusNotFound)
 		return
 	}
 
 	out := map[string]any{"symbol": symbol}
-	if hasPrice {
-		out["current_price"] = price
+	putFloat := func(key string, v *float64) {
+		if v != nil {
+			out[key] = *v
+		}
 	}
-	if hasRange {
-		out["week_52_low"] = rng.Low
-		out["week_52_high"] = rng.High
+	putStr := func(key, v string) {
+		if v != "" {
+			out[key] = v
+		}
 	}
-	if v, ok := pe[symbol]; ok {
-		out["pe"] = v.PE
-		out["forward_pe"] = v.ForwardPE
+
+	putFloat("current_price", ti.Price)
+	putFloat("week_52_low", ti.Week52Low)
+	putFloat("week_52_high", ti.Week52High)
+	putFloat("pe", ti.PE)
+	putFloat("forward_pe", ti.ForwardPE)
+	putFloat("ytd_return", ti.YTD)
+	putFloat("three_year_return", ti.ThreeYear)
+	putFloat("five_year_return", ti.FiveYear)
+	putFloat("fcf", ti.FCF)
+	putStr("fcf_interpretation", ti.FCFInterp)
+	putFloat("ev_to_ebitda", ti.EVToEBITDA)
+	putStr("ev_to_ebitda_interpretation", ti.EVInterp)
+	putFloat("debt_to_equity", ti.DebtToEquity)
+	putStr("debt_to_equity_interpretation", ti.DebtEqInterp)
+	putFloat("cash_flow_quality", ti.CashFlowQuality)
+	putStr("cash_flow_quality_interpretation", ti.CFQInterp)
+	putFloat("market_cap", ti.MarketCap)
+	putStr("market_cap_interpretation", ti.MarketCapInterp)
+	putFloat("price_to_sales", ti.PriceToSales)
+	putStr("price_to_sales_interpretation", ti.PriceToSalesInterp)
+	putFloat("price_to_book", ti.PriceToBook)
+	putStr("price_to_book_interpretation", ti.PriceToBookInterp)
+	putFloat("fcf_yield", ti.FCFYield)
+	putStr("fcf_yield_interpretation", ti.FCFYieldInterp)
+	putFloat("profit_margin", ti.ProfitMargin)
+	putStr("profit_margin_interpretation", ti.ProfitMarginInterp)
+	putFloat("operating_margin", ti.OperatingMargin)
+	putStr("operating_margin_interpretation", ti.OperatingMarginInterp)
+	putFloat("quarterly_earnings_growth", ti.QuarterlyEarningsGrowth)
+	putStr("quarterly_earnings_growth_interpretation", ti.QuarterlyEarningsGrowthInterp)
+	putFloat("quarterly_revenue_growth", ti.QuarterlyRevenueGrowth)
+	putStr("quarterly_revenue_growth_interpretation", ti.QuarterlyRevenueGrowthInterp)
+	putFloat("cash", ti.Cash)
+	putStr("cash_interpretation", ti.CashInterp)
+	putFloat("debt", ti.Debt)
+	putStr("debt_interpretation", ti.DebtInterp)
+	putFloat("net", ti.Net)
+	putFloat("dividend_yield", ti.DividendYield)
+	putStr("dividend_yield_interpretation", ti.DividendYieldInterp)
+	putFloat("payout_ratio", ti.PayoutRatio)
+	putStr("payout_ratio_interpretation", ti.PayoutRatioInterp)
+	if ti.PayoutDate != nil && !ti.PayoutDate.IsZero() {
+		out["payout_date"] = ti.PayoutDate.Format("2006-01-02")
 	}
-	if v, ok := perf[symbol]; ok {
-		out["ytd_return"] = v.YTD
-		out["three_year_return"] = v.ThreeYear
-		out["five_year_return"] = v.FiveYear
-	}
-	if v, ok := fcf[symbol]; ok {
-		out["fcf"] = v.FCF
-		out["fcf_interpretation"] = v.Interpretation
-	}
-	if v, ok := ev[symbol]; ok {
-		out["ev_to_ebitda"] = v.Ratio
-		out["ev_to_ebitda_interpretation"] = v.Interpretation
-	}
-	if v, ok := de[symbol]; ok {
-		out["debt_to_equity"] = v.Ratio
-		out["debt_to_equity_interpretation"] = v.Interpretation
-	}
-	if v, ok := cfq[symbol]; ok {
-		out["cash_flow_quality"] = v.Ratio
-		out["cash_flow_quality_interpretation"] = v.Interpretation
-	}
-	if v, ok := health[symbol]; ok {
-		out["health_rating"] = v
-		out["health_reason"] = healthReason[symbol]
-	}
-	if v, ok := valuation[symbol]; ok {
-		out["valuation_rating"] = v
-		out["valuation_reason"] = valuationReason[symbol]
-	}
+	putStr("payout_date_interpretation", ti.PayoutDateInterp)
+	putStr("health_rating", ti.HealthRating)
+	putStr("health_reason", ti.HealthReason)
+	putStr("valuation_rating", ti.ValuationRating)
+	putStr("valuation_reason", ti.ValuationReason)
 
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(out)
