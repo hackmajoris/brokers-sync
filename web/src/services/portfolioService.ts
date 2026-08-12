@@ -27,7 +27,7 @@ function mapPeriod(p: RawPeriod): PeriodSummary {
   }
 }
 
-function mapPosition(p: RawPosition): Position {
+export function mapPosition(p: RawPosition): Position {
   return {
     symbol: p.symbol,
     mv: p.market_value,
@@ -151,6 +151,58 @@ export async function uploadZip(
     }
   }
   return null
+}
+
+export interface TickerSearchResult {
+  symbol: string
+  name: string
+  exchange: string
+  type: string
+}
+
+// searchSymbols hits the backend Yahoo-search proxy for the autocomplete dropdown.
+export async function searchSymbols(query: string, signal?: AbortSignal): Promise<TickerSearchResult[]> {
+  const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal })
+  if (!res.ok) throw new Error(`Search failed (${res.status})`)
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) throw new Error('Search unavailable')
+  return (await res.json()) as TickerSearchResult[]
+}
+
+export interface Candle {
+  t: number
+  o: number
+  h: number
+  l: number
+  c: number
+  v: number
+}
+
+export interface HistoryData {
+  candles: Candle[]
+  ma: (number | null)[]
+}
+
+// fetchHistory fetches OHLC candles + the aligned 21-week MA for the lookup chart.
+export async function fetchHistory(symbol: string, range: string, interval: string, signal?: AbortSignal): Promise<HistoryData> {
+  const res = await fetch(`/api/history/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`, { signal })
+  if (!res.ok) throw new Error(`History failed (${res.status})`)
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) throw new Error('History unavailable')
+  const data = (await res.json()) as HistoryData
+  return { candles: data.candles ?? [], ma: data.ma ?? [] }
+}
+
+// fetchTicker fetches fundamentals for an arbitrary symbol (need not be held).
+export async function fetchTicker(symbol: string): Promise<Position> {
+  const res = await fetch(`/api/ticker/${encodeURIComponent(symbol)}`)
+  if (!res.ok) {
+    if (res.status === 404) throw new Error(`No data found for "${symbol}"`)
+    throw new Error(`Lookup failed (${res.status})`)
+  }
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) throw new Error('Lookup unavailable')
+  return mapPosition((await res.json()) as RawPosition)
 }
 
 export async function fetchPortfolioData(): Promise<PortfolioData | null> {

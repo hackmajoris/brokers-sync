@@ -10,6 +10,7 @@ import { PositionsTab } from './tabs/PositionsTab'
 import { PnLTab } from './tabs/PnLTab'
 import { DividendsTab } from './tabs/DividendsTab'
 import { SettingsView } from './views/SettingsView'
+import { StockLookup } from './components/StockLookup'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -210,6 +211,8 @@ export function App() {
           </>
         )}
       </main>
+
+      <StockLookup accent={accent} />
     </div>
   )
 }

@@ -41,6 +41,10 @@ func main() {
 		handleUpload(w, r)
 	})
 
+	mux.HandleFunc("/api/ticker/", handleTicker)
+	mux.HandleFunc("/api/search", handleSearch)
+	mux.HandleFunc("/api/history/", handleHistory)
+
 	mux.HandleFunc("/data/result.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(*dataDir, "result.json"))
 	})
@@ -388,6 +392,178 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	report := output.Build(combinedStats, combinedLedger.Realized, brokerReports)
 
 	sseEvent(w, map[string]any{"type": "done", "success": true, "report": report})
+}
+
+// handleSearch proxies Yahoo's symbol search for the autocomplete dropdown.
+func handleSearch(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	q := strings.TrimSpace(r.URL.Query().Get("q"))
+	if q == "" {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte("[]"))
+		return
+	}
+	results, err := prices.SearchSymbols(r.Context(), q)
+	if err != nil {
+		http.Error(w, "search failed: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(results)
+}
+
+var (
+	allowedRanges    = map[string]bool{"1mo": true, "6mo": true, "1y": true, "5y": true}
+	allowedIntervals = map[string]bool{"1d": true, "1wk": true, "1mo": true}
+)
+
+// handleHistory returns OHLC candles for a symbol, for the lookup chart.
+func handleHistory(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	symbol := strings.ToUpper(strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/history/")))
+	if symbol == "" {
+		http.Error(w, "missing symbol", http.StatusBadRequest)
+		return
+	}
+	rng := r.URL.Query().Get("range")
+	if !allowedRanges[rng] {
+		rng = "1y"
+	}
+	interval := r.URL.Query().Get("interval")
+	if !allowedIntervals[interval] {
+		interval = "1d"
+	}
+	candles, err := prices.FetchHistory(r.Context(), symbol, rng, interval)
+	if err != nil {
+		http.Error(w, "history failed: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+
+	// 21-week SMA: computed from a weekly series (with enough lookback to cover
+	// even the daily ranges) and interpolated onto each displayed candle. On a
+	// weekly fetch failure the chart still renders, just without the MA line.
+	var ma []*float64
+	if weekly, werr := prices.FetchHistory(r.Context(), symbol, "5y", "1wk"); werr == nil {
+		ma = interpolateMA(candles, prices.SimpleMA(weekly, 21))
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(map[string]any{"candles": candles, "ma": ma})
+}
+
+// interpolateMA maps a sparse (weekly) moving-average series onto each candle's
+// timestamp by linear interpolation. Candles before the MA series begins get nil.
+func interpolateMA(candles []prices.Candle, ma []prices.MAPoint) []*float64 {
+	out := make([]*float64, len(candles))
+	if len(ma) == 0 {
+		return out
+	}
+	j := 0
+	for i, c := range candles {
+		if c.Time < ma[0].Time {
+			continue
+		}
+		for j+1 < len(ma) && ma[j+1].Time <= c.Time {
+			j++
+		}
+		var v float64
+		if j+1 < len(ma) && ma[j+1].Time > ma[j].Time {
+			f := float64(c.Time-ma[j].Time) / float64(ma[j+1].Time-ma[j].Time)
+			v = ma[j].Value + (ma[j+1].Value-ma[j].Value)*f
+		} else {
+			v = ma[j].Value
+		}
+		out[i] = &v
+	}
+	return out
+}
+
+// handleTicker fetches all indicators for a single arbitrary symbol and returns
+// them in the same snake_case shape as an open position, so the web client can
+// reuse its existing position mapper. Symbols need not be held in the portfolio.
+func handleTicker(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	symbol := strings.ToUpper(strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/ticker/")))
+	if symbol == "" {
+		http.Error(w, "missing symbol", http.StatusBadRequest)
+		return
+	}
+
+	ctx := r.Context()
+	syms := []string{symbol}
+
+	quotes, _ := prices.FetchQuotes(ctx, syms)
+	ranges, _ := prices.FetchFiftyTwoWeekRanges(ctx, syms)
+	pe, _ := prices.FetchPERatios(ctx, syms)
+	perf, _ := prices.FetchPerformances(ctx, syms)
+	fcf, _ := prices.FetchFreeCashFlows(ctx, syms)
+	ev, _ := prices.FetchEVToEBITDAs(ctx, syms)
+	de, _ := prices.FetchDebtToEquities(ctx, syms)
+	cfq, _ := prices.FetchCashFlowQualities(ctx, syms)
+	health, healthReason, valuation, valuationReason := prices.ClassifyRatings(syms, fcf, cfq, de, pe, ev)
+
+	price, hasPrice := quotes[symbol]
+	rng, hasRange := ranges[symbol]
+
+	// Nothing resolved → unknown/invalid ticker.
+	if !hasPrice && !hasRange && len(pe) == 0 && len(perf) == 0 && len(fcf) == 0 {
+		http.Error(w, "no data for symbol", http.StatusNotFound)
+		return
+	}
+
+	out := map[string]any{"symbol": symbol}
+	if hasPrice {
+		out["current_price"] = price
+	}
+	if hasRange {
+		out["week_52_low"] = rng.Low
+		out["week_52_high"] = rng.High
+	}
+	if v, ok := pe[symbol]; ok {
+		out["pe"] = v.PE
+		out["forward_pe"] = v.ForwardPE
+	}
+	if v, ok := perf[symbol]; ok {
+		out["ytd_return"] = v.YTD
+		out["three_year_return"] = v.ThreeYear
+		out["five_year_return"] = v.FiveYear
+	}
+	if v, ok := fcf[symbol]; ok {
+		out["fcf"] = v.FCF
+		out["fcf_interpretation"] = v.Interpretation
+	}
+	if v, ok := ev[symbol]; ok {
+		out["ev_to_ebitda"] = v.Ratio
+		out["ev_to_ebitda_interpretation"] = v.Interpretation
+	}
+	if v, ok := de[symbol]; ok {
+		out["debt_to_equity"] = v.Ratio
+		out["debt_to_equity_interpretation"] = v.Interpretation
+	}
+	if v, ok := cfq[symbol]; ok {
+		out["cash_flow_quality"] = v.Ratio
+		out["cash_flow_quality_interpretation"] = v.Interpretation
+	}
+	if v, ok := health[symbol]; ok {
+		out["health_rating"] = v
+		out["health_reason"] = healthReason[symbol]
+	}
+	if v, ok := valuation[symbol]; ok {
+		out["valuation_rating"] = v
+		out["valuation_reason"] = valuationReason[symbol]
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(out)
 }
 
 var isCurrencyCode = regexp.MustCompile(`^[A-Z]{3}$`)
