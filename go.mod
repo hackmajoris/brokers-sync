@@ -3,7 +3,7 @@ module brokers-sync
 go 1.26.1
 
 require (
-	github.com/hackmajoris/go-finance v0.7.0
+	github.com/hackmajoris/go-finance v0.7.1
 	github.com/xuri/excelize/v2 v2.10.1
 )
 
