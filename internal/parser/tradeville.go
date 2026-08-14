@@ -35,7 +35,7 @@ var tradevilleOps = map[string]model.TxType{
 	"transferuri interne": model.TxForex,
 }
 
-var tradevilleDateFormats = []string{"02/01/2006"}
+var tradevilleDateFormats = []string{"02/01/2006", "02.01.2006"}
 
 func ParseTradeville(r io.Reader) ([]model.Transaction, error) {
 	cr := csv.NewReader(r)
