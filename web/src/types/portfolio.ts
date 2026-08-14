@@ -101,6 +101,22 @@ export interface RawBroker {
   dividends_by_symbol: RawDividendBySymbol[]
 }
 
+export interface RawTransaction {
+  id: string
+  date: string
+  broker: string
+  type: string
+  symbol: string
+  name: string
+  quantity: number
+  price: number
+  currency: string
+  gross: number
+  commission: number
+  net: number
+  notes?: string
+}
+
 export interface RawPortfolio {
   generated_at: string
   base_currency: string
@@ -113,6 +129,7 @@ export interface RawPortfolio {
   mtd: RawPeriod
   by_year: RawPeriod[]
   dividends_by_symbol: RawDividendBySymbol[]
+  transactions?: RawTransaction[]
 }
 
 // ── Presentation model ────────────────────────────────────────────────────────
@@ -236,6 +253,22 @@ export interface BrokerData {
   dividendsBySymbol: DividendBySymbol[]
 }
 
+export interface Transaction {
+  id: string
+  date: string
+  broker: string
+  type: string
+  symbol: string
+  name: string
+  quantity: number
+  price: number
+  currency: string
+  gross: number
+  commission: number
+  net: number
+  notes?: string
+}
+
 export interface PortfolioData {
   generatedAt: string
   baseCurrency: string
@@ -248,4 +281,5 @@ export interface PortfolioData {
   openPositions: Position[]
   topRPnl: RealizedBySymbol[]
   topDivs: DividendBySymbol[]
+  transactions: Transaction[]
 }

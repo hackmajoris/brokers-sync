@@ -2714,5 +2714,13 @@
       "tax_withheld": 0,
       "net": 0.19000000000000003
     }
+  ],
+  "transactions": [
+    { "id": "d1", "date": "2025-11-20T00:00:00Z", "broker": "ibkr", "type": "BUY", "symbol": "AAPL", "name": "Apple Inc.", "quantity": 10, "price": 225.5, "currency": "USD", "gross": -2255, "commission": -1, "net": -2256 },
+    { "id": "d2", "date": "2025-11-18T00:00:00Z", "broker": "trading212", "type": "SELL", "symbol": "MSFT", "name": "Microsoft Corp.", "quantity": 4, "price": 415.2, "currency": "USD", "gross": 1660.8, "commission": 0, "net": 1660.8 },
+    { "id": "d3", "date": "2025-11-15T00:00:00Z", "broker": "ibkr", "type": "DIVIDEND", "symbol": "NKE", "name": "Nike Inc.", "quantity": 0, "price": 0, "currency": "USD", "gross": 0.19, "commission": 0, "net": 0.19 },
+    { "id": "d4", "date": "2025-11-10T00:00:00Z", "broker": "revolut", "type": "BUY", "symbol": "TSLA", "name": "Tesla Inc.", "quantity": 2, "price": 340, "currency": "USD", "gross": -680, "commission": -0.5, "net": -680.5 },
+    { "id": "d5", "date": "2025-11-05T00:00:00Z", "broker": "xtb", "type": "DEPOSIT", "symbol": "", "name": "", "quantity": 0, "price": 0, "currency": "EUR", "gross": 1000, "commission": 0, "net": 1000 },
+    { "id": "d6", "date": "2025-10-28T00:00:00Z", "broker": "tradeville", "type": "FEE", "symbol": "", "name": "Custody fee", "quantity": 0, "price": 0, "currency": "RON", "gross": -12, "commission": 0, "net": -12 }
   ]
 }

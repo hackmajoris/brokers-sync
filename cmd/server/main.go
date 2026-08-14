@@ -389,7 +389,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
 	}
 
-	report := output.Build(combinedStats, combinedLedger.Realized, brokerReports)
+	report := output.Build(combinedStats, combinedLedger.Realized, brokerReports, txs)
 
 	sseEvent(w, map[string]any{"type": "done", "success": true, "report": report})
 }

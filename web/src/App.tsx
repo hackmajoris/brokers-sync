@@ -7,6 +7,7 @@ import { ACCENT_DEFAULT } from './constants'
 import { OverviewTab } from './tabs/OverviewTab'
 import { BrokersTab } from './tabs/BrokersTab'
 import { PositionsTab } from './tabs/PositionsTab'
+import { TradesTab } from './tabs/TradesTab'
 import { PnLTab } from './tabs/PnLTab'
 import { DividendsTab } from './tabs/DividendsTab'
 import { SettingsView } from './views/SettingsView'
@@ -16,6 +17,7 @@ const TABS = [
   { id: 'overview', label: 'Overview' },
   { id: 'brokers', label: 'Brokers' },
   { id: 'positions', label: 'Positions' },
+  { id: 'trades', label: 'Trades' },
   { id: 'pnl', label: 'P&L' },
   { id: 'dividends', label: 'Dividends' },
   { id: 'settings', label: 'Settings' },
@@ -206,6 +208,7 @@ export function App() {
             {activeTab === 'overview' && <OverviewTab data={data} accent={accent} />}
             {activeTab === 'brokers' && <BrokersTab data={data} accent={accent} />}
             {activeTab === 'positions' && <PositionsTab data={data} accent={accent} />}
+            {activeTab === 'trades' && <TradesTab data={data} />}
             {activeTab === 'pnl' && <PnLTab data={data} />}
             {activeTab === 'dividends' && <DividendsTab data={data} />}
           </>

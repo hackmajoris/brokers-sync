@@ -190,7 +190,7 @@ func main() {
 		for _, be := range brokerEntries {
 			brokerReports = append(brokerReports, output.BuildBrokerReport(be.name, be.s, be.l.Realized))
 		}
-		r := output.Build(combinedStats, combinedLedger.Realized, brokerReports)
+		r := output.Build(combinedStats, combinedLedger.Realized, brokerReports, allTxs)
 		w, close := openWriter(*out)
 		defer close()
 		if err := output.WriteJSON(w, r); err != nil {

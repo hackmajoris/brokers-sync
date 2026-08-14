@@ -270,5 +270,6 @@ export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
     openPositions: raw.open_positions.map(mapPosition),
     topRPnl,
     topDivs,
+    transactions: raw.transactions ?? [],
   }
 }

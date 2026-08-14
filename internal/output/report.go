@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"brokers-sync/internal/ledger"
+	"brokers-sync/internal/model"
 	"brokers-sync/internal/stats"
 )
 
@@ -23,6 +24,49 @@ type Report struct {
 	MTD               stats.PeriodSummary      `json:"mtd"`
 	ByYear            []stats.PeriodSummary    `json:"by_year"`
 	DividendsBySymbol []stats.DividendBySymbol `json:"dividends_by_symbol"`
+	Transactions      []TxRow                  `json:"transactions"`
+}
+
+// TxRow is a single ledger transaction in its broker's native currency (no FX conversion).
+type TxRow struct {
+	ID         string    `json:"id"`
+	Date       time.Time `json:"date"`
+	Broker     string    `json:"broker"`
+	Type       string    `json:"type"`
+	Symbol     string    `json:"symbol"`
+	Name       string    `json:"name"`
+	Quantity   float64   `json:"quantity"`
+	Price      float64   `json:"price"`
+	Currency   string    `json:"currency"`
+	Gross      float64   `json:"gross"`
+	Commission float64   `json:"commission"`
+	Net        float64   `json:"net"`
+	Notes      string    `json:"notes,omitempty"`
+}
+
+func txRows(txs []model.Transaction) []TxRow {
+	sorted := make([]model.Transaction, len(txs))
+	copy(sorted, txs)
+	sort.Slice(sorted, func(i, j int) bool { return sorted[i].Date.After(sorted[j].Date) })
+	out := make([]TxRow, len(sorted))
+	for i, t := range sorted {
+		out[i] = TxRow{
+			ID:         t.ID,
+			Date:       t.Date,
+			Broker:     t.Broker,
+			Type:       string(t.Type),
+			Symbol:     t.Symbol,
+			Name:       t.Name,
+			Quantity:   t.Quantity,
+			Price:      t.Price,
+			Currency:   t.Currency,
+			Gross:      t.Gross,
+			Commission: t.Commission,
+			Net:        t.Net,
+			Notes:      t.Notes,
+		}
+	}
+	return out
 }
 
 // BrokerReport mirrors Report but scoped to a single broker's native currency.
@@ -77,7 +121,7 @@ func BuildBrokerReport(name string, s stats.Summary, realized []ledger.RealizedT
 	}
 }
 
-func Build(s stats.Summary, realized []ledger.RealizedTx, brokers []BrokerReport) Report {
+func Build(s stats.Summary, realized []ledger.RealizedTx, brokers []BrokerReport, txs []model.Transaction) Report {
 	return Report{
 		GeneratedAt:       time.Now().UTC(),
 		BaseCurrency:      s.BaseCurrency,
@@ -90,6 +134,7 @@ func Build(s stats.Summary, realized []ledger.RealizedTx, brokers []BrokerReport
 		MTD:               s.MTD,
 		ByYear:            s.ByYear,
 		DividendsBySymbol: s.BySymbol,
+		Transactions:      txRows(txs),
 	}
 }
 
