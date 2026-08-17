@@ -11,14 +11,29 @@ func main() {
 	defer jsii.Close()
 
 	app := awscdk.NewApp(nil)
+	account := jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT"))
 
-	NewBrokersSyncStack(app, "BrokersSyncStack", &BrokersSyncStackProps{
+	main := NewBrokersSyncStack(app, "BrokersSyncStack", &BrokersSyncStackProps{
 		StackProps: awscdk.StackProps{
 			Env: &awscdk.Environment{
-				Account: jsii.String(os.Getenv("CDK_DEFAULT_ACCOUNT")),
+				Account: account,
 				Region:  jsii.String("eu-central-1"),
 			},
+			CrossRegionReferences: jsii.Bool(true),
 		},
+	})
+
+	// CloudFront metrics are only published in us-east-1, so the egress alarm
+	// cannot live alongside the rest of the stack.
+	NewCostGuardStack(app, "BrokersSyncCostGuardStack", &CostGuardStackProps{
+		StackProps: awscdk.StackProps{
+			Env: &awscdk.Environment{
+				Account: account,
+				Region:  jsii.String("us-east-1"),
+			},
+			CrossRegionReferences: jsii.Bool(true),
+		},
+		DistributionID: main.DistributionId,
 	})
 
 	app.Synth(nil)
