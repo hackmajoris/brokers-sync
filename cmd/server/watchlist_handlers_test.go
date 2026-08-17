@@ -30,6 +30,11 @@ func createCode(t *testing.T, srv *httptest.Server) string {
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("create status = %d, want 200", resp.StatusCode)
 	}
+	// The client discards the response unless it is declared as JSON, so a
+	// correct body with a sniffed content type still breaks code creation.
+	if ct := resp.Header.Get("Content-Type"); !strings.Contains(ct, "application/json") {
+		t.Fatalf("create content-type = %q, want application/json", ct)
+	}
 	var body struct {
 		Code string `json:"code"`
 	}

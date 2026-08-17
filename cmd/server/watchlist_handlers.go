@@ -69,6 +69,9 @@ func (h *watchlistHandler) handleNew(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "could not create portfolio", http.StatusBadGateway)
 		return
 	}
+	// Without this, Go sniffs the body and labels it text/plain; the client
+	// rejects the response as non-JSON even though the code was created.
+	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"code": code})
 }
 
