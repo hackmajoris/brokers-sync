@@ -1,4 +1,4 @@
-package wishlist
+package watchlist
 
 import (
 	"context"
@@ -20,7 +20,7 @@ func newStore() (*Store, *FakeAPI) {
 }
 
 // A repeated create must not reset an existing portfolio: a user who re-enters
-// their code would otherwise silently lose their wishlist.
+// their code would otherwise silently lose their watchlist.
 func TestEnsureMetaIsIdempotent(t *testing.T) {
 	s, db := newStore()
 	ctx := context.Background()
@@ -117,7 +117,7 @@ func TestUpsertEnforcesSymbolCap(t *testing.T) {
 		t.Fatalf("symbol %d: got %v, want ErrTooMany", MaxSymbols+1, err)
 	}
 	// Updating an already-tracked symbol is not a new symbol, so the cap must
-	// not block edits once a wishlist is full.
+	// not block edits once a watchlist is full.
 	if err := s.Upsert(ctx, testPK, Item{Symbol: "S0", Note: "edited"}); err != nil {
 		t.Fatalf("updating existing symbol at cap: %v", err)
 	}

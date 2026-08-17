@@ -18,7 +18,7 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 - **Annual breakdown** — realized P&L, dividends, deposits, withdrawals, fees, buy volume, and sell volume — bucketed per calendar year.
 - **P&L statistics** — all-time and YTD realized gain/loss, FIFO lot matching, largest single winners and losers.
 - **Dividend statistics** — aggregated dividend income (all-time and YTD), annual dividend totals, year-over-year dividend progress, and per-symbol breakdown with gross amount, tax withheld, and net received.
-- **Wishlist** — track companies you do not own yet, at `/wishlist`. Still no account: a generated portfolio code identifies the list, and it is the only credential. See [Wishlist](#wishlist) below.
+- **Watchlist** — track companies you do not own yet, at `/watchlist`. Still no account: a generated portfolio code identifies the list, and it is the only credential. See [Watchlist](#watchlist) below.
 - **Runs locally via Docker Compose** — single command (`docker compose up`) to spin up the full stack; no cloud account needed.
 
 **Live site:** [brokersync.dot-core.com](http://brokersync.dot-core.com)
@@ -196,19 +196,19 @@ internal/
   stats/stats.go          Period aggregations, unrealized P&L enrichment
   prices/yahoo.go         Yahoo Finance chart API, parallel price fetch
   output/report.go        JSON and CSV report writers
-  wishlist/               Portfolio code generation and DynamoDB wishlist store
+  watchlist/               Portfolio code generation and DynamoDB watchlist store
 web/                      React + Vite frontend (served by cmd/server)
 infra/                    AWS CDK stack (Lambda + API Gateway deployment)
 ```
 
-## Wishlist
+## Watchlist
 
-Tracks companies you do not own yet. Reached at `/wishlist`.
+Tracks companies you do not own yet. Reached at `/watchlist`.
 
 There are still no accounts. The app generates a **portfolio code** such as
 `K7M2-9QRF-3XVB-8TDW`, stores it in your browser's `localStorage`, and sends it
 with each request. Possession of the code *is* access — anyone holding it can
-read and edit that wishlist.
+read and edit that watchlist.
 
 **The code cannot be recovered or reset. Lose it and the list is gone.** It is
 shown once, at creation.
@@ -222,24 +222,24 @@ Design notes:
   headers on outbound links.
 - Missing, malformed and unknown codes all return an identical bare `404`, so
   responses cannot be used to discover which codes exist.
-- Server-side caps: 50 symbols per wishlist, 500-character notes, 12-character
+- Server-side caps: 50 symbols per watchlist, 500-character notes, 12-character
   symbols.
-- Wishlists with no activity for 12 months are removed automatically by a
+- Watchlists with no activity for 12 months are removed automatically by a
   DynamoDB TTL.
 
 ### Endpoints
 
-All require the `X-Portfolio-Code` header except `POST /api/wishlist/new`.
+All require the `X-Portfolio-Code` header except `POST /api/watchlist/new`.
 
 | Method | Path | Purpose |
 | --- | --- | --- |
-| `POST` | `/api/wishlist/new` | Generate a code, returns `{"code": "..."}` |
-| `GET` | `/api/wishlist` | List entries |
-| `PUT` | `/api/wishlist` | Add or update `{"symbol","note","targetPrice"}` |
-| `DELETE` | `/api/wishlist?symbol=X` | Remove an entry |
+| `POST` | `/api/watchlist/new` | Generate a code, returns `{"code": "..."}` |
+| `GET` | `/api/watchlist` | List entries |
+| `PUT` | `/api/watchlist` | Add or update `{"symbol","note","targetPrice"}` |
+| `DELETE` | `/api/watchlist?symbol=X` | Remove an entry |
 
-The routes are registered only when `WISHLIST_TABLE` is set, so local runs
-without AWS credentials work unchanged — the tab simply reports the wishlist as
+The routes are registered only when `WATCHLIST_TABLE` is set, so local runs
+without AWS credentials work unchanged — the tab simply reports the watchlist as
 unavailable.
 
 ## Cost guardrails

@@ -1,12 +1,12 @@
-# Wishlist (Portfolio Code) + AWS Cost Guardrails
+# Watchlist (Portfolio Code) + AWS Cost Guardrails
 
 ## Overview
 
 Two independent deliverables shipped together:
 
-**A. Wishlist feature.** Let a user track companies they do not own yet, without accounts, email, or passwords. Identity is a single generated secret — a "portfolio code" — that the browser stores locally and sends with each request. The server keeps only `sha256(code)`, so a database leak yields no usable keys. Wishlist entries are symbol + optional note + optional target price.
+**A. Watchlist feature.** Let a user track companies they do not own yet, without accounts, email, or passwords. Identity is a single generated secret — a "portfolio code" — that the browser stores locally and sends with each request. The server keeps only `sha256(code)`, so a database leak yields no usable keys. Watchlist entries are symbol + optional note + optional target price.
 
-**B. Cost guardrails.** The current stack has no spending ceiling. API Gateway is throttled at 10 rps, which bounds Lambda, but the CloudFront default behavior serves the SPA straight from edge cache and is completely unbounded. CloudFront has no spend cap setting; the only real ceiling is an alarm that disables the distribution. This is pre-existing exposure, unrelated to the wishlist, but is being fixed in the same pass.
+**B. Cost guardrails.** The current stack has no spending ceiling. API Gateway is throttled at 10 rps, which bounds Lambda, but the CloudFront default behavior serves the SPA straight from edge cache and is completely unbounded. CloudFront has no spend cap setting; the only real ceiling is an alarm that disables the distribution. This is pre-existing exposure, unrelated to the watchlist, but is being fixed in the same pass.
 
 Explicitly out of scope: positions/lots in DynamoDB. Imported broker transactions remain the single source of truth for holdings. Storing positions would create a second source of truth requiring reconciliation.
 
@@ -29,7 +29,7 @@ Dependencies identified:
 - New: `awscdk/awsdynamodb`, `awscdk/awscloudwatch`, `awscdk/awscloudwatchactions`, `awscdk/awssns`, `awscdk/awssnssubscriptions`, `awscdk/awsbudgets` (infra module).
 
 Gaps that shape the plan:
-- `cmd/server` has **no** test files today. New store logic goes in `internal/wishlist` so it is testable in the established style; handler tests use `net/http/httptest`.
+- `cmd/server` has **no** test files today. New store logic goes in `internal/watchlist` so it is testable in the established style; handler tests use `net/http/httptest`.
 - No frontend test runner exists. No frontend tests will be added; this is called out rather than silently skipped.
 - **CloudFront CloudWatch metrics are published only in `us-east-1`.** The main stack is `eu-central-1`. The alarm therefore requires a second stack in `us-east-1`.
 
@@ -46,7 +46,7 @@ Gaps that shape the plan:
 
 ## Testing Strategy
 
-- **unit tests**: required for `internal/wishlist` (code generation, validation, store logic against a fake DynamoDB client interface).
+- **unit tests**: required for `internal/watchlist` (code generation, validation, store logic against a fake DynamoDB client interface).
 - **handler tests**: `net/http/httptest` against the mux, using the same fake client. Covers auth-failure, validation-failure, and cap-enforcement paths — not just happy path.
 - **e2e tests**: none. Project has no Playwright/Cypress/Vitest setup. Frontend changes are verified manually (see Post-Completion). Not adding a test runner in this plan.
 - **infra**: `make cdk-diff` must show only the intended additions and must synth clean.
@@ -73,7 +73,7 @@ A portfolio code is a **capability**: possession equals access. No recovery, no 
 
 **This is the most important security decision in the plan.** The code goes in an `X-Portfolio-Code` request header, never in the path or query string. URLs leak into CloudFront access logs, API Gateway logs, browser history, and `Referer` headers on outbound links. A header does not.
 
-Consequence: `/api/wishlist` is a fixed path for all users, and every request body/response is scoped by the header. This also keeps the CloudFront `/api/*` behavior at `CACHING_DISABLED` — caching a code-scoped response would risk serving one user's wishlist to another if the cache key were ever misconfigured.
+Consequence: `/api/watchlist` is a fixed path for all users, and every request body/response is scoped by the header. This also keeps the CloudFront `/api/*` behavior at `CACHING_DISABLED` — caching a code-scoped response would risk serving one user's watchlist to another if the cache key were ever misconfigured.
 
 ### Storage
 
@@ -85,7 +85,7 @@ SK (S) = "META"            → createdAt, lastSeen, ttl
          "W#<SYMBOL>"      → symbol, note, targetPrice, addedAt
 ```
 
-A single `Query` on PK returns metadata plus every wishlist row in one read.
+A single `Query` on PK returns metadata plus every watchlist row in one read.
 
 TTL attribute on `META` set to `lastSeen + 12 months`, refreshed on write. Abandoned portfolios self-delete at no cost.
 
@@ -117,14 +117,14 @@ These are parameterized via CDK context rather than hardcoded:
 
 ### API surface
 
-All under `/api/wishlist`. Auth on every call: `X-Portfolio-Code` header.
+All under `/api/watchlist`. Auth on every call: `X-Portfolio-Code` header.
 
 | Method | Body | Response |
 |---|---|---|
-| `POST /api/wishlist/new` | none (no header required) | `{"code": "K7M2-9QRF-3XVB-8TDW"}` — generates and persists `META` |
-| `GET /api/wishlist` | none | `{"items": [...]}` |
-| `PUT /api/wishlist` | `{"symbol","note","targetPrice"}` | `204` — upsert |
-| `DELETE /api/wishlist?symbol=X` | none | `204` |
+| `POST /api/watchlist/new` | none (no header required) | `{"code": "K7M2-9QRF-3XVB-8TDW"}` — generates and persists `META` |
+| `GET /api/watchlist` | none | `{"items": [...]}` |
+| `PUT /api/watchlist` | `{"symbol","note","targetPrice"}` | `204` — upsert |
+| `DELETE /api/watchlist?symbol=X` | none | `204` |
 
 Error contract: a missing, malformed, or unknown code all return an identical **`404`** with no body distinction. Distinguishing them would confirm which codes exist.
 
@@ -133,7 +133,7 @@ Note that `symbol` on DELETE is in the query string — that is fine, symbols ar
 ### Go package layout
 
 ```
-internal/wishlist/
+internal/watchlist/
   code.go        NewCode() (string, error); Normalize(string) (string, bool); HashKey(string) string
   code_test.go
   store.go       type API interface { Query/PutItem/DeleteItem/UpdateItem }  ← narrow interface, fake-able
@@ -146,8 +146,8 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 
 ### Frontend
 
-- `web/src/services/wishlistService.ts` — code in `localStorage` under `bs.portfolioCode`, injected as a header by a small `wishlistFetch` wrapper. `localStorage` not a cookie: no ambient authority, so no CSRF surface.
-- `web/src/tabs/WishlistTab.tsx` — registered in the `TABS` array in `App.tsx`, which drives both nav renderers automatically.
+- `web/src/services/watchlistService.ts` — code in `localStorage` under `bs.portfolioCode`, injected as a header by a small `watchlistFetch` wrapper. `localStorage` not a cookie: no ambient authority, so no CSRF surface.
+- `web/src/tabs/WatchlistTab.tsx` — registered in the `TABS` array in `App.tsx`, which drives both nav renderers automatically.
 - Empty state offers "Create a portfolio code" or "I already have one". After creation, the code is shown once with a copy button and an unambiguous warning that it cannot be recovered.
 - Symbol entry reuses the existing `/api/search` endpoint; clicking a row reuses the existing ticker modal.
 
@@ -161,8 +161,8 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 ### Task 1: Portfolio code generation and normalization
 
 **Files:**
-- Create: `internal/wishlist/code.go`
-- Create: `internal/wishlist/code_test.go`
+- Create: `internal/watchlist/code.go`
+- Create: `internal/watchlist/code_test.go`
 
 - [ ] implement `NewCode()` — 16 bytes from `crypto/rand`, Crockford base32 encode, group into 4 blocks of 4 with `-`
 - [ ] implement `Normalize(s string) (string, bool)` — uppercase, strip `-` and spaces, reject anything not 26 Crockford chars; map visually-confusable input (`I`/`L`→`1`, `O`→`0`) before validating
@@ -175,8 +175,8 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 ### Task 2: DynamoDB store layer
 
 **Files:**
-- Create: `internal/wishlist/store.go`
-- Create: `internal/wishlist/store_test.go`
+- Create: `internal/watchlist/store.go`
+- Create: `internal/watchlist/store_test.go`
 - Modify: `go.mod`, `go.sum`
 
 - [ ] add `aws-sdk-go-v2/service/dynamodb` and `feature/dynamodb/attributevalue` deps
@@ -195,14 +195,14 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 
 **Files:**
 - Modify: `cmd/server/main.go`
-- Create: `cmd/server/wishlist_handlers.go`
-- Create: `cmd/server/wishlist_handlers_test.go`
+- Create: `cmd/server/watchlist_handlers.go`
+- Create: `cmd/server/watchlist_handlers_test.go`
 
-- [ ] add `handleWishlistNew` (`POST /api/wishlist/new`) — generates code, calls `EnsureMeta`, returns `{"code": ...}`
-- [ ] add `handleWishlist` (`GET`/`PUT`/`DELETE` on `/api/wishlist`) dispatching on method, matching the existing `http.Error(..., "method not allowed", ...)` convention
+- [ ] add `handleWatchlistNew` (`POST /api/watchlist/new`) — generates code, calls `EnsureMeta`, returns `{"code": ...}`
+- [ ] add `handleWatchlist` (`GET`/`PUT`/`DELETE` on `/api/watchlist`) dispatching on method, matching the existing `http.Error(..., "method not allowed", ...)` convention
 - [ ] extract the `X-Portfolio-Code` header, `Normalize` it, and return a bare `404` on missing/malformed/unknown — one shared code path so the three cases cannot diverge
 - [ ] cap request body at 8 KB via `http.MaxBytesReader`
-- [ ] register routes in the mux in `cmd/server/main.go`; construct the store from `WISHLIST_TABLE` env var, and register the routes only when it is set (so local runs without AWS still work)
+- [ ] register routes in the mux in `cmd/server/main.go`; construct the store from `WATCHLIST_TABLE` env var, and register the routes only when it is set (so local runs without AWS still work)
 - [ ] write `httptest` tests: full create → list → upsert → delete cycle returns expected status codes
 - [ ] write `httptest` tests: no header, malformed header, and unknown-but-well-formed code all return `404` with **byte-identical** responses (this is the anti-enumeration guarantee — a test that fails the moment someone adds a helpful error message)
 - [ ] write `httptest` test: oversized body is rejected
@@ -217,7 +217,7 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 - [ ] add `awsdynamodb.NewTable` — PK `PK` (S), SK `SK` (S), `BillingMode_PROVISIONED`, `ReadCapacity: 1`, `WriteCapacity: 1`, `TimeToLiveAttribute: "ttl"`, `RemovalPolicy_RETAIN`
 - [ ] confirm no autoscaling call is added and PITR is left off — the fixed capacity is the entire cost guarantee
 - [ ] `table.GrantReadWriteData(lambdaFn)`
-- [ ] pass `WISHLIST_TABLE: table.TableName()` in the Lambda environment
+- [ ] pass `WATCHLIST_TABLE: table.TableName()` in the Lambda environment
 - [ ] set `ReservedConcurrentExecutions: jsii.Number(5)` on the Lambda (guardrail 1)
 - [ ] run `make cdk-diff` — verify it shows exactly one new table, the IAM grant, the env var, and the concurrency setting, with no unrelated drift
 
@@ -238,16 +238,16 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 - [ ] add `awsbudgets.CfnBudget` — monthly cost budget at `budgetLimitUsd`, notifications at 80% actual and 100% forecasted, to the same SNS topic (guardrail 2)
 - [ ] run `make cdk-diff` — both stacks synth clean; verify the guard stack resolves to `us-east-1`
 
-### Task 6: Wishlist frontend service and tab
+### Task 6: Watchlist frontend service and tab
 
 **Files:**
-- Create: `web/src/services/wishlistService.ts`
-- Create: `web/src/tabs/WishlistTab.tsx`
+- Create: `web/src/services/watchlistService.ts`
+- Create: `web/src/tabs/WatchlistTab.tsx`
 - Modify: `web/src/App.tsx`
 
-- [ ] implement `wishlistService.ts` — `localStorage` key `bs.portfolioCode`, a `wishlistFetch` wrapper injecting `X-Portfolio-Code`, and `createCode` / `list` / `upsert` / `remove`
+- [ ] implement `watchlistService.ts` — `localStorage` key `bs.portfolioCode`, a `watchlistFetch` wrapper injecting `X-Portfolio-Code`, and `createCode` / `list` / `upsert` / `remove`
 - [ ] treat a `404` from any call as "code invalid" — clear local state and return to the empty state rather than showing a raw error
-- [ ] build `WishlistTab.tsx`: empty state ("Create a code" / "I have a code"), one-time code reveal with copy button and an explicit unrecoverable warning, and the symbol table
+- [ ] build `WatchlistTab.tsx`: empty state ("Create a code" / "I have a code"), one-time code reveal with copy button and an explicit unrecoverable warning, and the symbol table
 - [ ] wire symbol lookup to the existing `/api/search` endpoint and row clicks to the existing ticker modal
 - [ ] add note and target-price editing, enforcing the same 500-char limit client-side (server remains authoritative)
 - [ ] register the tab in the `TABS` array in `App.tsx` — desktop and mobile nav pick it up automatically
@@ -269,7 +269,7 @@ The narrow `API` interface (only the four operations used) is what makes tests p
 
 ### Task 8: [Final] Update documentation
 
-- [ ] document the wishlist endpoints and the `X-Portfolio-Code` header in `README.md`
+- [ ] document the watchlist endpoints and the `X-Portfolio-Code` header in `README.md`
 - [ ] document the required CDK context keys (`alertEmail`, `budgetLimitUsd`, `bytesAlarmGb`) and the deploy command in `README.md`
 - [ ] add a short note to `README.md` on what happens when the kill switch fires and how to re-enable the distribution
 - [ ] update `CLAUDE.md` only if new conventions emerged

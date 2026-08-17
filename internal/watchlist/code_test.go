@@ -1,4 +1,4 @@
-package wishlist
+package watchlist
 
 import (
 	"strings"
@@ -23,7 +23,7 @@ func TestNewCodeRoundTrips(t *testing.T) {
 }
 
 // A code is the only credential, so a collision would silently hand one user
-// another user's wishlist.
+// another user's watchlist.
 func TestNewCodeIsUnique(t *testing.T) {
 	seen := make(map[string]bool, 1000)
 	for range 1000 {

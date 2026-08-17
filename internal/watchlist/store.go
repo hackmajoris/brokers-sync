@@ -1,4 +1,4 @@
-package wishlist
+package watchlist
 
 import (
 	"context"
@@ -26,7 +26,7 @@ var (
 	// ErrNotFound is returned for an unknown portfolio. Callers must not
 	// distinguish it from a malformed code in their response.
 	ErrNotFound = errors.New("portfolio not found")
-	ErrTooMany  = fmt.Errorf("wishlist limited to %d symbols", MaxSymbols)
+	ErrTooMany  = fmt.Errorf("watchlist limited to %d symbols", MaxSymbols)
 	ErrInvalid  = errors.New("invalid item")
 
 	symbolRe = regexp.MustCompile(`^[A-Z0-9.\-]+$`)
@@ -41,7 +41,7 @@ type API interface {
 	DeleteItem(context.Context, *dynamodb.DeleteItemInput, ...func(*dynamodb.Options)) (*dynamodb.DeleteItemOutput, error)
 }
 
-// Item is one wishlist entry.
+// Item is one watchlist entry.
 type Item struct {
 	Symbol      string  `dynamodbav:"symbol" json:"symbol"`
 	Note        string  `dynamodbav:"note" json:"note"`
@@ -79,7 +79,7 @@ func (s *Store) EnsureMeta(ctx context.Context, pk string) error {
 	return err
 }
 
-// List returns every wishlist item for a portfolio. It reports ErrNotFound when
+// List returns every watchlist item for a portfolio. It reports ErrNotFound when
 // the portfolio does not exist, which callers must surface as a bare 404.
 func (s *Store) List(ctx context.Context, pk string) ([]Item, error) {
 	out, err := s.db.Query(ctx, &dynamodb.QueryInput{
@@ -116,7 +116,7 @@ func (s *Store) List(ctx context.Context, pk string) ([]Item, error) {
 	return items, nil
 }
 
-// Upsert adds or replaces one wishlist entry and refreshes the portfolio TTL so
+// Upsert adds or replaces one watchlist entry and refreshes the portfolio TTL so
 // an actively used portfolio never expires.
 func (s *Store) Upsert(ctx context.Context, pk string, it Item) error {
 	it.Symbol = strings.ToUpper(strings.TrimSpace(it.Symbol))
@@ -154,7 +154,7 @@ func (s *Store) Upsert(ctx context.Context, pk string, it Item) error {
 	return s.touch(ctx, pk)
 }
 
-// Delete removes one wishlist entry.
+// Delete removes one watchlist entry.
 func (s *Store) Delete(ctx context.Context, pk, symbol string) error {
 	symbol = strings.ToUpper(strings.TrimSpace(symbol))
 	if symbol == "" {

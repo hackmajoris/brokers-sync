@@ -8,12 +8,12 @@ import (
 	"strings"
 	"testing"
 
-	"brokers-sync/internal/wishlist"
+	"brokers-sync/internal/watchlist"
 )
 
-func newTestServer() (*httptest.Server, *wishlist.FakeAPI) {
-	db := wishlist.NewFakeAPI()
-	h := &wishlistHandler{store: wishlist.NewStore(db, "test-table")}
+func newTestServer() (*httptest.Server, *watchlist.FakeAPI) {
+	db := watchlist.NewFakeAPI()
+	h := &watchlistHandler{store: watchlist.NewStore(db, "test-table")}
 	mux := http.NewServeMux()
 	h.register(mux)
 	return httptest.NewServer(mux), db
@@ -22,7 +22,7 @@ func newTestServer() (*httptest.Server, *wishlist.FakeAPI) {
 // createCode exercises the real creation path so tests use a genuine code.
 func createCode(t *testing.T, srv *httptest.Server) string {
 	t.Helper()
-	resp, err := http.Post(srv.URL+"/api/wishlist/new", "application/json", nil)
+	resp, err := http.Post(srv.URL+"/api/watchlist/new", "application/json", nil)
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
@@ -64,20 +64,20 @@ func do(t *testing.T, srv *httptest.Server, method, path, code, body string) *ht
 	return resp
 }
 
-func TestWishlistLifecycle(t *testing.T) {
+func TestWatchlistLifecycle(t *testing.T) {
 	srv, _ := newTestServer()
 	defer srv.Close()
 	code := createCode(t, srv)
 
-	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, `{"symbol":"aapl","note":"earnings","targetPrice":150}`)
+	resp := do(t, srv, http.MethodPut, "/api/watchlist", code, `{"symbol":"aapl","note":"earnings","targetPrice":150}`)
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("PUT status = %d, want 204", resp.StatusCode)
 	}
 
-	resp = do(t, srv, http.MethodGet, "/api/wishlist", code, "")
+	resp = do(t, srv, http.MethodGet, "/api/watchlist", code, "")
 	var listed struct {
-		Items []wishlist.Item `json:"items"`
+		Items []watchlist.Item `json:"items"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode list: %v", err)
@@ -90,13 +90,13 @@ func TestWishlistLifecycle(t *testing.T) {
 		t.Errorf("targetPrice = %v, want 150", listed.Items[0].TargetPrice)
 	}
 
-	resp = do(t, srv, http.MethodDelete, "/api/wishlist?symbol=AAPL", code, "")
+	resp = do(t, srv, http.MethodDelete, "/api/watchlist?symbol=AAPL", code, "")
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("DELETE status = %d, want 204", resp.StatusCode)
 	}
 
-	resp = do(t, srv, http.MethodGet, "/api/wishlist", code, "")
+	resp = do(t, srv, http.MethodGet, "/api/watchlist", code, "")
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
@@ -108,17 +108,17 @@ func TestWishlistLifecycle(t *testing.T) {
 
 // Two portfolios must never see each other's entries. This is the whole
 // security model: the code is the only thing separating them.
-func TestWishlistIsolatedPerCode(t *testing.T) {
+func TestWatchlistIsolatedPerCode(t *testing.T) {
 	srv, _ := newTestServer()
 	defer srv.Close()
 	a := createCode(t, srv)
 	b := createCode(t, srv)
 
-	_ = do(t, srv, http.MethodPut, "/api/wishlist", a, `{"symbol":"AAPL"}`).Body.Close()
+	_ = do(t, srv, http.MethodPut, "/api/watchlist", a, `{"symbol":"AAPL"}`).Body.Close()
 
-	resp := do(t, srv, http.MethodGet, "/api/wishlist", b, "")
+	resp := do(t, srv, http.MethodGet, "/api/watchlist", b, "")
 	var listed struct {
-		Items []wishlist.Item `json:"items"`
+		Items []watchlist.Item `json:"items"`
 	}
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode: %v", err)
@@ -136,7 +136,7 @@ func TestUnauthorizedResponsesAreIndistinguishable(t *testing.T) {
 	srv, _ := newTestServer()
 	defer srv.Close()
 
-	unknown, err := wishlist.NewCode()
+	unknown, err := watchlist.NewCode()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -157,7 +157,7 @@ func TestUnauthorizedResponsesAreIndistinguishable(t *testing.T) {
 	}
 	var want response
 	for i, tc := range cases {
-		resp := do(t, srv, http.MethodGet, "/api/wishlist", tc.code, "")
+		resp := do(t, srv, http.MethodGet, "/api/watchlist", tc.code, "")
 		raw, _ := io.ReadAll(resp.Body)
 		_ = resp.Body.Close()
 		got := response{resp.StatusCode, string(raw)}
@@ -180,8 +180,8 @@ func TestUpsertRejectsOversizedBody(t *testing.T) {
 	defer srv.Close()
 	code := createCode(t, srv)
 
-	huge := `{"symbol":"AAPL","note":"` + strings.Repeat("x", maxWishlistBody+1) + `"}`
-	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, huge)
+	huge := `{"symbol":"AAPL","note":"` + strings.Repeat("x", maxWatchlistBody+1) + `"}`
+	resp := do(t, srv, http.MethodPut, "/api/watchlist", code, huge)
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
@@ -193,8 +193,8 @@ func TestUpsertRejectsOverlongNote(t *testing.T) {
 	defer srv.Close()
 	code := createCode(t, srv)
 
-	body := `{"symbol":"AAPL","note":"` + strings.Repeat("x", wishlist.MaxNoteLen+1) + `"}`
-	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, body)
+	body := `{"symbol":"AAPL","note":"` + strings.Repeat("x", watchlist.MaxNoteLen+1) + `"}`
+	resp := do(t, srv, http.MethodPut, "/api/watchlist", code, body)
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
@@ -206,13 +206,13 @@ func TestMethodNotAllowed(t *testing.T) {
 	defer srv.Close()
 	code := createCode(t, srv)
 
-	resp := do(t, srv, http.MethodPatch, "/api/wishlist", code, "")
+	resp := do(t, srv, http.MethodPatch, "/api/watchlist", code, "")
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Errorf("PATCH status = %d, want 405", resp.StatusCode)
 	}
 
-	resp = do(t, srv, http.MethodGet, "/api/wishlist/new", "", "")
+	resp = do(t, srv, http.MethodGet, "/api/watchlist/new", "", "")
 	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Errorf("GET /new status = %d, want 405", resp.StatusCode)

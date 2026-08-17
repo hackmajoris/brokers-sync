@@ -1,6 +1,6 @@
 const CODE_KEY = 'bs.portfolioCode'
 
-export interface WishlistItem {
+export interface WatchlistItem {
   symbol: string
   note: string
   targetPrice: number
@@ -27,10 +27,10 @@ export function clearCode(): void {
   localStorage.removeItem(CODE_KEY)
 }
 
-// wishlistFetch sends the code as a header. It must never go in the URL, where
+// watchlistFetch sends the code as a header. It must never go in the URL, where
 // it would leak into CloudFront and API Gateway access logs, browser history
 // and Referer headers on outbound links.
-async function wishlistFetch(path: string, init: RequestInit = {}): Promise<Response> {
+async function watchlistFetch(path: string, init: RequestInit = {}): Promise<Response> {
   const code = loadCode()
   if (!code) throw new InvalidCodeError()
 
@@ -43,23 +43,23 @@ async function wishlistFetch(path: string, init: RequestInit = {}): Promise<Resp
 }
 
 export async function createCode(): Promise<string> {
-  const res = await fetch('/api/wishlist/new', { method: 'POST' })
+  const res = await fetch('/api/watchlist/new', { method: 'POST' })
   if (!res.ok) throw new Error(`Could not create a code (${res.status})`)
   const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) throw new Error('Wishlist unavailable')
+  if (!ct.includes('application/json')) throw new Error('Watchlist unavailable')
   const body = (await res.json()) as { code: string }
   return body.code
 }
 
-export async function listWishlist(): Promise<WishlistItem[]> {
-  const res = await wishlistFetch('/api/wishlist')
-  if (!res.ok) throw new Error(`Could not load wishlist (${res.status})`)
-  const body = (await res.json()) as { items: WishlistItem[] | null }
+export async function listWatchlist(): Promise<WatchlistItem[]> {
+  const res = await watchlistFetch('/api/watchlist')
+  if (!res.ok) throw new Error(`Could not load watchlist (${res.status})`)
+  const body = (await res.json()) as { items: WatchlistItem[] | null }
   return body.items ?? []
 }
 
-export async function upsertWishlist(item: Partial<WishlistItem> & { symbol: string }): Promise<void> {
-  const res = await wishlistFetch('/api/wishlist', {
+export async function upsertWatchlist(item: Partial<WatchlistItem> & { symbol: string }): Promise<void> {
+  const res = await watchlistFetch('/api/watchlist', {
     method: 'PUT',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(item),
@@ -67,7 +67,7 @@ export async function upsertWishlist(item: Partial<WishlistItem> & { symbol: str
   if (!res.ok) throw new Error((await res.text()).trim() || `Could not save (${res.status})`)
 }
 
-export async function removeWishlist(symbol: string): Promise<void> {
-  const res = await wishlistFetch(`/api/wishlist?symbol=${encodeURIComponent(symbol)}`, { method: 'DELETE' })
+export async function removeWatchlist(symbol: string): Promise<void> {
+  const res = await watchlistFetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`Could not remove ${symbol} (${res.status})`)
 }

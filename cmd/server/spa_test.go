@@ -8,7 +8,7 @@ import (
 	"testing"
 )
 
-// Client-side routes such as /wishlist have no file behind them. Without a
+// Client-side routes such as /watchlist have no file behind them. Without a
 // fallback the server 404s and a refresh or a pasted link breaks, which is what
 // CloudFront's 404-to-index.html mapping already prevents in production.
 func TestSPAHandlerServesClientRoutes(t *testing.T) {
@@ -29,7 +29,7 @@ func TestSPAHandlerServesClientRoutes(t *testing.T) {
 		path string
 		want string
 	}{
-		{"client route", "/wishlist", "INDEX"},
+		{"client route", "/watchlist", "INDEX"},
 		{"another client route", "/positions", "INDEX"},
 		{"root", "/", "INDEX"},
 		{"real asset is not swallowed by the fallback", "/assets/app.js", "BUNDLE"},

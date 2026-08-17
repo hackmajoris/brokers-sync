@@ -2,15 +2,15 @@ import { useState, useEffect, useRef } from 'react'
 import { searchSymbols, type TickerSearchResult } from '../services/portfolioService'
 import {
   createCode,
-  listWishlist,
-  upsertWishlist,
-  removeWishlist,
+  listWatchlist,
+  upsertWatchlist,
+  removeWatchlist,
   loadCode,
   saveCode,
   clearCode,
   InvalidCodeError,
-  type WishlistItem,
-} from '../services/wishlistService'
+  type WatchlistItem,
+} from '../services/watchlistService'
 import { SectionLabel } from '../components/ui/SectionLabel'
 
 interface Props {
@@ -19,9 +19,9 @@ interface Props {
 
 const MAX_NOTE = 500
 
-export function WishlistTab({ accent }: Props) {
+export function WatchlistTab({ accent }: Props) {
   const [code, setCode] = useState<string | null>(loadCode())
-  const [items, setItems] = useState<WishlistItem[]>([])
+  const [items, setItems] = useState<WatchlistItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   // freshCode is shown once, right after creation, and never again.
@@ -36,7 +36,7 @@ export function WishlistTab({ accent }: Props) {
     setLoading(true)
     setError(null)
     try {
-      setItems(await listWishlist())
+      setItems(await listWatchlist())
     } catch (e) {
       if (e instanceof InvalidCodeError) {
         clearCode()
@@ -97,16 +97,16 @@ export function WishlistTab({ accent }: Props) {
     setQuery('')
     setResults([])
     try {
-      await upsertWishlist({ symbol })
+      await upsertWatchlist({ symbol })
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
   }
 
-  async function handleSave(item: WishlistItem, patch: Partial<WishlistItem>) {
+  async function handleSave(item: WatchlistItem, patch: Partial<WatchlistItem>) {
     try {
-      await upsertWishlist({ ...item, ...patch })
+      await upsertWatchlist({ ...item, ...patch })
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -115,7 +115,7 @@ export function WishlistTab({ accent }: Props) {
 
   async function handleRemove(symbol: string) {
     try {
-      await removeWishlist(symbol)
+      await removeWatchlist(symbol)
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -131,8 +131,8 @@ export function WishlistTab({ accent }: Props) {
 
   if (!code) {
     return (
-      <div style={{ maxWidth: 520, display: 'flex', flexDirection: 'column', gap: 18 }}>
-        <SectionLabel>Wishlist</SectionLabel>
+      <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 18 }}>
+        <SectionLabel>Watchlist</SectionLabel>
         <p style={{ fontSize: 12, color: '#888888', lineHeight: 1.6, margin: 0 }}>
           Track companies you do not own yet. There are no accounts — a portfolio code is
           the only thing that identifies your list, and anyone holding it can read and
@@ -142,7 +142,7 @@ export function WishlistTab({ accent }: Props) {
         <button onClick={handleCreate} style={primaryBtn(accent)}>
           Create a portfolio code
         </button>
-        <div style={{ display: 'flex', gap: 8 }}>
+        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
           <input
             value={entryCode}
             onChange={e => setEntryCode(e.target.value)}
@@ -159,17 +159,17 @@ export function WishlistTab({ accent }: Props) {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      <SectionLabel>Wishlist</SectionLabel>
+    <div style={{ maxWidth: 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+      <SectionLabel>Watchlist</SectionLabel>
 
       {freshCode && (
-        <div style={{ border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', gap: 10 }}>
+        <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Save this code now
           </span>
           <code style={{ fontSize: 18, letterSpacing: '0.08em', color: '#e8e8e8' }}>{freshCode}</code>
           <span style={{ fontSize: 11, color: '#999999', lineHeight: 1.6 }}>
-            This is the only way back to your wishlist. It cannot be recovered or reset —
+            This is the only way back to your watchlist. It cannot be recovered or reset —
             if you lose it, the list is gone. It is shown once and will not be displayed again.
           </span>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -189,7 +189,7 @@ export function WishlistTab({ accent }: Props) {
         </div>
       )}
 
-      <div style={{ position: 'relative', maxWidth: 420 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 420 }}>
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
@@ -219,7 +219,7 @@ export function WishlistTab({ accent }: Props) {
       ) : items.length === 0 ? (
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
       ) : (
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ color: '#666666', textAlign: 'left' }}>
               <th style={th}>Symbol</th>
@@ -236,7 +236,7 @@ export function WishlistTab({ accent }: Props) {
         </table>
       )}
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161616', paddingTop: 12 }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161616', paddingTop: 12 }}>
         <span style={{ fontSize: 11, color: '#555555' }}>
           {items.length} tracked. Your code is stored in this browser only.
         </span>
@@ -254,9 +254,9 @@ function Row({
   onSave,
   onRemove,
 }: {
-  item: WishlistItem
+  item: WatchlistItem
   accent: string
-  onSave: (item: WishlistItem, patch: Partial<WishlistItem>) => void
+  onSave: (item: WatchlistItem, patch: Partial<WatchlistItem>) => void
   onRemove: (symbol: string) => void
 }) {
   const [note, setNote] = useState(item.note ?? '')

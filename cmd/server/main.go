@@ -45,7 +45,7 @@ func main() {
 	mux.HandleFunc("/api/search", handleSearch)
 	mux.HandleFunc("/api/history/", handleHistory)
 
-	if wl := newWishlistHandler(context.Background(), os.Getenv("WISHLIST_TABLE")); wl != nil {
+	if wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE")); wl != nil {
 		wl.register(mux)
 	}
 
@@ -62,7 +62,7 @@ func main() {
 }
 
 // spaHandler serves built assets, falling back to index.html for client-side
-// routes such as /wishlist. CloudFront already does this in production by
+// routes such as /watchlist. CloudFront already does this in production by
 // mapping 404 to /index.html; this keeps local runs consistent.
 func spaHandler(webDir string) http.Handler {
 	files := http.FileServer(http.Dir(webDir))

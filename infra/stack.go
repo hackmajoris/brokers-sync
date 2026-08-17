@@ -55,12 +55,12 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 	// This is acceptable for a random bearer token with no other privileges.
 	secretValue := originSecret.SecretValueFromJson(jsii.String("v")).UnsafeUnwrap()
 
-	// ── DynamoDB (wishlist) ───────────────────────────────────────────────────
+	// ── DynamoDB (watchlist) ───────────────────────────────────────────────────
 	// Provisioned 1/1 is a hard cost ceiling (~$0.47/month, inside the free
 	// tier): excess traffic is throttled rather than billed. Autoscaling must
 	// stay off, otherwise that ceiling disappears.
-	wishlistTable := awsdynamodb.NewTable(stack, jsii.String("WishlistTable"), &awsdynamodb.TableProps{
-		TableName:           jsii.String("brokers-sync-wishlist"),
+	watchlistTable := awsdynamodb.NewTable(stack, jsii.String("WatchlistTable"), &awsdynamodb.TableProps{
+		TableName:           jsii.String("brokers-sync-watchlist"),
 		PartitionKey:        &awsdynamodb.Attribute{Name: jsii.String("PK"), Type: awsdynamodb.AttributeType_STRING},
 		SortKey:             &awsdynamodb.Attribute{Name: jsii.String("SK"), Type: awsdynamodb.AttributeType_STRING},
 		BillingMode:         awsdynamodb.BillingMode_PROVISIONED,
@@ -86,7 +86,7 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(29)), // matches API GW integration timeout
 		Description:  jsii.String("brokers-sync Go backend via Lambda Web Adapter"),
 		Environment: &map[string]*string{
-			"WISHLIST_TABLE": wishlistTable.TableName(),
+			"WATCHLIST_TABLE": watchlistTable.TableName(),
 		},
 		// ReservedConcurrentExecutions is deliberately unset. Lambda requires at
 		// least 50 unreserved concurrent executions to remain account-wide, and
@@ -95,7 +95,7 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		// anyway; raise the account concurrency quota first if a hard per-function
 		// cap is ever wanted.
 	})
-	wishlistTable.GrantReadWriteData(lambdaFn)
+	watchlistTable.GrantReadWriteData(lambdaFn)
 
 	// Provisioned concurrency requires a version + alias.
 	// API Gateway integrates with the alias so provisioned instances are used.
