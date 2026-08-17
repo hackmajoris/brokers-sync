@@ -1,10 +1,24 @@
 const CODE_KEY = 'bs.portfolioCode'
 
+import { mapPosition } from './portfolioService'
+import type { Position, RawPosition } from '../types/portfolio'
+
 export interface WatchlistItem {
   symbol: string
   note: string
   targetPrice: number
   addedAt: number
+  // Live indicators, fetched server-side in the same request. Absent when the
+  // symbol returned no upstream data.
+  indicators?: Position
+}
+
+interface RawWatchlistEntry {
+  symbol: string
+  note: string
+  targetPrice: number
+  addedAt: number
+  indicators?: RawPosition
 }
 
 // InvalidCodeError means the stored code is gone or was never valid. The server
@@ -54,8 +68,14 @@ export async function createCode(): Promise<string> {
 export async function listWatchlist(): Promise<WatchlistItem[]> {
   const res = await watchlistFetch('/api/watchlist')
   if (!res.ok) throw new Error(`Could not load watchlist (${res.status})`)
-  const body = (await res.json()) as { items: WatchlistItem[] | null }
-  return body.items ?? []
+  const body = (await res.json()) as { items: RawWatchlistEntry[] | null }
+  return (body.items ?? []).map(e => ({
+    symbol: e.symbol,
+    note: e.note,
+    targetPrice: e.targetPrice,
+    addedAt: e.addedAt,
+    indicators: e.indicators ? mapPosition(e.indicators) : undefined,
+  }))
 }
 
 export async function upsertWatchlist(item: Partial<WatchlistItem> & { symbol: string }): Promise<void> {

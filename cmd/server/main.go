@@ -522,6 +522,14 @@ func handleTicker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(tickerPayload(symbol, ti))
+}
+
+// tickerPayload renders indicators in the snake_case shape the web client's
+// position mapper already understands. Shared by the single and batch
+// endpoints so the two can never drift apart.
+func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 	out := map[string]any{"symbol": symbol}
 	putFloat := func(key string, v *float64) {
 		if v != nil {
@@ -584,8 +592,7 @@ func handleTicker(w http.ResponseWriter, r *http.Request) {
 	putStr("valuation_rating", ti.ValuationRating)
 	putStr("valuation_reason", ti.ValuationReason)
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(out)
+	return out
 }
 
 var isCurrencyCode = regexp.MustCompile(`^[A-Z]{3}$`)

@@ -12,6 +12,10 @@ import {
   type WatchlistItem,
 } from '../services/watchlistService'
 import { SectionLabel } from '../components/ui/SectionLabel'
+import { InfoTooltip } from '../components/ui/InfoTooltip'
+import { openStockLookup } from '../components/StockLookup'
+import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO } from '../components/IndicatorColumns'
+import { fmtCurrency } from '../utils/format'
 
 interface Props {
   accent: string
@@ -104,10 +108,14 @@ export function WatchlistTab({ accent }: Props) {
     }
   }
 
+  // Note and target edits patch local state instead of calling refresh(): a
+  // reload re-fetches indicators for every symbol upstream, which is far too
+  // expensive for a keystroke-level edit. Adding or removing a symbol does
+  // refresh, since new indicators are genuinely needed.
   async function handleSave(item: WatchlistItem, patch: Partial<WatchlistItem>) {
     try {
-      await upsertWatchlist({ ...item, ...patch })
-      await refresh()
+      await upsertWatchlist({ symbol: item.symbol, note: item.note, targetPrice: item.targetPrice, ...patch })
+      setItems(prev => prev.map(i => (i.symbol === item.symbol ? { ...i, ...patch } : i)))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -159,7 +167,7 @@ export function WatchlistTab({ accent }: Props) {
   }
 
   return (
-    <div style={{ maxWidth: 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
+    <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
       <SectionLabel>Watchlist</SectionLabel>
 
       {freshCode && (
@@ -219,12 +227,22 @@ export function WatchlistTab({ accent }: Props) {
       ) : items.length === 0 ? (
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
       ) : (
+        <div style={{ width: '100%', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ color: '#666666', textAlign: 'left' }}>
               <th style={th}>Symbol</th>
               <th style={th}>Note</th>
               <th style={{ ...th, textAlign: 'right' }}>Target</th>
+              <th style={{ ...th, textAlign: 'right' }}>Price</th>
+              {INDICATOR_COLUMNS.map(col => (
+                <th key={col.key} style={{ ...th, textAlign: 'right', whiteSpace: 'nowrap' }}>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                    {col.label}
+                    {INDICATOR_INFO[col.key] && <InfoTooltip text={INDICATOR_INFO[col.key]!} />}
+                  </span>
+                </th>
+              ))}
               <th style={th} />
             </tr>
           </thead>
@@ -234,6 +252,7 @@ export function WatchlistTab({ accent }: Props) {
             ))}
           </tbody>
         </table>
+        </div>
       )}
 
       <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161616', paddingTop: 12 }}>
@@ -262,20 +281,30 @@ function Row({
   const [note, setNote] = useState(item.note ?? '')
   const [target, setTarget] = useState(item.targetPrice ? String(item.targetPrice) : '')
 
+  const p = item.indicators
+
   return (
-    <tr style={{ borderTop: '1px solid #161616' }}>
-      <td style={{ ...td, fontWeight: 600, color: accent }}>{item.symbol}</td>
-      <td style={td}>
+    // Clicking the row opens the same lookup modal the Positions tab uses.
+    // The inputs and the remove button stop propagation so editing a note does
+    // not also open the popup.
+    <tr
+      onClick={() => openStockLookup(item.symbol)}
+      style={{ borderTop: '1px solid #161616', cursor: 'pointer' }}
+      onMouseEnter={e => (e.currentTarget.style.background = accent + '11')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{item.symbol}</td>
+      <td style={td} onClick={e => e.stopPropagation()}>
         <input
           value={note}
           maxLength={MAX_NOTE}
           onChange={e => setNote(e.target.value)}
           onBlur={() => note !== (item.note ?? '') && onSave(item, { note })}
           placeholder="Add a note"
-          style={{ ...inputStyle, width: '100%' }}
+          style={{ ...inputStyle, width: '100%', minWidth: 140 }}
         />
       </td>
-      <td style={{ ...td, textAlign: 'right' }}>
+      <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <input
           value={target}
           inputMode="decimal"
@@ -288,7 +317,21 @@ function Row({
           style={{ ...inputStyle, width: 90, textAlign: 'right' }}
         />
       </td>
-      <td style={{ ...td, textAlign: 'right' }}>
+      <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
+        {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+      </td>
+      {p ? (
+        <IndicatorCells p={p} />
+      ) : (
+        // Indicators are fetched upstream and can be missing for a delisted or
+        // unrecognised symbol; keep the column count stable so the row lines up.
+        INDICATOR_COLUMNS.map(col => (
+          <td key={col.key} style={{ ...td, textAlign: 'right', color: '#555555' }}>
+            —
+          </td>
+        ))
+      )}
+      <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <button onClick={() => onRemove(item.symbol)} style={{ ...secondaryBtn, padding: '4px 8px' }}>
           Remove
         </button>

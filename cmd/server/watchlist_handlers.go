@@ -6,12 +6,19 @@ import (
 	"errors"
 	"log"
 	"net/http"
+	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
 
+	"brokers-sync/internal/prices"
 	"brokers-sync/internal/watchlist"
 )
+
+// indicatorConcurrency bounds parallel Yahoo calls during a watchlist read.
+// Lambda gets 29s in total, so fetching a full 50-symbol list serially would
+// time out, while firing all 50 at once risks being rate limited upstream.
+const indicatorConcurrency = 8
 
 // maxWatchlistBody caps request bodies; entries are a symbol, a short note and a
 // price, so anything larger is abuse.
@@ -83,13 +90,42 @@ func (h *watchlistHandler) handle(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// watchlistEntry is a stored entry plus the live indicators the table does not
+// hold. They are returned together so the client does not have to wait for the
+// list before it can even discover which symbols to look up.
+type watchlistEntry struct {
+	watchlist.Item
+	Indicators map[string]any `json:"indicators,omitempty"`
+}
+
 func (h *watchlistHandler) list(w http.ResponseWriter, r *http.Request, pk string) {
 	items, err := h.store.List(r.Context(), pk)
 	if err != nil {
 		h.fail(w, err)
 		return
 	}
-	_ = json.NewEncoder(w).Encode(map[string]any{"items": items})
+
+	entries := make([]watchlistEntry, len(items))
+	sem := make(chan struct{}, indicatorConcurrency)
+	var wg sync.WaitGroup
+	for i, item := range items {
+		entries[i] = watchlistEntry{Item: item}
+		wg.Add(1)
+		go func() {
+			defer wg.Done()
+			sem <- struct{}{}
+			defer func() { <-sem }()
+			// A symbol with no upstream data is returned without indicators
+			// rather than failing the request: one delisted ticker must not
+			// blank out the whole watchlist.
+			if ti, ok := prices.FetchTickerIndicators(r.Context(), item.Symbol); ok {
+				entries[i].Indicators = tickerPayload(item.Symbol, ti)
+			}
+		}()
+	}
+	wg.Wait()
+
+	_ = json.NewEncoder(w).Encode(map[string]any{"items": entries})
 }
 
 func (h *watchlistHandler) upsert(w http.ResponseWriter, r *http.Request, pk string) {
