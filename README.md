@@ -18,6 +18,7 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 - **Annual breakdown** — realized P&L, dividends, deposits, withdrawals, fees, buy volume, and sell volume — bucketed per calendar year.
 - **P&L statistics** — all-time and YTD realized gain/loss, FIFO lot matching, largest single winners and losers.
 - **Dividend statistics** — aggregated dividend income (all-time and YTD), annual dividend totals, year-over-year dividend progress, and per-symbol breakdown with gross amount, tax withheld, and net received.
+- **Watchlist** — track companies you do not own yet, at `/watchlist`. Still no account: a generated portfolio code identifies the list, and it is the only credential. See [Watchlist](#watchlist) below.
 - **Runs locally via Docker Compose** — single command (`docker compose up`) to spin up the full stack; no cloud account needed.
 
 **Live site:** [brokersync.dot-core.com](http://brokersync.dot-core.com)
@@ -195,6 +196,107 @@ internal/
   stats/stats.go          Period aggregations, unrealized P&L enrichment
   prices/yahoo.go         Yahoo Finance chart API, parallel price fetch
   output/report.go        JSON and CSV report writers
+  watchlist/               Portfolio code generation and DynamoDB watchlist store
 web/                      React + Vite frontend (served by cmd/server)
 infra/                    AWS CDK stack (Lambda + API Gateway deployment)
 ```
+
+## Watchlist
+
+Tracks companies you do not own yet. Reached at `/watchlist`.
+
+There are still no accounts. The app generates a **portfolio code** such as
+`K7M2-9QRF-3XVB-8TDW`, stores it in your browser's `localStorage`, and sends it
+with each request. Possession of the code *is* access — anyone holding it can
+read and edit that watchlist.
+
+**The code cannot be recovered or reset. Lose it and the list is gone.** It is
+shown once, at creation.
+
+Design notes:
+
+- The server stores only `sha256(code)`, so a dump of the table yields no usable
+  codes.
+- The code travels in an `X-Portfolio-Code` header, never in a URL. URLs end up
+  in CloudFront and API Gateway access logs, browser history, and `Referer`
+  headers on outbound links.
+- Missing, malformed and unknown codes all return an identical bare `404`, so
+  responses cannot be used to discover which codes exist.
+- Server-side caps: 50 symbols per watchlist, 500-character notes, 12-character
+  symbols.
+- Watchlists with no activity for 12 months are removed automatically by a
+  DynamoDB TTL.
+
+### Endpoints
+
+All require the `X-Portfolio-Code` header except `POST /api/watchlist/new`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/watchlist/new` | Generate a code, returns `{"code": "..."}` |
+| `GET` | `/api/watchlist` | List entries |
+| `PUT` | `/api/watchlist` | Add or update `{"symbol","note","targetPrice"}` |
+| `DELETE` | `/api/watchlist?symbol=X` | Remove an entry |
+
+The routes are registered only when `WATCHLIST_TABLE` is set, so local runs
+without AWS credentials work unchanged. With it unset the endpoints return 404
+and the tab reports the watchlist as unavailable.
+
+To use the watchlist locally, point it at the deployed table (env is inherited
+by the server that `make dev` starts):
+
+```sh
+export AWS_PROFILE=your-profile
+export AWS_REGION=eu-central-1
+export WATCHLIST_TABLE=brokers-sync-watchlist
+make dev
+```
+
+This reads and writes the real table, so codes created locally are the same ones
+the deployed site sees.
+
+## Cost guardrails
+
+CloudFront has no spend cap, and cache hits never reach API Gateway, so the
+10 rps API throttle does nothing to bound egress. Three ceilings are deployed:
+
+| Guardrail | Effect |
+| --- | --- |
+| DynamoDB provisioned 1 RCU / 1 WCU, no autoscaling | Excess traffic is throttled, not billed (~$0.47/month) |
+| CloudWatch alarm on CloudFront `BytesDownloaded` | **Disables the distribution** and emails on an egress spike |
+| Monthly AWS Budget | Emails at 80% actual and 100% forecast — slow backup only, billing data lags 8–24h |
+
+Deploy-time context keys (all optional, defaults shown):
+
+```
+--context alertEmail=brokersync@dot-core.com
+--context budgetLimitUsd=5
+--context bytesAlarmGb=5
+```
+
+Lambda reserved concurrency is *not* set: AWS requires at least 50 unreserved
+concurrent executions account-wide, and this account's limit is 50, so any
+reservation is rejected. The 10 rps API Gateway throttle bounds compute instead.
+Raise the account concurrency quota before adding a per-function cap.
+
+The alarm stack (`BrokersSyncCostGuardStack`) deploys to **us-east-1** because
+CloudFront publishes its CloudWatch metrics nowhere else. The main stack stays
+in eu-central-1.
+
+**After the first deploy, confirm the SNS subscription email.** Until that link
+is clicked, the alarm still fires but no mail is delivered.
+
+### When the kill switch fires
+
+The site goes down — that is the intended behaviour, not a bug. The distribution
+is left disabled until you re-enable it deliberately:
+
+```sh
+aws cloudfront get-distribution-config --id <DIST_ID> > cfg.json
+# set .DistributionConfig.Enabled = true, keep the ETag
+aws cloudfront update-distribution --id <DIST_ID> \
+  --distribution-config file://config-only.json --if-match <ETag>
+```
+
+Re-enabling takes roughly 10 minutes to propagate. Check CloudFront logs for the
+source of the traffic before turning it back on.

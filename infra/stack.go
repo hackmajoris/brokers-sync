@@ -5,6 +5,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfront"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfrontorigins"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsiam"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awslambda"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awss3"
@@ -26,7 +27,14 @@ type BrokersSyncStackProps struct {
 	awscdk.StackProps
 }
 
-func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSyncStackProps) awscdk.Stack {
+// BrokersSyncStack exposes the distribution ID so the cost guard stack, which
+// must live in us-east-1, can alarm on this distribution's metrics.
+type BrokersSyncStack struct {
+	awscdk.Stack
+	DistributionId *string
+}
+
+func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSyncStackProps) *BrokersSyncStack {
 	stack := awscdk.NewStack(scope, &id, &props.StackProps)
 
 	// ── Secret ────────────────────────────────────────────────────────────────
@@ -47,6 +55,21 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 	// This is acceptable for a random bearer token with no other privileges.
 	secretValue := originSecret.SecretValueFromJson(jsii.String("v")).UnsafeUnwrap()
 
+	// ── DynamoDB (watchlist) ───────────────────────────────────────────────────
+	// Provisioned 1/1 is a hard cost ceiling (~$0.47/month, inside the free
+	// tier): excess traffic is throttled rather than billed. Autoscaling must
+	// stay off, otherwise that ceiling disappears.
+	watchlistTable := awsdynamodb.NewTable(stack, jsii.String("WatchlistTable"), &awsdynamodb.TableProps{
+		TableName:           jsii.String("brokers-sync-watchlist"),
+		PartitionKey:        &awsdynamodb.Attribute{Name: jsii.String("PK"), Type: awsdynamodb.AttributeType_STRING},
+		SortKey:             &awsdynamodb.Attribute{Name: jsii.String("SK"), Type: awsdynamodb.AttributeType_STRING},
+		BillingMode:         awsdynamodb.BillingMode_PROVISIONED,
+		ReadCapacity:        jsii.Number(1),
+		WriteCapacity:       jsii.Number(1),
+		TimeToLiveAttribute: jsii.String("ttl"),
+		RemovalPolicy:       awscdk.RemovalPolicy_RETAIN,
+	})
+
 	// ── Lambda (Docker) ───────────────────────────────────────────────────────
 	// CDK builds Dockerfile.lambda (at repo root, one level above infra/),
 	// auto-creates an ECR repository, and pushes the image on cdk deploy.
@@ -62,7 +85,17 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		MemorySize:   jsii.Number(256),
 		Timeout:      awscdk.Duration_Seconds(jsii.Number(29)), // matches API GW integration timeout
 		Description:  jsii.String("brokers-sync Go backend via Lambda Web Adapter"),
+		Environment: &map[string]*string{
+			"WATCHLIST_TABLE": watchlistTable.TableName(),
+		},
+		// ReservedConcurrentExecutions is deliberately unset. Lambda requires at
+		// least 50 unreserved concurrent executions to remain account-wide, and
+		// this account's limit is 50, so any reservation is rejected outright.
+		// The 10 rps API Gateway throttle is the binding constraint on compute
+		// anyway; raise the account concurrency quota first if a hard per-function
+		// cap is ever wanted.
 	})
+	watchlistTable.GrantReadWriteData(lambdaFn)
 
 	// Provisioned concurrency requires a version + alias.
 	// API Gateway integrates with the alias so provisioned instances are used.
@@ -231,5 +264,5 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		Description: jsii.String("API Gateway URL (direct access blocked without X-Origin-Verify header)"),
 	})
 
-	return stack
+	return &BrokersSyncStack{Stack: stack, DistributionId: distribution.DistributionId()}
 }

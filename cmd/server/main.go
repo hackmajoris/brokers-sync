@@ -45,16 +45,41 @@ func main() {
 	mux.HandleFunc("/api/search", handleSearch)
 	mux.HandleFunc("/api/history/", handleHistory)
 
+	if wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE")); wl != nil {
+		wl.register(mux)
+	}
+
 	mux.HandleFunc("/data/result.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(*dataDir, "result.json"))
 	})
 
-	mux.Handle("/", http.FileServer(http.Dir(*webDir)))
+	mux.Handle("/", spaHandler(*webDir))
 
 	log.Printf("listening on %s  (data=%s  web=%s)", *addr, *dataDir, *webDir)
 	if err := http.ListenAndServe(*addr, mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// spaHandler serves built assets, falling back to index.html for client-side
+// routes such as /watchlist. CloudFront already does this in production by
+// mapping 404 to /index.html; this keeps local runs consistent.
+func spaHandler(webDir string) http.Handler {
+	files := http.FileServer(http.Dir(webDir))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// An unregistered API route must 404, not silently return the SPA. A
+		// 200 of HTML makes a missing endpoint look like a broken response to
+		// the client.
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
+		}
+		if _, err := os.Stat(filepath.Join(webDir, filepath.Clean(r.URL.Path))); err == nil {
+			files.ServeHTTP(w, r)
+			return
+		}
+		http.ServeFile(w, r, filepath.Join(webDir, "index.html"))
+	})
 }
 
 // sseEvent writes a single SSE event to w and flushes immediately.
@@ -504,6 +529,14 @@ func handleTicker(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(tickerPayload(symbol, ti))
+}
+
+// tickerPayload renders indicators in the snake_case shape the web client's
+// position mapper already understands. Shared by the single and batch
+// endpoints so the two can never drift apart.
+func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 	out := map[string]any{"symbol": symbol}
 	putFloat := func(key string, v *float64) {
 		if v != nil {
@@ -566,8 +599,7 @@ func handleTicker(w http.ResponseWriter, r *http.Request) {
 	putStr("valuation_rating", ti.ValuationRating)
 	putStr("valuation_reason", ti.ValuationReason)
 
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(out)
+	return out
 }
 
 var isCurrencyCode = regexp.MustCompile(`^[A-Z]{3}$`)
