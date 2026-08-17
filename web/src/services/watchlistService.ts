@@ -52,7 +52,13 @@ async function watchlistFetch(path: string, init: RequestInit = {}): Promise<Res
     ...init,
     headers: { ...init.headers, 'X-Portfolio-Code': code },
   })
-  if (res.status === 404) throw new InvalidCodeError()
+  // HTML back from an /api/ call means the request never reached the API:
+  // CloudFront rewrites 404s to the SPA index page, so a code the server
+  // rejected arrives here as a 200 full of markup. Without this the caller
+  // fails on JSON.parse instead, the bad code is never cleared, and every
+  // reload repeats it. Writes reply 204 with no body, so only HTML is checked.
+  const ct = res.headers.get('content-type') ?? ''
+  if (res.status === 404 || ct.includes('text/html')) throw new InvalidCodeError()
   return res
 }
 
