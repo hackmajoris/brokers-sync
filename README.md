@@ -249,7 +249,6 @@ CloudFront has no spend cap, and cache hits never reach API Gateway, so the
 
 | Guardrail | Effect |
 | --- | --- |
-| Lambda reserved concurrency (5) | Caps worst-case compute |
 | DynamoDB provisioned 1 RCU / 1 WCU, no autoscaling | Excess traffic is throttled, not billed (~$0.47/month) |
 | CloudWatch alarm on CloudFront `BytesDownloaded` | **Disables the distribution** and emails on an egress spike |
 | Monthly AWS Budget | Emails at 80% actual and 100% forecast — slow backup only, billing data lags 8–24h |
@@ -261,6 +260,11 @@ Deploy-time context keys (all optional, defaults shown):
 --context budgetLimitUsd=5
 --context bytesAlarmGb=5
 ```
+
+Lambda reserved concurrency is *not* set: AWS requires at least 50 unreserved
+concurrent executions account-wide, and this account's limit is 50, so any
+reservation is rejected. The 10 rps API Gateway throttle bounds compute instead.
+Raise the account concurrency quota before adding a per-function cap.
 
 The alarm stack (`BrokersSyncCostGuardStack`) deploys to **us-east-1** because
 CloudFront publishes its CloudWatch metrics nowhere else. The main stack stays

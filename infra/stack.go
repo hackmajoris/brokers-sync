@@ -88,8 +88,12 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		Environment: &map[string]*string{
 			"WISHLIST_TABLE": wishlistTable.TableName(),
 		},
-		// Caps concurrent executions, and with it the worst-case compute bill.
-		ReservedConcurrentExecutions: jsii.Number(5),
+		// ReservedConcurrentExecutions is deliberately unset. Lambda requires at
+		// least 50 unreserved concurrent executions to remain account-wide, and
+		// this account's limit is 50, so any reservation is rejected outright.
+		// The 10 rps API Gateway throttle is the binding constraint on compute
+		// anyway; raise the account concurrency quota first if a hard per-function
+		// cap is ever wanted.
 	})
 	wishlistTable.GrantReadWriteData(lambdaFn)
 
