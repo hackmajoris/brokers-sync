@@ -45,6 +45,10 @@ func main() {
 	mux.HandleFunc("/api/search", handleSearch)
 	mux.HandleFunc("/api/history/", handleHistory)
 
+	if wl := newWishlistHandler(context.Background(), os.Getenv("WISHLIST_TABLE")); wl != nil {
+		wl.register(mux)
+	}
+
 	mux.HandleFunc("/data/result.json", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, filepath.Join(*dataDir, "result.json"))
 	})
