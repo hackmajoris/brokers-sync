@@ -3,6 +3,7 @@ package main
 import (
 	"github.com/aws/aws-cdk-go/awscdk/v2"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsapigateway"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awscertificatemanager"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfront"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awscloudfrontorigins"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awsdynamodb"
@@ -184,14 +185,52 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		},
 	})
 
+	// Deep links such as /watchlist are React Router paths, not S3 keys. S3 has
+	// no object of that name and answers 403 (not 404, which it reserves for
+	// callers allowed to list the bucket), so the SPA fallback below never
+	// fires and the browser gets raw AccessDenied XML. Rewriting the URI before
+	// the origin request means S3 is only ever asked for files that exist.
+	// Attached to the default behaviour only, so /api/* is untouched.
+	spaRewrite := awscloudfront.NewFunction(stack, jsii.String("SpaRewrite"), &awscloudfront.FunctionProps{
+		Runtime: awscloudfront.FunctionRuntime_JS_2_0(),
+		Code: awscloudfront.FunctionCode_FromInline(jsii.String(`function handler(event) {
+  var request = event.request;
+  if (request.uri.indexOf('.') === -1) {
+    request.uri = '/index.html';
+  }
+  return request;
+}`)),
+	})
+
 	distribution := awscloudfront.NewDistribution(stack, jsii.String("Distribution"), &awscloudfront.DistributionProps{
 		Comment:           jsii.String("brokers-sync"),
 		DefaultRootObject: jsii.String("index.html"),
+		// The alias and its certificate were attached in the console. Every
+		// CloudFormation update ships the full distribution config, so leaving
+		// them out here drops the alias and the site starts answering 403 to
+		// anything addressed to the custom domain. CloudFront only accepts
+		// us-east-1 certificates, whatever region the rest of the stack uses.
+		DomainNames: jsii.Strings("brokersync.dot-core.com"),
+		Certificate: awscertificatemanager.Certificate_FromCertificateArn(stack, jsii.String("SpaCert"),
+			jsii.String("arn:aws:acm:us-east-1:133874726017:certificate/995d1a4f-b536-4861-b8fb-b30c4e561ab7")),
+		// Core protections were switched on in the CloudFront console, which
+		// provisioned this web ACL and a pricing plan subscription. CloudFormation
+		// sends the whole distribution config on every update, so omitting the ACL
+		// reads as removing it and CloudFront rejects the deploy outright. Keep
+		// this in step with the console: toggling protections there mints a new
+		// ACL and this ARN goes stale.
+		WebAclId: jsii.String("arn:aws:wafv2:us-east-1:133874726017:global/webacl/CreatedByCloudFront-5178bc85/806b32e7-6ade-4446-accf-db7b7788f611"),
 		// Default behavior: serve the React SPA from S3.
 		DefaultBehavior: &awscloudfront.BehaviorOptions{
 			Origin:               s3Origin,
 			ViewerProtocolPolicy: awscloudfront.ViewerProtocolPolicy_REDIRECT_TO_HTTPS,
 			CachePolicy:          awscloudfront.CachePolicy_CACHING_OPTIMIZED(),
+			FunctionAssociations: &[]*awscloudfront.FunctionAssociation{
+				{
+					Function:  spaRewrite,
+					EventType: awscloudfront.FunctionEventType_VIEWER_REQUEST,
+				},
+			},
 		},
 		// /api/* behavior: proxy to API Gateway with the secret header.
 		AdditionalBehaviors: &map[string]*awscloudfront.BehaviorOptions{
@@ -206,8 +245,9 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 				OriginRequestPolicy: awscloudfront.OriginRequestPolicy_ALL_VIEWER_EXCEPT_HOST_HEADER(),
 			},
 		},
-		// Price class 100 covers EU + US edge locations only.
-		PriceClass: awscloudfront.PriceClass_PRICE_CLASS_100,
+		// No price class: the distribution is on the Free pricing plan, which
+		// rejects the field outright. Restricting edge locations to EU + US
+		// requires moving off that plan first.
 		// SPA routing: S3 returns 404 for unknown paths → serve index.html so
 		// React Router handles client-side navigation.
 		// 403 is intentionally NOT mapped: API Gateway errors must reach the browser
@@ -223,11 +263,14 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 	})
 
 	// Grant CloudFront OAC permission to read from S3 via bucket resource policy.
+	// ListBucket is required for SPA deep links: without it S3 answers a missing
+	// key with 403 rather than 404, and only 404 is mapped to index.html, so
+	// /watchlist would return raw AccessDenied XML instead of the app.
 	spaBucket.AddToResourcePolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
 		Effect:     awsiam.Effect_ALLOW,
 		Principals: &[]awsiam.IPrincipal{awsiam.NewServicePrincipal(jsii.String("cloudfront.amazonaws.com"), nil)},
-		Actions:    jsii.Strings("s3:GetObject"),
-		Resources:  jsii.Strings(*spaBucket.ArnForObjects(jsii.String("*"))),
+		Actions:    jsii.Strings("s3:GetObject", "s3:ListBucket"),
+		Resources:  jsii.Strings(*spaBucket.ArnForObjects(jsii.String("*")), *spaBucket.BucketArn()),
 		Conditions: &map[string]interface{}{
 			"StringEquals": map[string]interface{}{
 				"AWS:SourceArn": awscdk.Stack_Of(stack).FormatArn(&awscdk.ArnComponents{
