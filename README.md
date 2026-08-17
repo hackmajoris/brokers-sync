@@ -239,8 +239,21 @@ All require the `X-Portfolio-Code` header except `POST /api/watchlist/new`.
 | `DELETE` | `/api/watchlist?symbol=X` | Remove an entry |
 
 The routes are registered only when `WATCHLIST_TABLE` is set, so local runs
-without AWS credentials work unchanged — the tab simply reports the watchlist as
-unavailable.
+without AWS credentials work unchanged. With it unset the endpoints return 404
+and the tab reports the watchlist as unavailable.
+
+To use the watchlist locally, point it at the deployed table (env is inherited
+by the server that `make dev` starts):
+
+```sh
+export AWS_PROFILE=your-profile
+export AWS_REGION=eu-central-1
+export WATCHLIST_TABLE=brokers-sync-watchlist
+make dev
+```
+
+This reads and writes the real table, so codes created locally are the same ones
+the deployed site sees.
 
 ## Cost guardrails
 

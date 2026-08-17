@@ -67,6 +67,13 @@ func main() {
 func spaHandler(webDir string) http.Handler {
 	files := http.FileServer(http.Dir(webDir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// An unregistered API route must 404, not silently return the SPA. A
+		// 200 of HTML makes a missing endpoint look like a broken response to
+		// the client.
+		if strings.HasPrefix(r.URL.Path, "/api/") {
+			http.NotFound(w, r)
+			return
+		}
 		if _, err := os.Stat(filepath.Join(webDir, filepath.Clean(r.URL.Path))); err == nil {
 			files.ServeHTTP(w, r)
 			return

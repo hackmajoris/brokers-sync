@@ -8,6 +8,28 @@ import (
 	"testing"
 )
 
+// An unregistered API route must 404 rather than return the SPA. A 200 of HTML
+// makes a disabled or missing endpoint look like a corrupt response: the client
+// sees success, fails to parse JSON, and reports the wrong problem.
+func TestSPAHandlerDoesNotSwallowAPIRoutes(t *testing.T) {
+	dir := t.TempDir()
+	if err := os.WriteFile(filepath.Join(dir, "index.html"), []byte("INDEX"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+
+	h := spaHandler(dir)
+	for _, path := range []string{"/api/watchlist", "/api/watchlist/new", "/api/nope"} {
+		rec := httptest.NewRecorder()
+		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
+		if rec.Code != http.StatusNotFound {
+			t.Errorf("%s: status = %d, want 404", path, rec.Code)
+		}
+		if rec.Body.String() == "INDEX" {
+			t.Errorf("%s: served the SPA instead of 404ing", path)
+		}
+	}
+}
+
 // Client-side routes such as /watchlist have no file behind them. Without a
 // fallback the server 404s and a refresh or a pasted link breaks, which is what
 // CloudFront's 404-to-index.html mapping already prevents in production.
