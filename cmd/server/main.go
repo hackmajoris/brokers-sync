@@ -53,12 +53,26 @@ func main() {
 		http.ServeFile(w, r, filepath.Join(*dataDir, "result.json"))
 	})
 
-	mux.Handle("/", http.FileServer(http.Dir(*webDir)))
+	mux.Handle("/", spaHandler(*webDir))
 
 	log.Printf("listening on %s  (data=%s  web=%s)", *addr, *dataDir, *webDir)
 	if err := http.ListenAndServe(*addr, mux); err != nil {
 		log.Fatal(err)
 	}
+}
+
+// spaHandler serves built assets, falling back to index.html for client-side
+// routes such as /wishlist. CloudFront already does this in production by
+// mapping 404 to /index.html; this keeps local runs consistent.
+func spaHandler(webDir string) http.Handler {
+	files := http.FileServer(http.Dir(webDir))
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if _, err := os.Stat(filepath.Join(webDir, filepath.Clean(r.URL.Path))); err == nil {
+			files.ServeHTTP(w, r)
+			return
+		}
+		http.ServeFile(w, r, filepath.Join(webDir, "index.html"))
+	})
 }
 
 // sseEvent writes a single SSE event to w and flushes immediately.

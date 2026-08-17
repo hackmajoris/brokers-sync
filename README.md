@@ -18,6 +18,7 @@ Parses and normalizes transaction exports from multiple brokers into a unified l
 - **Annual breakdown** — realized P&L, dividends, deposits, withdrawals, fees, buy volume, and sell volume — bucketed per calendar year.
 - **P&L statistics** — all-time and YTD realized gain/loss, FIFO lot matching, largest single winners and losers.
 - **Dividend statistics** — aggregated dividend income (all-time and YTD), annual dividend totals, year-over-year dividend progress, and per-symbol breakdown with gross amount, tax withheld, and net received.
+- **Wishlist** — track companies you do not own yet, at `/wishlist`. Still no account: a generated portfolio code identifies the list, and it is the only credential. See [Wishlist](#wishlist) below.
 - **Runs locally via Docker Compose** — single command (`docker compose up`) to spin up the full stack; no cloud account needed.
 
 **Live site:** [brokersync.dot-core.com](http://brokersync.dot-core.com)
@@ -195,6 +196,90 @@ internal/
   stats/stats.go          Period aggregations, unrealized P&L enrichment
   prices/yahoo.go         Yahoo Finance chart API, parallel price fetch
   output/report.go        JSON and CSV report writers
+  wishlist/               Portfolio code generation and DynamoDB wishlist store
 web/                      React + Vite frontend (served by cmd/server)
 infra/                    AWS CDK stack (Lambda + API Gateway deployment)
 ```
+
+## Wishlist
+
+Tracks companies you do not own yet. Reached at `/wishlist`.
+
+There are still no accounts. The app generates a **portfolio code** such as
+`K7M2-9QRF-3XVB-8TDW`, stores it in your browser's `localStorage`, and sends it
+with each request. Possession of the code *is* access — anyone holding it can
+read and edit that wishlist.
+
+**The code cannot be recovered or reset. Lose it and the list is gone.** It is
+shown once, at creation.
+
+Design notes:
+
+- The server stores only `sha256(code)`, so a dump of the table yields no usable
+  codes.
+- The code travels in an `X-Portfolio-Code` header, never in a URL. URLs end up
+  in CloudFront and API Gateway access logs, browser history, and `Referer`
+  headers on outbound links.
+- Missing, malformed and unknown codes all return an identical bare `404`, so
+  responses cannot be used to discover which codes exist.
+- Server-side caps: 50 symbols per wishlist, 500-character notes, 12-character
+  symbols.
+- Wishlists with no activity for 12 months are removed automatically by a
+  DynamoDB TTL.
+
+### Endpoints
+
+All require the `X-Portfolio-Code` header except `POST /api/wishlist/new`.
+
+| Method | Path | Purpose |
+| --- | --- | --- |
+| `POST` | `/api/wishlist/new` | Generate a code, returns `{"code": "..."}` |
+| `GET` | `/api/wishlist` | List entries |
+| `PUT` | `/api/wishlist` | Add or update `{"symbol","note","targetPrice"}` |
+| `DELETE` | `/api/wishlist?symbol=X` | Remove an entry |
+
+The routes are registered only when `WISHLIST_TABLE` is set, so local runs
+without AWS credentials work unchanged — the tab simply reports the wishlist as
+unavailable.
+
+## Cost guardrails
+
+CloudFront has no spend cap, and cache hits never reach API Gateway, so the
+10 rps API throttle does nothing to bound egress. Three ceilings are deployed:
+
+| Guardrail | Effect |
+| --- | --- |
+| Lambda reserved concurrency (5) | Caps worst-case compute |
+| DynamoDB provisioned 1 RCU / 1 WCU, no autoscaling | Excess traffic is throttled, not billed (~$0.47/month) |
+| CloudWatch alarm on CloudFront `BytesDownloaded` | **Disables the distribution** and emails on an egress spike |
+| Monthly AWS Budget | Emails at 80% actual and 100% forecast — slow backup only, billing data lags 8–24h |
+
+Deploy-time context keys (all optional, defaults shown):
+
+```
+--context alertEmail=brokersync@dot-core.com
+--context budgetLimitUsd=5
+--context bytesAlarmGb=5
+```
+
+The alarm stack (`BrokersSyncCostGuardStack`) deploys to **us-east-1** because
+CloudFront publishes its CloudWatch metrics nowhere else. The main stack stays
+in eu-central-1.
+
+**After the first deploy, confirm the SNS subscription email.** Until that link
+is clicked, the alarm still fires but no mail is delivered.
+
+### When the kill switch fires
+
+The site goes down — that is the intended behaviour, not a bug. The distribution
+is left disabled until you re-enable it deliberately:
+
+```sh
+aws cloudfront get-distribution-config --id <DIST_ID> > cfg.json
+# set .DistributionConfig.Enabled = true, keep the ETag
+aws cloudfront update-distribution --id <DIST_ID> \
+  --distribution-config file://config-only.json --if-match <ETag>
+```
+
+Re-enabling takes roughly 10 minutes to propagate. Check CloudFront logs for the
+source of the traffic before turning it back on.

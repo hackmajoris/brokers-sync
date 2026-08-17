@@ -10,6 +10,7 @@ import { PositionsTab } from './tabs/PositionsTab'
 import { TradesTab } from './tabs/TradesTab'
 import { PnLTab } from './tabs/PnLTab'
 import { DividendsTab } from './tabs/DividendsTab'
+import { WishlistTab } from './tabs/WishlistTab'
 import { SettingsView } from './views/SettingsView'
 import { StockLookup } from './components/StockLookup'
 
@@ -20,20 +21,40 @@ const TABS = [
   { id: 'trades', label: 'Trades' },
   { id: 'pnl', label: 'P&L' },
   { id: 'dividends', label: 'Dividends' },
+  { id: 'wishlist', label: 'Wishlist' },
   { id: 'settings', label: 'Settings' },
 ] as const
 
 type TabId = (typeof TABS)[number]['id']
 
+// Tabs are addressable as /overview, /wishlist and so on. CloudFront maps 404
+// to index.html and the Go server falls back the same way, so deep links work.
+function tabFromPath(): TabId {
+  const slug = window.location.pathname.replace(/^\/+|\/+$/g, '')
+  return TABS.some(t => t.id === slug) ? (slug as TabId) : 'overview'
+}
+
 export function App() {
   const [data, setData] = useState<PortfolioData | null>(null)
   const [noData, setNoData] = useState(false)
   const [isDemo, setIsDemo] = useState(false)
-  const [activeTab, setActiveTab] = useState<TabId>('overview')
+  const [activeTab, setActiveTab] = useState<TabId>(tabFromPath)
   const [refreshing, setRefreshing] = useState(false)
   const [refreshError, setRefreshError] = useState<string | null>(null)
   const [drawerOpen, setDrawerOpen] = useState(false)
   const accent = ACCENT_DEFAULT
+
+  // Keep the URL and the back button in step with the visible tab.
+  useEffect(() => {
+    const path = `/${activeTab}`
+    if (window.location.pathname !== path) window.history.pushState({}, '', path)
+  }, [activeTab])
+
+  useEffect(() => {
+    const onPop = () => setActiveTab(tabFromPath())
+    window.addEventListener('popstate', onPop)
+    return () => window.removeEventListener('popstate', onPop)
+  }, [])
 
   useEffect(() => {
     async function init() {
@@ -193,17 +214,19 @@ export function App() {
       )}
 
       <main style={{ padding: '16px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
+        {activeTab === 'wishlist' && <WishlistTab accent={accent} />}
+
         {activeTab === 'settings' && (
           <SettingsView onImported={d => { setData(d); setNoData(false); setIsDemo(false); setActiveTab('overview') }} noData={noData} />
         )}
 
-        {!noData && activeTab !== 'settings' && !data && (
+        {!noData && activeTab !== 'settings' && activeTab !== 'wishlist' && !data && (
           <div style={{ color: '#555555', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>
             Loading portfolio data…
           </div>
         )}
 
-        {data && activeTab !== 'settings' && (
+        {data && activeTab !== 'settings' && activeTab !== 'wishlist' && (
           <>
             {activeTab === 'overview' && <OverviewTab data={data} accent={accent} />}
             {activeTab === 'brokers' && <BrokersTab data={data} accent={accent} />}

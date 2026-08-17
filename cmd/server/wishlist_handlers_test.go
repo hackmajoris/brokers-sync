@@ -26,7 +26,7 @@ func createCode(t *testing.T, srv *httptest.Server) string {
 	if err != nil {
 		t.Fatalf("create: %v", err)
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	if resp.StatusCode != http.StatusOK {
 		t.Fatalf("create status = %d, want 200", resp.StatusCode)
 	}
@@ -70,7 +70,7 @@ func TestWishlistLifecycle(t *testing.T) {
 	code := createCode(t, srv)
 
 	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, `{"symbol":"aapl","note":"earnings","targetPrice":150}`)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("PUT status = %d, want 204", resp.StatusCode)
 	}
@@ -82,7 +82,7 @@ func TestWishlistLifecycle(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if len(listed.Items) != 1 || listed.Items[0].Symbol != "AAPL" {
 		t.Fatalf("list = %+v, want one AAPL item", listed.Items)
 	}
@@ -91,7 +91,7 @@ func TestWishlistLifecycle(t *testing.T) {
 	}
 
 	resp = do(t, srv, http.MethodDelete, "/api/wishlist?symbol=AAPL", code, "")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusNoContent {
 		t.Fatalf("DELETE status = %d, want 204", resp.StatusCode)
 	}
@@ -100,7 +100,7 @@ func TestWishlistLifecycle(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode list: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if len(listed.Items) != 0 {
 		t.Errorf("list after delete = %+v, want empty", listed.Items)
 	}
@@ -114,7 +114,7 @@ func TestWishlistIsolatedPerCode(t *testing.T) {
 	a := createCode(t, srv)
 	b := createCode(t, srv)
 
-	do(t, srv, http.MethodPut, "/api/wishlist", a, `{"symbol":"AAPL"}`).Body.Close()
+	_ = do(t, srv, http.MethodPut, "/api/wishlist", a, `{"symbol":"AAPL"}`).Body.Close()
 
 	resp := do(t, srv, http.MethodGet, "/api/wishlist", b, "")
 	var listed struct {
@@ -123,7 +123,7 @@ func TestWishlistIsolatedPerCode(t *testing.T) {
 	if err := json.NewDecoder(resp.Body).Decode(&listed); err != nil {
 		t.Fatalf("decode: %v", err)
 	}
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if len(listed.Items) != 0 {
 		t.Fatalf("portfolio B sees %+v, want empty", listed.Items)
 	}
@@ -159,7 +159,7 @@ func TestUnauthorizedResponsesAreIndistinguishable(t *testing.T) {
 	for i, tc := range cases {
 		resp := do(t, srv, http.MethodGet, "/api/wishlist", tc.code, "")
 		raw, _ := io.ReadAll(resp.Body)
-		resp.Body.Close()
+		_ = resp.Body.Close()
 		got := response{resp.StatusCode, string(raw)}
 
 		if got.status != http.StatusNotFound {
@@ -182,7 +182,7 @@ func TestUpsertRejectsOversizedBody(t *testing.T) {
 
 	huge := `{"symbol":"AAPL","note":"` + strings.Repeat("x", maxWishlistBody+1) + `"}`
 	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, huge)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}
@@ -195,7 +195,7 @@ func TestUpsertRejectsOverlongNote(t *testing.T) {
 
 	body := `{"symbol":"AAPL","note":"` + strings.Repeat("x", wishlist.MaxNoteLen+1) + `"}`
 	resp := do(t, srv, http.MethodPut, "/api/wishlist", code, body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusBadRequest {
 		t.Fatalf("status = %d, want 400", resp.StatusCode)
 	}
@@ -207,13 +207,13 @@ func TestMethodNotAllowed(t *testing.T) {
 	code := createCode(t, srv)
 
 	resp := do(t, srv, http.MethodPatch, "/api/wishlist", code, "")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Errorf("PATCH status = %d, want 405", resp.StatusCode)
 	}
 
 	resp = do(t, srv, http.MethodGet, "/api/wishlist/new", "", "")
-	resp.Body.Close()
+	_ = resp.Body.Close()
 	if resp.StatusCode != http.StatusMethodNotAllowed {
 		t.Errorf("GET /new status = %d, want 405", resp.StatusCode)
 	}

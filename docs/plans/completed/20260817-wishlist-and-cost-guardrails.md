@@ -64,9 +64,9 @@ Gaps that shape the plan:
 
 A portfolio code is a **capability**: possession equals access. No recovery, no reset — stated plainly in the UI at generation time.
 
-- 128 bits from `crypto/rand`, encoded Crockford base32, displayed grouped: `K7M2-9QRF-3XVB-8TDW`.
+- 80 bits from `crypto/rand` (10 bytes), encoded Crockford base32, displayed grouped: `K7M2-9QRF-3XVB-8TDW`.
 - Crockford alphabet excludes `I`, `L`, `O`, `U` — no visual ambiguity, and no accidental words.
-- 128 bits is unguessable by any margin; brute force is not a considered threat.
+- Implemented as 80 bits, not the 128 originally written here: 128 bits encodes to 26 characters, contradicting the 16-character example above. 10 bytes encodes to exactly 16 characters with no padding, and 80 bits is unguessable against a 10 rps throttle by an enormous margin.
 - Server stores `sha256(code)` only. Normalization (uppercase, strip `-`) happens before hashing so display formatting never affects lookup.
 
 ### Why the code travels in a header, not the URL
