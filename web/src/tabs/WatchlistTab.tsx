@@ -15,7 +15,8 @@ import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
 import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
-import { fmtCurrency } from '../utils/format'
+import { fmtCurrency, fmtPct, clr } from '../utils/format'
+import type { Position } from '../types/portfolio'
 
 interface Props {
   accent: string
@@ -23,16 +24,42 @@ interface Props {
 
 const MAX_NOTE = 500
 
-type SortKey = 'symbol' | 'note' | 'target' | 'price' | IndicatorKey
+// A new symbol starts with a buy target 20% below the current price, which is a
+// usable starting point to edit rather than an empty field.
+const DEFAULT_TARGET_DISCOUNT = 0.8
+
+function defaultTarget(price: number): number {
+  return Number((price * DEFAULT_TARGET_DISCOUNT).toFixed(2))
+}
+
+type SortKey = 'symbol' | 'note' | 'target' | 'targetGap' | 'price' | IndicatorKey
 type SortDir = 'asc' | 'desc'
+
+// Performance and the 52-week range sit ahead of the target columns; the
+// valuation and health indicators follow the price.
+const LEAD_INDICATORS: IndicatorKey[] = ['ytd', 'threeYr', 'fiveYr', 'range']
+const TRAIL_INDICATORS: IndicatorKey[] = INDICATOR_COLUMNS.map(c => c.key).filter(k => !LEAD_INDICATORS.includes(k))
+
+const indicatorColumn = (key: IndicatorKey) => INDICATOR_COLUMNS.find(c => c.key === key)!
 
 const COLUMNS: { key: SortKey; label: string; align?: 'left' | 'right' }[] = [
   { key: 'symbol', label: 'Symbol', align: 'left' },
-  { key: 'note', label: 'Note', align: 'left' },
-  { key: 'target', label: 'Target' },
+  ...LEAD_INDICATORS.map(indicatorColumn),
+  { key: 'target', label: 'Target Value' },
+  { key: 'targetGap', label: 'Target Diff' },
   { key: 'price', label: 'Price' },
-  ...INDICATOR_COLUMNS,
+  ...TRAIL_INDICATORS.map(indicatorColumn),
+  { key: 'note', label: 'Note', align: 'left' },
 ]
+
+// targetGap is how far the price still has to move to reach the target, as a
+// percentage of the price. Negative means it has to fall, positive means it is
+// already past. null when there is no target or no price to compare.
+function targetGap(item: WatchlistItem): number | null {
+  const price = item.indicators?.currentPrice
+  if (!(item.targetPrice > 0) || price == null || price <= 0) return null
+  return ((item.targetPrice - price) / price) * 100
+}
 
 function sortValue(item: WatchlistItem, key: SortKey): number | string {
   switch (key) {
@@ -42,6 +69,8 @@ function sortValue(item: WatchlistItem, key: SortKey): number | string {
       return item.note ?? ''
     case 'target':
       return item.targetPrice ?? -Infinity
+    case 'targetGap':
+      return targetGap(item) ?? -Infinity
     case 'price':
       return item.indicators?.currentPrice ?? -Infinity
     default:
@@ -76,11 +105,13 @@ export function WatchlistTab({ accent }: Props) {
   const [sortDir, setSortDir] = useState<SortDir>('asc')
   const searchTimer = useRef<number | undefined>(undefined)
 
-  async function refresh() {
+  async function refresh(): Promise<WatchlistItem[]> {
     setLoading(true)
     setError(null)
     try {
-      setItems(await listWatchlist())
+      const fetched = await listWatchlist()
+      setItems(fetched)
+      return fetched
     } catch (e) {
       if (e instanceof InvalidCodeError) {
         clearCode()
@@ -93,6 +124,7 @@ export function WatchlistTab({ accent }: Props) {
     } finally {
       setLoading(false)
     }
+    return []
   }
 
   useEffect(() => {
@@ -142,7 +174,14 @@ export function WatchlistTab({ accent }: Props) {
     setResults([])
     try {
       await upsertWatchlist({ symbol })
-      await refresh()
+      const fetched = await refresh()
+      // Seed a starting buy target 20% under the current price. The refresh
+      // already carries indicators, so this costs no extra upstream fetch.
+      const added = fetched.find(i => i.symbol === symbol)
+      const price = added?.indicators?.currentPrice
+      if (added && !added.targetPrice && price != null) {
+        await handleSave(added, { targetPrice: defaultTarget(price) })
+      }
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     }
@@ -339,10 +378,18 @@ function Row({
   const [note, setNote] = useState(item.note ?? '')
   const [target, setTarget] = useState(item.targetPrice ? String(item.targetPrice) : '')
 
+  // The target can change from outside this input — adding a symbol seeds one
+  // from the price after the row has already mounted — and useState keeps its
+  // first value, so without this the seeded target never appears in the field.
+  useEffect(() => {
+    setTarget(item.targetPrice ? String(item.targetPrice) : '')
+  }, [item.targetPrice])
+
   const p = item.indicators
   // Target hit: the price has fallen below the buy target the user set, so the
   // input turns green. No target or no price means nothing to compare.
   const hit = item.targetPrice > 0 && p?.currentPrice != null && p.currentPrice < item.targetPrice
+  const gap = targetGap(item)
 
   return (
     // Clicking the row opens the same lookup modal the Positions tab uses.
@@ -361,6 +408,74 @@ function Row({
       }}
     >
       <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol('#000000', 1) }}>{item.symbol}</td>
+      <IndicatorGroup p={p} keys={LEAD_INDICATORS} />
+      <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+          <input
+            value={target}
+            inputMode="decimal"
+            onChange={e => setTarget(e.target.value)}
+            onBlur={() => {
+              const parsed = target === '' ? 0 : Number(target)
+              if (!Number.isNaN(parsed) && parsed !== item.targetPrice) onSave(item, { targetPrice: parsed })
+            }}
+            placeholder="—"
+            style={{
+              ...inputStyle,
+              width: 90,
+              textAlign: 'right',
+              ...(hit ? { color: '#34d399', borderColor: '#34d39955', background: '#34d39914', fontWeight: 600 } : {}),
+            }}
+          />
+          <button
+            onClick={() => p?.currentPrice != null && onSave(item, { targetPrice: defaultTarget(p.currentPrice) })}
+            disabled={p?.currentPrice == null}
+            title={`Reset target to 20% below the current price`}
+            aria-label={`Reset ${item.symbol} target to 20% below the current price`}
+            style={{
+              background: 'transparent',
+              border: '1px solid #262626',
+              borderRadius: 6,
+              width: 24,
+              height: 24,
+              lineHeight: 1,
+              padding: 0,
+              color: '#777777',
+              fontSize: 12,
+              cursor: p?.currentPrice == null ? 'default' : 'pointer',
+              opacity: p?.currentPrice == null ? 0.4 : 1,
+            }}
+            onMouseEnter={e => {
+              if (p?.currentPrice == null) return
+              e.currentTarget.style.color = accent
+              e.currentTarget.style.borderColor = accent + '55'
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.color = '#777777'
+              e.currentTarget.style.borderColor = '#262626'
+            }}
+          >
+            ↻
+          </button>
+        </div>
+      </td>
+      <td
+        style={{
+          ...td,
+          textAlign: 'right',
+          fontSize: 11,
+          fontWeight: 600,
+          fontFamily: "'DM Mono', monospace",
+          whiteSpace: 'nowrap',
+          color: gap == null ? '#555555' : clr(gap),
+        }}
+      >
+        {gap == null ? '—' : fmtPct(gap)}
+      </td>
+      <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
+        {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+      </td>
+      <IndicatorGroup p={p} keys={TRAIL_INDICATORS} />
       <td style={td} onClick={e => e.stopPropagation()}>
         <input
           value={note}
@@ -372,43 +487,50 @@ function Row({
         />
       </td>
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-        <input
-          value={target}
-          inputMode="decimal"
-          onChange={e => setTarget(e.target.value)}
-          onBlur={() => {
-            const parsed = target === '' ? 0 : Number(target)
-            if (!Number.isNaN(parsed) && parsed !== item.targetPrice) onSave(item, { targetPrice: parsed })
-          }}
-          placeholder="—"
+        <button
+          onClick={() => onRemove(item.symbol)}
+          title={`Remove ${item.symbol}`}
+          aria-label={`Remove ${item.symbol}`}
           style={{
-            ...inputStyle,
-            width: 90,
-            textAlign: 'right',
-            ...(hit ? { color: '#34d399', borderColor: '#34d39955', background: '#34d39914', fontWeight: 600 } : {}),
+            background: 'transparent',
+            border: '1px solid #262626',
+            borderRadius: 6,
+            width: 24,
+            height: 24,
+            lineHeight: 1,
+            padding: 0,
+            color: '#777777',
+            fontSize: 14,
+            cursor: 'pointer',
           }}
-        />
-      </td>
-      <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
-        {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
-      </td>
-      {p ? (
-        <IndicatorCells p={p} />
-      ) : (
-        // Indicators are fetched upstream and can be missing for a delisted or
-        // unrecognised symbol; keep the column count stable so the row lines up.
-        INDICATOR_COLUMNS.map(col => (
-          <td key={col.key} style={{ ...td, textAlign: 'right', color: '#555555' }}>
-            —
-          </td>
-        ))
-      )}
-      <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
-        <button onClick={() => onRemove(item.symbol)} style={{ ...secondaryBtn, padding: '4px 8px' }}>
-          Remove
+          onMouseEnter={e => {
+            e.currentTarget.style.color = '#e06c6c'
+            e.currentTarget.style.borderColor = '#e06c6c55'
+          }}
+          onMouseLeave={e => {
+            e.currentTarget.style.color = '#777777'
+            e.currentTarget.style.borderColor = '#262626'
+          }}
+        >
+          ×
         </button>
       </td>
     </tr>
+  )
+}
+
+// Indicators are fetched upstream and can be missing for a delisted or
+// unrecognised symbol; keep the column count stable so the row lines up.
+function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
+  if (p) return <IndicatorCells p={p} keys={keys} />
+  return (
+    <>
+      {keys.map(key => (
+        <td key={key} style={{ ...td, textAlign: 'right', color: '#555555' }}>
+          —
+        </td>
+      ))}
+    </>
   )
 }
 

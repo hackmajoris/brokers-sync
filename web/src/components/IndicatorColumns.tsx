@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { Fragment, type ReactNode } from 'react'
 import type { Position } from '../types/portfolio'
 import { fmt, fmtPct, fmtKMBT, clr } from '../utils/format'
 import { RangeGauge } from '../components/charts/RangeGauge'
@@ -23,12 +23,12 @@ export type IndicatorKey =
   | 'valuation'
 
 export const INDICATOR_COLUMNS: { key: IndicatorKey; label: string }[] = [
-  { key: 'range', label: '52 Week Low/High' },
-  { key: 'pe', label: 'P/E' },
-  { key: 'forwardPe', label: 'Forward P/E' },
   { key: 'ytd', label: 'YTD' },
   { key: 'threeYr', label: '3Y' },
   { key: 'fiveYr', label: '5Y' },
+  { key: 'range', label: '52 Week Low/High' },
+  { key: 'pe', label: 'P/E' },
+  { key: 'forwardPe', label: 'Forward P/E' },
   { key: 'fcf', label: 'FCF' },
   { key: 'evToEbitda', label: 'EV/EBITDA' },
   { key: 'debtToEquity', label: 'Debt/Equity' },
@@ -96,63 +96,99 @@ const pill: React.CSSProperties = { padding: '2px 7px', borderRadius: 4, fontSiz
 
 // IndicatorCells renders one <td> per INDICATOR_COLUMNS entry, in the same
 // order, so a caller only has to emit the matching headers.
-export function IndicatorCells({ p }: { p: Position }) {
+// One renderer per indicator, keyed so a caller can render any subset in any
+// order. The watchlist splits this block across its target columns, so a fixed
+// sequence of <td>s no longer works — and driving cells from the same keys the
+// headers use is what keeps the two from drifting apart.
+const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
+  range: p => (
+    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+      {p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null ? (
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
+        </div>
+      ) : (
+        <span style={{ color: '#555555' }}>—</span>
+      )}
+    </td>
+  ),
+  pe: p => <td style={cell}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>,
+  forwardPe: p => <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>,
+  ytd: p => (
+    <td style={{ ...cell, color: p.ytdReturn != null ? clr(p.ytdReturn) : '#c0c0c0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
+  ),
+  threeYr: p => (
+    <td style={{ ...cell, color: p.threeYrReturn != null ? clr(p.threeYrReturn) : '#c0c0c0' }}>
+      {p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}
+    </td>
+  ),
+  fiveYr: p => (
+    <td style={{ ...cell, color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#c0c0c0' }}>
+      {p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
+    </td>
+  ),
+  fcf: p => (
+    <td style={{ ...cell, color: p.fcf != null ? clr(p.fcf) : '#c0c0c0' }}>
+      <ValueWithNote value={p.fcf != null ? fmtKMBT(p.fcf) : '—'} note={p.fcfInterpretation} />
+    </td>
+  ),
+  evToEbitda: p => (
+    <td style={cell}>
+      <ValueWithNote value={p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'} note={p.evToEbitdaInterpretation} />
+    </td>
+  ),
+  debtToEquity: p => (
+    <td style={cell}>
+      <ValueWithNote value={p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'} note={p.debtToEquityInterpretation} />
+    </td>
+  ),
+  cashFlowQuality: p => (
+    <td style={cell}>
+      <ValueWithNote value={p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'} note={p.cashFlowQualityInterpretation} />
+    </td>
+  ),
+  health: p => (
+    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+      <ValueWithNote
+        value={
+          p.healthRating ? (
+            <span style={{ ...pill, background: (HEALTH_COLORS[p.healthRating] ?? '#555555') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#555555' }}>
+              {ratingLabel(p.healthRating)}
+            </span>
+          ) : (
+            <span style={{ color: '#555555' }}>—</span>
+          )
+        }
+        note={p.healthReason}
+      />
+    </td>
+  ),
+  valuation: p => (
+    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+      <ValueWithNote
+        value={
+          p.valuationRating ? (
+            <span style={{ ...pill, background: (VALUATION_COLORS[p.valuationRating] ?? '#555555') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#555555' }}>
+              {ratingLabel(p.valuationRating)}
+            </span>
+          ) : (
+            <span style={{ color: '#555555' }}>—</span>
+          )
+        }
+        note={p.valuationReason}
+      />
+    </td>
+  ),
+}
+
+// keys defaults to every indicator, in INDICATOR_COLUMNS order.
+export function IndicatorCells({ p, keys }: { p: Position; keys?: IndicatorKey[] }) {
+  const render = keys ?? INDICATOR_COLUMNS.map(c => c.key)
   return (
     <>
-      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-        {p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null ? (
-          <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-            <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
-          </div>
-        ) : (
-          <span style={{ color: '#555555' }}>—</span>
-        )}
-      </td>
-      <td style={cell}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>
-      <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>
-      <td style={{ ...cell, color: p.ytdReturn != null ? clr(p.ytdReturn) : '#c0c0c0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
-      <td style={{ ...cell, color: p.threeYrReturn != null ? clr(p.threeYrReturn) : '#c0c0c0' }}>{p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}</td>
-      <td style={{ ...cell, color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#c0c0c0' }}>{p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}</td>
-      <td style={{ ...cell, color: p.fcf != null ? clr(p.fcf) : '#c0c0c0' }}>
-        <ValueWithNote value={p.fcf != null ? fmtKMBT(p.fcf) : '—'} note={p.fcfInterpretation} />
-      </td>
-      <td style={cell}>
-        <ValueWithNote value={p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'} note={p.evToEbitdaInterpretation} />
-      </td>
-      <td style={cell}>
-        <ValueWithNote value={p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'} note={p.debtToEquityInterpretation} />
-      </td>
-      <td style={cell}>
-        <ValueWithNote value={p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'} note={p.cashFlowQualityInterpretation} />
-      </td>
-      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-        <ValueWithNote
-          value={
-            p.healthRating ? (
-              <span style={{ ...pill, background: (HEALTH_COLORS[p.healthRating] ?? '#555555') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#555555' }}>
-                {ratingLabel(p.healthRating)}
-              </span>
-            ) : (
-              <span style={{ color: '#555555' }}>—</span>
-            )
-          }
-          note={p.healthReason}
-        />
-      </td>
-      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
-        <ValueWithNote
-          value={
-            p.valuationRating ? (
-              <span style={{ ...pill, background: (VALUATION_COLORS[p.valuationRating] ?? '#555555') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#555555' }}>
-                {ratingLabel(p.valuationRating)}
-              </span>
-            ) : (
-              <span style={{ color: '#555555' }}>—</span>
-            )
-          }
-          note={p.valuationReason}
-        />
-      </td>
+      {render.map(key => (
+        <Fragment key={key}>{INDICATOR_CELLS[key](p)}</Fragment>
+      ))}
     </>
   )
 }
