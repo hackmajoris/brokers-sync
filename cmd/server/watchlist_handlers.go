@@ -6,7 +6,6 @@ import (
 	"errors"
 	"log"
 	"net/http"
-	"sync"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -15,10 +14,12 @@ import (
 	"brokers-sync/internal/watchlist"
 )
 
-// indicatorConcurrency bounds parallel Yahoo calls during a watchlist read.
+// indicatorConcurrency bounds parallel symbol fetches during a watchlist read.
 // Lambda gets 29s in total, so fetching a full 50-symbol list serially would
 // time out, while firing all 50 at once risks being rate limited upstream.
-const indicatorConcurrency = 8
+// Each symbol now costs 8 upstream calls rather than 21, so 16 in flight is
+// still fewer concurrent requests than the old limit of 8 allowed.
+const indicatorConcurrency = 16
 
 // maxWatchlistBody caps request bodies; entries are a symbol, a short note and a
 // price, so anything larger is abuse.
@@ -108,25 +109,22 @@ func (h *watchlistHandler) list(w http.ResponseWriter, r *http.Request, pk strin
 		return
 	}
 
+	symbols := make([]string, len(items))
+	for i, item := range items {
+		symbols[i] = item.Symbol
+	}
+	indicators := prices.FetchListIndicators(r.Context(), symbols, indicatorConcurrency)
+
 	entries := make([]watchlistEntry, len(items))
-	sem := make(chan struct{}, indicatorConcurrency)
-	var wg sync.WaitGroup
 	for i, item := range items {
 		entries[i] = watchlistEntry{Item: item}
-		wg.Add(1)
-		go func() {
-			defer wg.Done()
-			sem <- struct{}{}
-			defer func() { <-sem }()
-			// A symbol with no upstream data is returned without indicators
-			// rather than failing the request: one delisted ticker must not
-			// blank out the whole watchlist.
-			if ti, ok := prices.FetchTickerIndicators(r.Context(), item.Symbol); ok {
-				entries[i].Indicators = tickerPayload(item.Symbol, ti)
-			}
-		}()
+		// A symbol with no upstream data is returned without indicators rather
+		// than failing the request: one delisted ticker must not blank out the
+		// whole watchlist.
+		if ti, ok := indicators[item.Symbol]; ok {
+			entries[i].Indicators = tickerPayload(item.Symbol, ti)
+		}
 	}
-	wg.Wait()
 
 	_ = json.NewEncoder(w).Encode(map[string]any{"items": entries})
 }

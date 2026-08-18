@@ -93,11 +93,26 @@ type TickerIndicators struct {
 // modal costs one crumb fetch instead of one per indicator. Returns ok=false
 // when nothing at all resolved (unknown or invalid symbol).
 func FetchTickerIndicators(ctx context.Context, symbol string) (*TickerIndicators, bool) {
+	if ti, ok := cachedIndicators(symbol, true); ok {
+		return ti, true
+	}
 	client, err := yahoo.New()
 	if err != nil {
 		return nil, false
 	}
+	ti, ok := fetchIndicators(ctx, client, symbol, true)
+	if ok {
+		storeIndicators(symbol, true, ti)
+	}
+	return ti, ok
+}
 
+// fetchIndicators does the work for both scopes against a caller-supplied
+// client. full=false fetches only the indicators the positions and watchlist
+// tables render, skipping the dozen that feed the stock-lookup modal alone —
+// the modal refetches them itself, so fetching them per row costs a round trip
+// each and is never read.
+func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, full bool) (*TickerIndicators, bool) {
 	ti := &TickerIndicators{}
 	var resolved bool
 
@@ -185,123 +200,127 @@ func FetchTickerIndicators(ctx context.Context, symbol string) (*TickerIndicator
 		ti.CFQInterp = v.Interpretation
 		return true
 	})
-	run(func() bool {
-		v, err := client.GetMarketCap(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.MarketCap = &v.MarketCap
-		ti.MarketCapInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetPriceToSales(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.PriceToSales = &v.Ratio
-		ti.PriceToSalesInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetPriceToBook(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.PriceToBook = &v.Ratio
-		ti.PriceToBookInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetFreeCashFlowYield(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.FCFYield = &v.Yield
-		ti.FCFYieldInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetProfitMargin(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.ProfitMargin = &v.Margin
-		ti.ProfitMarginInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetOperatingMargin(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.OperatingMargin = &v.Margin
-		ti.OperatingMarginInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetQuarterlyEarningsGrowth(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.QuarterlyEarningsGrowth = &v.Growth
-		ti.QuarterlyEarningsGrowthInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetQuarterlyRevenueGrowth(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.QuarterlyRevenueGrowth = &v.Growth
-		ti.QuarterlyRevenueGrowthInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetCash(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.Cash = &v.Cash
-		ti.CashInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetDebt(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.Debt = &v.Debt
-		ti.DebtInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetDividendYield(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.DividendYield = &v.Yield
-		ti.DividendYieldInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetPayoutRatio(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.PayoutRatio = &v.Ratio
-		ti.PayoutRatioInterp = v.Interpretation
-		return true
-	})
-	run(func() bool {
-		v, err := client.GetPayoutDate(ctx, symbol)
-		if err != nil {
-			return false
-		}
-		ti.PayoutDate = &v.Date
-		ti.PayoutDateInterp = v.Interpretation
-		return true
-	})
+	// Modal-only indicators. The tables never render these, and the modal
+	// refetches them per symbol on open, so a list fetch skips them.
+	if full {
+		run(func() bool {
+			v, err := client.GetMarketCap(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.MarketCap = &v.MarketCap
+			ti.MarketCapInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetPriceToSales(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.PriceToSales = &v.Ratio
+			ti.PriceToSalesInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetPriceToBook(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.PriceToBook = &v.Ratio
+			ti.PriceToBookInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetFreeCashFlowYield(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.FCFYield = &v.Yield
+			ti.FCFYieldInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetProfitMargin(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.ProfitMargin = &v.Margin
+			ti.ProfitMarginInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetOperatingMargin(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.OperatingMargin = &v.Margin
+			ti.OperatingMarginInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetQuarterlyEarningsGrowth(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.QuarterlyEarningsGrowth = &v.Growth
+			ti.QuarterlyEarningsGrowthInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetQuarterlyRevenueGrowth(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.QuarterlyRevenueGrowth = &v.Growth
+			ti.QuarterlyRevenueGrowthInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetCash(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.Cash = &v.Cash
+			ti.CashInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetDebt(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.Debt = &v.Debt
+			ti.DebtInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetDividendYield(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.DividendYield = &v.Yield
+			ti.DividendYieldInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetPayoutRatio(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.PayoutRatio = &v.Ratio
+			ti.PayoutRatioInterp = v.Interpretation
+			return true
+		})
+		run(func() bool {
+			v, err := client.GetPayoutDate(ctx, symbol)
+			if err != nil {
+				return false
+			}
+			ti.PayoutDate = &v.Date
+			ti.PayoutDateInterp = v.Interpretation
+			return true
+		})
+	}
 
 	wg.Wait()
 
