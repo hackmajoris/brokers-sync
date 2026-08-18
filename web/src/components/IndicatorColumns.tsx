@@ -46,6 +46,42 @@ export const INDICATOR_INFO: Partial<Record<string, string>> = {
   valuation: 'Coarse read on whether the market price looks cheap or expensive, from forward-vs-trailing P/E and EV/EBITDA. Says nothing about financial health — pair with the Health column.',
 }
 
+function rangePct(p: Position): number {
+  if (p.weekLow52 == null || p.weekHigh52 == null || p.currentPrice == null) return -Infinity
+  if (p.weekHigh52 <= p.weekLow52) return -Infinity
+  return (p.currentPrice - p.weekLow52) / (p.weekHigh52 - p.weekLow52)
+}
+
+export function indicatorSortValue(p: Position | undefined, key: IndicatorKey): number | string {
+  if (!p) return key === 'health' || key === 'valuation' ? '' : -Infinity
+  switch (key) {
+    case 'range':
+      return rangePct(p)
+    case 'pe':
+      return p.pe ?? -Infinity
+    case 'forwardPe':
+      return p.forwardPE ?? -Infinity
+    case 'ytd':
+      return p.ytdReturn ?? -Infinity
+    case 'threeYr':
+      return p.threeYrReturn ?? -Infinity
+    case 'fiveYr':
+      return p.fiveYrReturn ?? -Infinity
+    case 'fcf':
+      return p.fcf ?? -Infinity
+    case 'evToEbitda':
+      return p.evToEbitda ?? -Infinity
+    case 'debtToEquity':
+      return p.debtToEquity ?? -Infinity
+    case 'cashFlowQuality':
+      return p.cashFlowQuality ?? -Infinity
+    case 'health':
+      return p.healthRating ?? ''
+    case 'valuation':
+      return p.valuationRating ?? ''
+  }
+}
+
 export function ValueWithNote({ value, note }: { value: ReactNode; note?: string }) {
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>

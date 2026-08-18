@@ -8,7 +8,7 @@ import { SectionLabel } from '../components/ui/SectionLabel'
 import { BrokerPill } from '../components/ui/BrokerPill'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
-import { IndicatorCells, INDICATOR_INFO } from '../components/IndicatorColumns'
+import { IndicatorCells, INDICATOR_INFO, indicatorSortValue } from '../components/IndicatorColumns'
 
 interface Props {
   data: PortfolioData
@@ -48,12 +48,6 @@ const COLUMNS: Column[] = [
   { key: 'alloc', label: 'Allocation' },
 ]
 
-function rangePct(p: Position): number {
-  if (p.weekLow52 == null || p.weekHigh52 == null || p.currentPrice == null) return -Infinity
-  if (p.weekHigh52 <= p.weekLow52) return -Infinity
-  return (p.currentPrice - p.weekLow52) / (p.weekHigh52 - p.weekLow52)
-}
-
 function sortValue(p: Position, key: SortKey): number | string {
   switch (key) {
     case 'symbol':
@@ -69,30 +63,8 @@ function sortValue(p: Position, key: SortKey): number | string {
       return p.pnl ?? -Infinity
     case 'pct':
       return p.pct ?? -Infinity
-    case 'range':
-      return rangePct(p)
-    case 'pe':
-      return p.pe ?? -Infinity
-    case 'forwardPe':
-      return p.forwardPE ?? -Infinity
-    case 'ytd':
-      return p.ytdReturn ?? -Infinity
-    case 'threeYr':
-      return p.threeYrReturn ?? -Infinity
-    case 'fiveYr':
-      return p.fiveYrReturn ?? -Infinity
-    case 'fcf':
-      return p.fcf ?? -Infinity
-    case 'evToEbitda':
-      return p.evToEbitda ?? -Infinity
-    case 'debtToEquity':
-      return p.debtToEquity ?? -Infinity
-    case 'cashFlowQuality':
-      return p.cashFlowQuality ?? -Infinity
-    case 'health':
-      return p.healthRating ?? ''
-    case 'valuation':
-      return p.valuationRating ?? ''
+    default:
+      return indicatorSortValue(p, key)
   }
 }
 

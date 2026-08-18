@@ -7,7 +7,7 @@ AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Accou
 .DEFAULT_GOAL := help
 
 .PHONY: help \
-        dev build build-web build-server run \
+        dev dev-mock build build-web build-server run \
         compose-up compose-build compose-up-d compose-logs compose-down \
         cdk-diff cdk-deploy cdk-destroy \
         cdk-bootstrap ecr-setup
@@ -35,6 +35,9 @@ dev: build-web ## Build web, then run Go server (live-reload via air) and Vite d
 	@trap 'kill 0' EXIT; \
 	go run github.com/air-verse/air@latest & \
 	cd web && npm run dev
+
+dev-mock: ## Run Vite alone with the in-memory mock /api (no Go server, no real data)
+	cd web && npm run dev:mock
 
 build: build-web build-server ## Build web and server
 

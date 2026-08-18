@@ -2,6 +2,7 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import fs from 'fs'
 import path from 'path'
+import { mockApi } from './mockApi'
 
 export default defineConfig({
   define: {
@@ -9,6 +10,7 @@ export default defineConfig({
   },
   plugins: [
     react(),
+    mockApi(),
     {
       name: 'serve-portfolio-data',
       configureServer(server) {

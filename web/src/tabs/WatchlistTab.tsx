@@ -14,7 +14,7 @@ import {
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
-import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO } from '../components/IndicatorColumns'
+import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
 import { fmtCurrency } from '../utils/format'
 
 interface Props {
@@ -22,6 +22,44 @@ interface Props {
 }
 
 const MAX_NOTE = 500
+
+type SortKey = 'symbol' | 'note' | 'target' | 'price' | IndicatorKey
+type SortDir = 'asc' | 'desc'
+
+const COLUMNS: { key: SortKey; label: string; align?: 'left' | 'right' }[] = [
+  { key: 'symbol', label: 'Symbol', align: 'left' },
+  { key: 'note', label: 'Note', align: 'left' },
+  { key: 'target', label: 'Target' },
+  { key: 'price', label: 'Price' },
+  ...INDICATOR_COLUMNS,
+]
+
+function sortValue(item: WatchlistItem, key: SortKey): number | string {
+  switch (key) {
+    case 'symbol':
+      return item.symbol
+    case 'note':
+      return item.note ?? ''
+    case 'target':
+      return item.targetPrice ?? -Infinity
+    case 'price':
+      return item.indicators?.currentPrice ?? -Infinity
+    default:
+      return indicatorSortValue(item.indicators, key)
+  }
+}
+
+function sortItems(items: WatchlistItem[], key: SortKey, dir: SortDir): WatchlistItem[] {
+  const mul = dir === 'asc' ? 1 : -1
+  return items.slice().sort((a, b) => {
+    const va = sortValue(a, key)
+    const vb = sortValue(b, key)
+    if (typeof va === 'string' || typeof vb === 'string') {
+      return mul * String(va).localeCompare(String(vb))
+    }
+    return mul * (va - vb)
+  })
+}
 
 export function WatchlistTab({ accent }: Props) {
   const [code, setCode] = useState<string | null>(loadCode())
@@ -34,6 +72,8 @@ export function WatchlistTab({ accent }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<TickerSearchResult[]>([])
   const [copied, setCopied] = useState(false)
+  const [sortKey, setSortKey] = useState<SortKey>('symbol')
+  const [sortDir, setSortDir] = useState<SortDir>('asc')
   const searchTimer = useRef<number | undefined>(undefined)
 
   async function refresh() {
@@ -127,6 +167,15 @@ export function WatchlistTab({ accent }: Props) {
       await refresh()
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+    }
+  }
+
+  function handleSort(key: SortKey) {
+    if (key === sortKey) {
+      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
+    } else {
+      setSortKey(key)
+      setSortDir(key === 'symbol' || key === 'note' ? 'asc' : 'desc')
     }
   }
 
@@ -230,15 +279,24 @@ export function WatchlistTab({ accent }: Props) {
         <div style={{ width: '100%', overflowX: 'auto' }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
-            <tr style={{ color: '#666666', textAlign: 'left' }}>
-              <th style={th}>Symbol</th>
-              <th style={th}>Note</th>
-              <th style={{ ...th, textAlign: 'right' }}>Target</th>
-              <th style={{ ...th, textAlign: 'right' }}>Price</th>
-              {INDICATOR_COLUMNS.map(col => (
-                <th key={col.key} style={{ ...th, textAlign: 'right', whiteSpace: 'nowrap' }}>
-                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+            <tr style={{ color: '#666666', textAlign: 'left', background: '#000000' }}>
+              {COLUMNS.map(col => (
+                <th
+                  key={col.key}
+                  onClick={() => handleSort(col.key)}
+                  style={{
+                    ...th,
+                    textAlign: col.align ?? 'right',
+                    whiteSpace: 'nowrap',
+                    cursor: 'pointer',
+                    userSelect: 'none',
+                    color: sortKey === col.key ? '#c0c0c0' : '#666666',
+                    ...(col.key === 'symbol' ? stickyCol('#000000', 2) : {}),
+                  }}
+                >
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
                     {col.label}
+                    <span style={{ fontSize: 8, opacity: sortKey === col.key ? 1 : 0.25 }}>{sortKey === col.key && sortDir === 'asc' ? '▲' : '▼'}</span>
                     {INDICATOR_INFO[col.key] && <InfoTooltip text={INDICATOR_INFO[col.key]!} />}
                   </span>
                 </th>
@@ -247,7 +305,7 @@ export function WatchlistTab({ accent }: Props) {
             </tr>
           </thead>
           <tbody>
-            {items.map(item => (
+            {sortItems(items, sortKey, sortDir).map(item => (
               <Row key={item.symbol} item={item} accent={accent} onSave={handleSave} onRemove={handleRemove} />
             ))}
           </tbody>
@@ -282,6 +340,9 @@ function Row({
   const [target, setTarget] = useState(item.targetPrice ? String(item.targetPrice) : '')
 
   const p = item.indicators
+  // Target hit: the price has fallen below the buy target the user set, so the
+  // input turns green. No target or no price means nothing to compare.
+  const hit = item.targetPrice > 0 && p?.currentPrice != null && p.currentPrice < item.targetPrice
 
   return (
     // Clicking the row opens the same lookup modal the Positions tab uses.
@@ -290,10 +351,16 @@ function Row({
     <tr
       onClick={() => openStockLookup(item.symbol)}
       style={{ borderTop: '1px solid #161616', cursor: 'pointer' }}
-      onMouseEnter={e => (e.currentTarget.style.background = accent + '11')}
-      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+      onMouseEnter={e => {
+        e.currentTarget.style.background = accent + '11'
+        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#111111'
+      }}
+      onMouseLeave={e => {
+        e.currentTarget.style.background = 'transparent'
+        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#000000'
+      }}
     >
-      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{item.symbol}</td>
+      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol('#000000', 1) }}>{item.symbol}</td>
       <td style={td} onClick={e => e.stopPropagation()}>
         <input
           value={note}
@@ -314,7 +381,12 @@ function Row({
             if (!Number.isNaN(parsed) && parsed !== item.targetPrice) onSave(item, { targetPrice: parsed })
           }}
           placeholder="—"
-          style={{ ...inputStyle, width: 90, textAlign: 'right' }}
+          style={{
+            ...inputStyle,
+            width: 90,
+            textAlign: 'right',
+            ...(hit ? { color: '#34d399', borderColor: '#34d39955', background: '#34d39914', fontWeight: 600 } : {}),
+          }}
         />
       </td>
       <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
@@ -375,6 +447,10 @@ function primaryBtn(accent: string): React.CSSProperties {
     fontWeight: 600,
     cursor: 'pointer',
   }
+}
+
+function stickyCol(background: string, zIndex: number): React.CSSProperties {
+  return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid #161616' }
 }
 
 const th: React.CSSProperties = { padding: '6px 8px', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
