@@ -149,6 +149,10 @@ export async function uploadZip(
   name: string,
   onLog?: (line: string) => void,
 ): Promise<RawPortfolio | null> {
+  // An empty blob still produces a valid multipart header, so the server
+  // reports a confusing "multipart: NextPart: EOF" instead of the real problem.
+  if (blob.size === 0) throw new Error(`${name} is empty — re-upload the ZIP file`)
+
   const fd = new FormData()
   fd.append('file', blob, name)
   const res = await fetch('/api/upload/zip', { method: 'POST', body: fd })
