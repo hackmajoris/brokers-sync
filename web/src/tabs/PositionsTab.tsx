@@ -17,7 +17,7 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
-type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'ytd' | 'threeYr' | 'fiveYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'health' | 'valuation' | 'alloc'
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'today' | 'oneWeek' | 'oneMonth' | 'ytd' | 'threeYr' | 'fiveYr' | 'tenYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'health' | 'valuation' | 'alloc'
 type SortDir = 'asc' | 'desc'
 
 interface Column {
@@ -33,9 +33,13 @@ const COLUMNS: Column[] = [
   { key: 'cost', label: 'Cost Basis' },
   { key: 'pnl', label: 'Unrealized P&L' },
   { key: 'pct', label: 'Return' },
+  { key: 'today', label: '1D' },
+  { key: 'oneWeek', label: '1W' },
+  { key: 'oneMonth', label: '1M' },
   { key: 'ytd', label: 'YTD' },
   { key: 'threeYr', label: '3Y' },
   { key: 'fiveYr', label: '5Y' },
+  { key: 'tenYr', label: '10Y' },
   { key: 'range', label: '52 Week Low/High' },
   { key: 'pe', label: 'P/E' },
   { key: 'forwardPe', label: 'Forward P/E' },

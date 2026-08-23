@@ -19,9 +19,13 @@ type TickerIndicators struct {
 	PE        *float64
 	ForwardPE *float64
 
+	Today     *float64
+	OneWeek   *float64
+	OneMonth  *float64
 	YTD       *float64
 	ThreeYear *float64
 	FiveYear  *float64
+	TenYear   *float64
 
 	FCF       *float64
 	FCFInterp string
@@ -158,9 +162,13 @@ func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, f
 		if err != nil {
 			return false
 		}
+		ti.Today = &p.Today
+		ti.OneWeek = &p.OneWeek
+		ti.OneMonth = &p.OneMonth
 		ti.YTD = &p.YTD
 		ti.ThreeYear = &p.ThreeYear
 		ti.FiveYear = &p.FiveYear
+		ti.TenYear = &p.TenYear
 		return true
 	})
 	run(func() bool {

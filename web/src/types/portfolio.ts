@@ -32,9 +32,13 @@ export interface RawPosition {
   week_52_high?: number
   pe?: number
   forward_pe?: number
+  today_return?: number
+  one_week_return?: number
+  one_month_return?: number
   ytd_return?: number
   three_year_return?: number
   five_year_return?: number
+  ten_year_return?: number
   fcf?: number
   fcf_interpretation?: string
   ev_to_ebitda?: number
@@ -147,9 +151,13 @@ export interface Position {
   weekHigh52?: number
   pe?: number
   forwardPE?: number
+  todayReturn?: number
+  oneWeekReturn?: number
+  oneMonthReturn?: number
   ytdReturn?: number
   threeYrReturn?: number
   fiveYrReturn?: number
+  tenYrReturn?: number
   fcf?: number
   fcfInterpretation?: string
   evToEbitda?: number

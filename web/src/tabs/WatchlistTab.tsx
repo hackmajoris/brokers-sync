@@ -37,7 +37,7 @@ type SortDir = 'asc' | 'desc'
 
 // Performance and the 52-week range sit ahead of the target columns; the
 // valuation and health indicators follow the price.
-const LEAD_INDICATORS: IndicatorKey[] = ['ytd', 'threeYr', 'fiveYr', 'range']
+const LEAD_INDICATORS: IndicatorKey[] = ['today', 'oneWeek', 'oneMonth', 'ytd', 'threeYr', 'fiveYr', 'tenYr', 'range']
 const TRAIL_INDICATORS: IndicatorKey[] = INDICATOR_COLUMNS.map(c => c.key).filter(k => !LEAD_INDICATORS.includes(k))
 
 const indicatorColumn = (key: IndicatorKey) => INDICATOR_COLUMNS.find(c => c.key === key)!

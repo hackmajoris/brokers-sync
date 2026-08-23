@@ -289,21 +289,33 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 
 	logf(fmt.Sprintf("fetching performance for %d symbol(s)…", len(yahooTickers)))
 	perfMap, err := prices.FetchPerformances(context.Background(), yahooTickers)
+	todayMap := make(map[string]float64, len(perfMap))
+	oneWeekMap := make(map[string]float64, len(perfMap))
+	oneMonthMap := make(map[string]float64, len(perfMap))
 	ytdMap := make(map[string]float64, len(perfMap))
 	threeYrMap := make(map[string]float64, len(perfMap))
 	fiveYrMap := make(map[string]float64, len(perfMap))
+	tenYrMap := make(map[string]float64, len(perfMap))
 	if err != nil {
 		log.Printf("performance fetch error: %v", err)
 		logf("warning: performance fetch failed")
 	} else {
 		for yahooTicker, p := range perfMap {
+			todayMap[yahooTicker] = p.Today
+			oneWeekMap[yahooTicker] = p.OneWeek
+			oneMonthMap[yahooTicker] = p.OneMonth
 			ytdMap[yahooTicker] = p.YTD
 			threeYrMap[yahooTicker] = p.ThreeYear
 			fiveYrMap[yahooTicker] = p.FiveYear
+			tenYrMap[yahooTicker] = p.TenYear
 			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				todayMap[origSymbol] = p.Today
+				oneWeekMap[origSymbol] = p.OneWeek
+				oneMonthMap[origSymbol] = p.OneMonth
 				ytdMap[origSymbol] = p.YTD
 				threeYrMap[origSymbol] = p.ThreeYear
 				fiveYrMap[origSymbol] = p.FiveYear
+				tenYrMap[origSymbol] = p.TenYear
 			}
 		}
 	}
@@ -385,7 +397,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
 	stats.EnrichWithFiftyTwoWeekRange(&combinedStats, lowMap, highMap, fxRates)
 	stats.EnrichWithPERatio(&combinedStats, peMap, forwardPEMap)
-	stats.EnrichWithPerformance(&combinedStats, ytdMap, threeYrMap, fiveYrMap)
+	stats.EnrichWithPerformance(&combinedStats, todayMap, oneWeekMap, oneMonthMap, ytdMap, threeYrMap, fiveYrMap, tenYrMap)
 	stats.EnrichWithFreeCashFlow(&combinedStats, fcfMap, fcfInterpMap)
 	stats.EnrichWithEVToEBITDA(&combinedStats, evMap, evInterpMap)
 	stats.EnrichWithDebtToEquity(&combinedStats, deMap, deInterpMap)
@@ -404,7 +416,7 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		stats.EnrichWithPrices(&bs, priceMap, brokerFxRates)
 		stats.EnrichWithFiftyTwoWeekRange(&bs, lowMap, highMap, brokerFxRates)
 		stats.EnrichWithPERatio(&bs, peMap, forwardPEMap)
-		stats.EnrichWithPerformance(&bs, ytdMap, threeYrMap, fiveYrMap)
+		stats.EnrichWithPerformance(&bs, todayMap, oneWeekMap, oneMonthMap, ytdMap, threeYrMap, fiveYrMap, tenYrMap)
 		stats.EnrichWithFreeCashFlow(&bs, fcfMap, fcfInterpMap)
 		stats.EnrichWithEVToEBITDA(&bs, evMap, evInterpMap)
 		stats.EnrichWithDebtToEquity(&bs, deMap, deInterpMap)
@@ -554,9 +566,13 @@ func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 	putFloat("week_52_high", ti.Week52High)
 	putFloat("pe", ti.PE)
 	putFloat("forward_pe", ti.ForwardPE)
+	putFloat("today_return", ti.Today)
+	putFloat("one_week_return", ti.OneWeek)
+	putFloat("one_month_return", ti.OneMonth)
 	putFloat("ytd_return", ti.YTD)
 	putFloat("three_year_return", ti.ThreeYear)
 	putFloat("five_year_return", ti.FiveYear)
+	putFloat("ten_year_return", ti.TenYear)
 	putFloat("fcf", ti.FCF)
 	putStr("fcf_interpretation", ti.FCFInterp)
 	putFloat("ev_to_ebitda", ti.EVToEBITDA)

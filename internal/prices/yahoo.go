@@ -142,15 +142,21 @@ func FetchPERatios(ctx context.Context, symbols []string) (map[string]PERatio, e
 	})
 }
 
-// Performance holds trailing YTD, 3-year, and 5-year percentage price change for a symbol.
+// Performance holds trailing day, week, month, YTD, 3-year, 5-year, and 10-year
+// percentage price change for a symbol.
 type Performance struct {
+	Today     float64
+	OneWeek   float64
+	OneMonth  float64
 	YTD       float64
 	ThreeYear float64
 	FiveYear  float64
+	TenYear   float64
 }
 
-// FetchPerformances fetches YTD, 3-year, and 5-year performance for a list of ticker
-// symbols in parallel. Symbols that fail to resolve are omitted from the result.
+// FetchPerformances fetches day/week/month/YTD/3-year/5-year/10-year performance
+// for a list of ticker symbols in parallel. Symbols that fail to resolve are
+// omitted from the result.
 func FetchPerformances(ctx context.Context, symbols []string) (map[string]Performance, error) {
 	client, err := yahoo.New()
 	if err != nil {
@@ -175,7 +181,15 @@ func FetchPerformances(ctx context.Context, symbols []string) (map[string]Perfor
 				ch <- result{sym: sym}
 				return
 			}
-			ch <- result{sym: sym, perf: Performance{YTD: perf.YTD, ThreeYear: perf.ThreeYear, FiveYear: perf.FiveYear}, ok: true}
+			ch <- result{sym: sym, perf: Performance{
+				Today:     perf.Today,
+				OneWeek:   perf.OneWeek,
+				OneMonth:  perf.OneMonth,
+				YTD:       perf.YTD,
+				ThreeYear: perf.ThreeYear,
+				FiveYear:  perf.FiveYear,
+				TenYear:   perf.TenYear,
+			}, ok: true}
 		}(sym)
 	}
 

@@ -42,22 +42,26 @@ type DividendBySymbol struct {
 
 // PositionSummary is a position enriched with optional live price data.
 type PositionSummary struct {
-	Symbol        string  `json:"symbol"`
-	Currency      string  `json:"currency"` // native currency of the position's cost basis
-	Quantity      float64 `json:"quantity"`
-	AvgCost       float64 `json:"avg_cost"`   // in base currency
-	TotalCost     float64 `json:"total_cost"` // in base currency
-	CurrentPrice  float64 `json:"current_price,omitempty"`
-	MarketValue   float64 `json:"market_value,omitempty"`
-	UnrealizedPnL float64 `json:"unrealized_pnl,omitempty"`
-	UnrealizedPct float64 `json:"unrealized_pct_omitempty,omitempty"`
-	WeekLow52     float64 `json:"week_52_low,omitempty"`
-	WeekHigh52    float64 `json:"week_52_high,omitempty"`
-	PE            float64 `json:"pe,omitempty"`
-	ForwardPE     float64 `json:"forward_pe,omitempty"`
-	YTDReturn     float64 `json:"ytd_return,omitempty"`
-	ThreeYrReturn float64 `json:"three_year_return,omitempty"`
-	FiveYrReturn  float64 `json:"five_year_return,omitempty"`
+	Symbol         string  `json:"symbol"`
+	Currency       string  `json:"currency"` // native currency of the position's cost basis
+	Quantity       float64 `json:"quantity"`
+	AvgCost        float64 `json:"avg_cost"`   // in base currency
+	TotalCost      float64 `json:"total_cost"` // in base currency
+	CurrentPrice   float64 `json:"current_price,omitempty"`
+	MarketValue    float64 `json:"market_value,omitempty"`
+	UnrealizedPnL  float64 `json:"unrealized_pnl,omitempty"`
+	UnrealizedPct  float64 `json:"unrealized_pct_omitempty,omitempty"`
+	WeekLow52      float64 `json:"week_52_low,omitempty"`
+	WeekHigh52     float64 `json:"week_52_high,omitempty"`
+	PE             float64 `json:"pe,omitempty"`
+	ForwardPE      float64 `json:"forward_pe,omitempty"`
+	TodayReturn    float64 `json:"today_return,omitempty"`
+	OneWeekReturn  float64 `json:"one_week_return,omitempty"`
+	OneMonthReturn float64 `json:"one_month_return,omitempty"`
+	YTDReturn      float64 `json:"ytd_return,omitempty"`
+	ThreeYrReturn  float64 `json:"three_year_return,omitempty"`
+	FiveYrReturn   float64 `json:"five_year_return,omitempty"`
+	TenYrReturn    float64 `json:"ten_year_return,omitempty"`
 
 	FCF                           float64 `json:"fcf,omitempty"`
 	FCFInterpretation             string  `json:"fcf_interpretation,omitempty"`
@@ -768,28 +772,40 @@ func EnrichWithPERatio(s *Summary, pe, forwardPE map[string]float64) {
 	}
 }
 
-// EnrichWithPerformance adds trailing YTD/3-year/5-year price performance data to
-// open positions. ytd/threeYr/fiveYr are maps of symbol (or Yahoo-normalized
-// symbol) → percentage return. Percentages are dimensionless, so no currency
-// conversion is applied.
-func EnrichWithPerformance(s *Summary, ytd, threeYr, fiveYr map[string]float64) {
+// EnrichWithPerformance adds trailing day/week/month/YTD/3-year/5-year/10-year
+// price performance data to open positions. today/oneWeek/oneMonth/ytd/threeYr/
+// fiveYr/tenYr are maps of symbol (or Yahoo-normalized symbol) → percentage
+// return. Percentages are dimensionless, so no currency conversion is applied.
+func EnrichWithPerformance(s *Summary, today, oneWeek, oneMonth, ytd, threeYr, fiveYr, tenYr map[string]float64) {
 	for i := range s.OpenPositions {
 		p := &s.OpenPositions[i]
 		y, ok := ytd[p.Symbol]
+		t := today[p.Symbol]
+		w := oneWeek[p.Symbol]
+		m := oneMonth[p.Symbol]
 		t3 := threeYr[p.Symbol]
 		t5 := fiveYr[p.Symbol]
+		t10 := tenYr[p.Symbol]
 		if !ok {
 			norm := strings.ReplaceAll(p.Symbol, " ", "-")
 			y, ok = ytd[norm]
+			t = today[norm]
+			w = oneWeek[norm]
+			m = oneMonth[norm]
 			t3 = threeYr[norm]
 			t5 = fiveYr[norm]
+			t10 = tenYr[norm]
 		}
 		if !ok {
 			continue
 		}
+		p.TodayReturn = t
+		p.OneWeekReturn = w
+		p.OneMonthReturn = m
 		p.YTDReturn = y
 		p.ThreeYrReturn = t3
 		p.FiveYrReturn = t5
+		p.TenYrReturn = t10
 	}
 }
 

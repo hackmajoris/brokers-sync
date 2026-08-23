@@ -12,9 +12,13 @@ export type IndicatorKey =
   | 'range'
   | 'pe'
   | 'forwardPe'
+  | 'today'
+  | 'oneWeek'
+  | 'oneMonth'
   | 'ytd'
   | 'threeYr'
   | 'fiveYr'
+  | 'tenYr'
   | 'fcf'
   | 'evToEbitda'
   | 'debtToEquity'
@@ -23,9 +27,13 @@ export type IndicatorKey =
   | 'valuation'
 
 export const INDICATOR_COLUMNS: { key: IndicatorKey; label: string }[] = [
+  { key: 'today', label: '1D' },
+  { key: 'oneWeek', label: '1W' },
+  { key: 'oneMonth', label: '1M' },
   { key: 'ytd', label: 'YTD' },
   { key: 'threeYr', label: '3Y' },
   { key: 'fiveYr', label: '5Y' },
+  { key: 'tenYr', label: '10Y' },
   { key: 'range', label: '52 Week Low/High' },
   { key: 'pe', label: 'P/E' },
   { key: 'forwardPe', label: 'Forward P/E' },
@@ -61,12 +69,20 @@ export function indicatorSortValue(p: Position | undefined, key: IndicatorKey): 
       return p.pe ?? -Infinity
     case 'forwardPe':
       return p.forwardPE ?? -Infinity
+    case 'today':
+      return p.todayReturn ?? -Infinity
+    case 'oneWeek':
+      return p.oneWeekReturn ?? -Infinity
+    case 'oneMonth':
+      return p.oneMonthReturn ?? -Infinity
     case 'ytd':
       return p.ytdReturn ?? -Infinity
     case 'threeYr':
       return p.threeYrReturn ?? -Infinity
     case 'fiveYr':
       return p.fiveYrReturn ?? -Infinity
+    case 'tenYr':
+      return p.tenYrReturn ?? -Infinity
     case 'fcf':
       return p.fcf ?? -Infinity
     case 'evToEbitda':
@@ -114,6 +130,15 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
   ),
   pe: p => <td style={cell}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>,
   forwardPe: p => <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>,
+  today: p => (
+    <td style={{ ...cell, color: p.todayReturn != null ? clr(p.todayReturn) : '#c0c0c0' }}>{p.todayReturn != null ? fmtPct(p.todayReturn) : '—'}</td>
+  ),
+  oneWeek: p => (
+    <td style={{ ...cell, color: p.oneWeekReturn != null ? clr(p.oneWeekReturn) : '#c0c0c0' }}>{p.oneWeekReturn != null ? fmtPct(p.oneWeekReturn) : '—'}</td>
+  ),
+  oneMonth: p => (
+    <td style={{ ...cell, color: p.oneMonthReturn != null ? clr(p.oneMonthReturn) : '#c0c0c0' }}>{p.oneMonthReturn != null ? fmtPct(p.oneMonthReturn) : '—'}</td>
+  ),
   ytd: p => (
     <td style={{ ...cell, color: p.ytdReturn != null ? clr(p.ytdReturn) : '#c0c0c0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
   ),
@@ -125,6 +150,11 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
   fiveYr: p => (
     <td style={{ ...cell, color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#c0c0c0' }}>
       {p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
+    </td>
+  ),
+  tenYr: p => (
+    <td style={{ ...cell, color: p.tenYrReturn != null ? clr(p.tenYrReturn) : '#c0c0c0' }}>
+      {p.tenYrReturn != null ? fmtPct(p.tenYrReturn) : '—'}
     </td>
   ),
   fcf: p => (

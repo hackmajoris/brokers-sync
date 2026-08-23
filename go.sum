@@ -38,6 +38,8 @@ github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/hackmajoris/go-finance v0.7.1 h1:WuJdjX+nz3Q4RPHtWh+QHgSjkBAUaAfaPX6STGKkmp0=
 github.com/hackmajoris/go-finance v0.7.1/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
+github.com/hackmajoris/go-finance v0.8.0 h1:C0s5PqFrW4lDksRBPh3Q6UdbXwHUn6aZPx482zGvQbU=
+github.com/hackmajoris/go-finance v0.8.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/richardlehane/mscfb v1.0.6 h1:eN3bvvZCp00bs7Zf52bxNwAx5lJDBK1tCuH19qq5aC8=
