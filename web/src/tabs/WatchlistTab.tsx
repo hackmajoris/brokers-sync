@@ -43,27 +43,19 @@ const TRAIL_INDICATORS: IndicatorKey[] = INDICATOR_COLUMNS.map(c => c.key).filte
 
 const indicatorColumn = (key: IndicatorKey) => INDICATOR_COLUMNS.find(c => c.key === key)!
 
-// A phone cannot usefully pan across 22 columns, so the narrow layout keeps
-// only what the watchlist is actually for: what it costs, how far it is from
-// the target, and how it has moved. Everything else stays one rotation away.
-const MOBILE_LEAD: IndicatorKey[] = ['today', 'ytd']
-const MOBILE_TRAIL: IndicatorKey[] = []
-
 type Column = { key: SortKey; label: string; align?: 'left' | 'right' }
 
-function buildColumns(mobile: boolean): Column[] {
-  const lead = mobile ? MOBILE_LEAD : LEAD_INDICATORS
-  const trail = mobile ? MOBILE_TRAIL : TRAIL_INDICATORS
-  return [
-    { key: 'symbol', label: 'Symbol', align: 'left' },
-    ...lead.map(indicatorColumn),
-    ...(mobile ? [] : [{ key: 'target' as SortKey, label: 'Target Value' }]),
-    { key: 'targetGap', label: 'Target Diff' },
-    { key: 'price', label: 'Price' },
-    ...trail.map(indicatorColumn),
-    ...(mobile ? [] : [{ key: 'note' as SortKey, label: 'Note', align: 'left' as const }]),
-  ]
-}
+// The table always carries every column. A phone gets the stacked list instead,
+// and reaches this table through the "All columns" toggle when it wants to pan.
+const COLUMNS: Column[] = [
+  { key: 'symbol', label: 'Symbol', align: 'left' },
+  ...LEAD_INDICATORS.map(indicatorColumn),
+  { key: 'target', label: 'Target Value' },
+  { key: 'targetGap', label: 'Target Diff' },
+  { key: 'price', label: 'Price' },
+  ...TRAIL_INDICATORS.map(indicatorColumn),
+  { key: 'note', label: 'Note', align: 'left' },
+]
 
 // targetGap is how far the price still has to move to reach the target, as a
 // percentage of the price. Negative means it has to fall, positive means it is
@@ -114,12 +106,12 @@ export function WatchlistTab({ accent }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<TickerSearchResult[]>([])
   const [copied, setCopied] = useState(false)
-  // null means no column sort is active, which is the only state where pinned
-  // items float to the top. Once a column is sorted the sort owns the whole
-  // list, pinned or not, otherwise sorting by P/E would only ever reorder the
-  // pinned block and look broken.
-  const [sortKey, setSortKey] = useState<SortKey | null>(null)
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  // Opens on the day's movers, biggest gain first. null means no column sort is
+  // active, which is the only state where pinned items float to the top: once a
+  // column is sorted the sort owns the whole list, pinned or not, otherwise
+  // sorting by P/E would only ever reorder the pinned block and look broken.
+  const [sortKey, setSortKey] = useState<SortKey | null>('today')
+  const [sortDir, setSortDir] = useState<SortDir>('desc')
   const [compare, setCompare] = useState(false)
   // Symbols selected for comparison. Deliberately in memory only — this is a
   // scratch selection, unlike item.pinned which is stored per portfolio.
@@ -130,19 +122,13 @@ export function WatchlistTab({ accent }: Props) {
   const [picking, setPicking] = useState(true)
   const searchTimer = useRef<number | undefined>(undefined)
   const mobile = useIsMobile()
-  // The narrow column set is the default on a phone, but it is a default, not a
-  // ceiling: the toggle brings the full table back and the user pans it.
+  // On a phone the stacked list is the default view. "All columns" swaps in the
+  // full table, which the user then pans sideways.
   const [allColumns, setAllColumns] = useState(false)
   const [searchFocused, setSearchFocused] = useState(false)
-  const compact = mobile && !allColumns
-  const columns = buildColumns(compact)
-
-  // Rotating to portrait drops columns. Sorting by one that is no longer on
-  // screen leaves the rows in an order with no visible explanation, so the sort
-  // is released instead.
-  useEffect(() => {
-    setSortKey(prev => (prev && !buildColumns(compact).some(c => c.key === prev) ? null : prev))
-  }, [compact])
+  // Symbol whose long-press action sheet is open, if any.
+  const [sheetFor, setSheetFor] = useState<string | null>(null)
+  const stacked = mobile && !allColumns
 
   async function refresh(): Promise<WatchlistItem[]> {
     setLoading(true)
@@ -282,6 +268,24 @@ export function WatchlistTab({ accent }: Props) {
   function exitCompare() {
     setSelected([])
     setCompare(false)
+  }
+
+  // The stacked list has no header row to click, so its sort control sets the
+  // key directly and an empty pick releases the sort back to pinned-first.
+  function pickSort(key: SortKey | null) {
+    setSortKey(key)
+    if (key) setSortDir(key === 'symbol' || key === 'note' ? 'asc' : 'desc')
+  }
+
+  // Flipping while no column is picked would have nothing to reverse, so it
+  // adopts the symbol order first. The button never reads as dead.
+  function flipSort() {
+    if (sortKey == null) {
+      setSortKey('symbol')
+      setSortDir('desc')
+      return
+    }
+    setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
   }
 
   function handleForget() {
@@ -444,7 +448,7 @@ export function WatchlistTab({ accent }: Props) {
           </button>
           {mobile && (
             <button onClick={() => setAllColumns(v => !v)} style={secondaryBtn}>
-              {allColumns ? 'Fewer columns' : 'All columns'}
+              {allColumns ? 'List view' : 'All columns'}
             </button>
           )}
           {compare && (
@@ -455,7 +459,9 @@ export function WatchlistTab({ accent }: Props) {
               <button onClick={exitCompare} style={secondaryBtn}>
                 Clear
               </button>
-              <span style={{ fontSize: 11, color: '#555555' }}>Click a row to add or drop it from the comparison.</span>
+              <span style={{ fontSize: 11, color: '#555555' }}>
+                {stacked ? 'Tap a row to add or drop it.' : 'Click a row to add or drop it from the comparison.'}
+              </span>
             </>
           )}
         </div>
@@ -465,12 +471,43 @@ export function WatchlistTab({ accent }: Props) {
         <span style={{ fontSize: 12, color: '#666666' }}>Loading…</span>
       ) : items.length === 0 ? (
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
+      ) : stacked ? (
+        <>
+          <SortBar sortKey={sortKey} sortDir={sortDir} onPick={pickSort} onFlip={flipSort} />
+          <div style={{ width: '100%', overflowY: 'auto', maxHeight: 'calc(100dvh - 320px)', minHeight: 320 }}>
+            {visibleRows.map(item => (
+              <StackedRow
+                key={item.symbol}
+                item={item}
+                accent={accent}
+                selected={compare && selected.includes(item.symbol)}
+                onSelect={compare ? handleSelect : undefined}
+                onLongPress={() => setSheetFor(item.symbol)}
+              />
+            ))}
+          </div>
+          {sheetFor && (
+            <ActionSheet
+              item={items.find(i => i.symbol === sheetFor)!}
+              accent={accent}
+              onPin={item => {
+                handleSave(item, { pinned: !item.pinned })
+                setSheetFor(null)
+              }}
+              onRemove={item => {
+                void handleRemove(item.symbol)
+                setSheetFor(null)
+              }}
+              onClose={() => setSheetFor(null)}
+            />
+          )}
+        </>
       ) : (
         <div style={{ width: '100%', overflow: 'auto', maxHeight: `calc(100dvh - ${mobile ? 300 : 240}px)`, minHeight: 320 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ color: '#666666', textAlign: 'left', background: '#000000' }}>
-              {columns.map(col => (
+              {COLUMNS.map(col => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.key)}
@@ -512,7 +549,6 @@ export function WatchlistTab({ accent }: Props) {
                 onRemove={handleRemove}
                 selected={compare && selected.includes(item.symbol)}
                 onSelect={compare ? handleSelect : undefined}
-                compact={compact}
                 touch={mobile}
               />
             ))}
@@ -540,7 +576,6 @@ function Row({
   onRemove,
   selected,
   onSelect,
-  compact,
   touch,
 }: {
   item: WatchlistItem
@@ -549,7 +584,6 @@ function Row({
   onRemove: (symbol: string) => void
   selected: boolean
   onSelect?: (symbol: string) => void
-  compact: boolean
   touch: boolean
 }) {
   const [note, setNote] = useState(item.note ?? '')
@@ -599,8 +633,7 @@ function Row({
       <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol(stickyBg, 1), boxShadow: edge ? `inset 2px 0 0 0 ${edge}` : undefined }}>
         {item.symbol}
       </td>
-      <IndicatorGroup p={p} keys={compact ? MOBILE_LEAD : LEAD_INDICATORS} />
-      {!compact && (
+      <IndicatorGroup p={p} keys={LEAD_INDICATORS} />
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
           <input
@@ -652,7 +685,6 @@ function Row({
           </button>
         </div>
       </td>
-      )}
       <td
         style={{
           ...td,
@@ -669,8 +701,7 @@ function Row({
       <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
         {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
       </td>
-      <IndicatorGroup p={p} keys={compact ? MOBILE_TRAIL : TRAIL_INDICATORS} />
-      {!compact && (
+      <IndicatorGroup p={p} keys={TRAIL_INDICATORS} />
       <td style={td} onClick={e => e.stopPropagation()}>
         <input
           value={note}
@@ -681,7 +712,6 @@ function Row({
           style={{ ...inputStyle, width: '100%', minWidth: 140, fontSize: touch ? 16 : 12 }}
         />
       </td>
-      )}
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         <button
@@ -748,6 +778,250 @@ function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
           —
         </td>
       ))}
+    </>
+  )
+}
+
+// A P/E of zero or less carries no meaning, so it reads as absent.
+function ratio(v?: number): string {
+  return v != null && v > 0 ? v.toFixed(1) : '—'
+}
+
+// ── Stacked mobile list ──────────────────────────────────────────────────────
+
+// Three lines per row: symbol and price, then the note against the day move,
+// then the target and YTD. Everything the table shows across 22 columns that
+// actually matters at a glance, without any horizontal panning.
+function StackedRow({
+  item,
+  accent,
+  selected,
+  onSelect,
+  onLongPress,
+}: {
+  item: WatchlistItem
+  accent: string
+  selected: boolean
+  onSelect?: (symbol: string) => void
+  onLongPress: () => void
+}) {
+  const p = item.indicators
+  const gap = targetGap(item)
+  const edge = item.pinned ? PIN_EDGE : selected ? accent : null
+  const bg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
+
+  // A long press opens the action sheet. The press also fires a click when the
+  // finger lifts, which would open the lookup modal on top of the sheet, so the
+  // timer sets a flag the click handler checks and clears.
+  const timer = useRef<number | undefined>(undefined)
+  const fired = useRef(false)
+
+  function start() {
+    fired.current = false
+    timer.current = window.setTimeout(() => {
+      fired.current = true
+      onLongPress()
+    }, 500)
+  }
+
+  function cancel() {
+    window.clearTimeout(timer.current)
+  }
+
+  useEffect(() => () => window.clearTimeout(timer.current), [])
+
+  return (
+    <div
+      onPointerDown={start}
+      onPointerUp={cancel}
+      onPointerLeave={cancel}
+      onPointerCancel={cancel}
+      onContextMenu={e => e.preventDefault()}
+      onClick={() => {
+        if (fired.current) {
+          fired.current = false
+          return
+        }
+        if (onSelect) onSelect(item.symbol)
+        else openStockLookup(item.symbol)
+      }}
+      style={{
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 3,
+        padding: '11px 12px 11px 14px',
+        borderTop: '1px solid #161616',
+        background: bg,
+        boxShadow: edge ? `inset 3px 0 0 0 ${edge}` : undefined,
+        cursor: 'pointer',
+        // Stops the press turning into a text selection or the iOS callout.
+        userSelect: 'none',
+        WebkitUserSelect: 'none',
+        WebkitTouchCallout: 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
+        <span style={{ fontWeight: 600, fontSize: 15, color: accent }}>
+          {item.pinned && <span style={{ color: PIN_EDGE, marginRight: 5, fontSize: 11 }}>★</span>}
+          {item.symbol}
+        </span>
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, color: '#e0e0e0' }}>
+          {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 12, color: '#777777' }}>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          P/E
+          <span style={{ color: '#b0b0b0', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>{ratio(p?.pe)}</span>
+        </span>
+        <span
+          style={{
+            fontFamily: "'DM Mono', monospace",
+            fontSize: 13,
+            fontWeight: 600,
+            whiteSpace: 'nowrap',
+            color: p?.todayReturn != null ? clr(p.todayReturn) : '#555555',
+          }}
+        >
+          {p?.todayReturn != null ? fmtPct(p.todayReturn) : '—'}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 12, color: '#777777' }}>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          Fwd P/E
+          <span style={{ color: '#b0b0b0', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>{ratio(p?.forwardPE)}</span>
+        </span>
+        <span style={{ whiteSpace: 'nowrap', fontSize: 11, color: '#5a5a5a' }}>
+          YTD
+          <span style={{ color: p?.ytdReturn != null ? clr(p.ytdReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
+            {p?.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}
+          </span>
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 11, color: '#5a5a5a' }}>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          {item.targetPrice > 0 ? `tgt ${fmtCurrency(item.targetPrice)}` : 'no target'}
+          {gap != null && <span style={{ color: clr(gap), marginLeft: 6, fontFamily: "'DM Mono', monospace" }}>{fmtPct(gap)}</span>}
+        </span>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          5Y
+          <span style={{ color: p?.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
+            {p?.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
+          </span>
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 11, color: '#5a5a5a' }}>
+        <span style={{ whiteSpace: 'nowrap' }}>
+          10Y
+          <span style={{ color: p?.tenYrReturn != null ? clr(p.tenYrReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
+            {p?.tenYrReturn != null ? fmtPct(p.tenYrReturn) : '—'}
+          </span>
+        </span>
+      </div>
+    </div>
+  )
+}
+
+// The stacked list has no column headers, so sorting moves into an explicit
+// control. "Pinned first" is the same no-sort state the table reaches by
+// cycling a header past its second direction.
+function SortBar({
+  sortKey,
+  sortDir,
+  onPick,
+  onFlip,
+}: {
+  sortKey: SortKey | null
+  sortDir: SortDir
+  onPick: (key: SortKey | null) => void
+  onFlip: () => void
+}) {
+  return (
+    <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
+      <select
+        value={sortKey ?? ''}
+        onChange={e => onPick((e.target.value || null) as SortKey | null)}
+        aria-label="Sort by"
+        style={{ ...inputStyle, fontSize: 16, flex: 1, padding: '9px 10px' }}
+      >
+        <option value="">Pinned first</option>
+        {COLUMNS.map(col => (
+          <option key={col.key} value={col.key}>
+            {col.label}
+          </option>
+        ))}
+      </select>
+      <button
+        onClick={onFlip}
+        aria-label={sortDir === 'asc' ? 'Sort descending' : 'Sort ascending'}
+        style={{ ...secondaryBtn, width: 44, height: 40, padding: 0, fontSize: 13, opacity: sortKey == null ? 0.5 : 1 }}
+      >
+        {sortKey == null ? '↕' : sortDir === 'asc' ? '▲' : '▼'}
+      </button>
+    </div>
+  )
+}
+
+// Long-press sheet. Pin and remove live here rather than on the row: both are
+// state-changing, and a 38px control beside a tap-to-open row is a mis-tap
+// waiting to happen.
+function ActionSheet({
+  item,
+  accent,
+  onPin,
+  onRemove,
+  onClose,
+}: {
+  item: WatchlistItem
+  accent: string
+  onPin: (item: WatchlistItem) => void
+  onRemove: (item: WatchlistItem) => void
+  onClose: () => void
+}) {
+  const row: React.CSSProperties = {
+    width: '100%',
+    padding: '15px 16px',
+    background: 'transparent',
+    border: 'none',
+    borderTop: '1px solid #1a1a1a',
+    color: '#d0d0d0',
+    fontSize: 15,
+    textAlign: 'left',
+    cursor: 'pointer',
+  }
+
+  return (
+    <>
+      <div onClick={onClose} style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,.6)', zIndex: 100 }} />
+      <div
+        style={{
+          position: 'fixed',
+          left: 0,
+          right: 0,
+          bottom: 0,
+          zIndex: 101,
+          background: '#0d0d0d',
+          borderTop: '1px solid #232323',
+          borderRadius: '14px 14px 0 0',
+          paddingBottom: 'env(safe-area-inset-bottom)',
+        }}
+      >
+        <div style={{ padding: '14px 16px 10px', fontSize: 13, fontWeight: 600, color: accent }}>{item.symbol}</div>
+        <button style={row} onClick={() => onPin(item)}>
+          <span style={{ color: PIN_EDGE, marginRight: 8 }}>{item.pinned ? '★' : '☆'}</span>
+          {item.pinned ? 'Unpin' : 'Pin to top'}
+        </button>
+        <button style={{ ...row, color: '#e06c6c' }} onClick={() => onRemove(item)}>
+          Remove {item.symbol}
+        </button>
+        <button style={{ ...row, color: '#777777' }} onClick={onClose}>
+          Cancel
+        </button>
+      </div>
     </>
   )
 }
