@@ -101,8 +101,20 @@ export function WatchlistTab({ accent }: Props) {
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<TickerSearchResult[]>([])
   const [copied, setCopied] = useState(false)
-  const [sortKey, setSortKey] = useState<SortKey>('symbol')
+  // null means no column sort is active, which is the only state where pinned
+  // items float to the top. Once a column is sorted the sort owns the whole
+  // list, pinned or not, otherwise sorting by P/E would only ever reorder the
+  // pinned block and look broken.
+  const [sortKey, setSortKey] = useState<SortKey | null>(null)
   const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [compare, setCompare] = useState(false)
+  // Symbols selected for comparison. Deliberately in memory only — this is a
+  // scratch selection, unlike item.pinned which is stored per portfolio.
+  const [selected, setSelected] = useState<string[]>([])
+  // In compare mode the unselected rows are hidden, so picking needs its own
+  // state — otherwise there would be nothing left to click once the first
+  // symbol is selected.
+  const [picking, setPicking] = useState(true)
   const searchTimer = useRef<number | undefined>(undefined)
 
   async function refresh(): Promise<WatchlistItem[]> {
@@ -193,7 +205,7 @@ export function WatchlistTab({ accent }: Props) {
   // refresh, since new indicators are genuinely needed.
   async function handleSave(item: WatchlistItem, patch: Partial<WatchlistItem>) {
     try {
-      await upsertWatchlist({ symbol: item.symbol, note: item.note, targetPrice: item.targetPrice, ...patch })
+      await upsertWatchlist({ symbol: item.symbol, note: item.note, targetPrice: item.targetPrice, pinned: item.pinned, ...patch })
       setItems(prev => prev.map(i => (i.symbol === item.symbol ? { ...i, ...patch } : i)))
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
@@ -209,13 +221,40 @@ export function WatchlistTab({ accent }: Props) {
     }
   }
 
+  // Clicking a column cycles through its two directions and then back to no
+  // sort at all, which is how the user gets the pinned-first order back.
   function handleSort(key: SortKey) {
-    if (key === sortKey) {
-      setSortDir(d => (d === 'asc' ? 'desc' : 'asc'))
-    } else {
+    if (key !== sortKey) {
       setSortKey(key)
       setSortDir(key === 'symbol' || key === 'note' ? 'asc' : 'desc')
+      return
     }
+    const firstDir = key === 'symbol' || key === 'note' ? 'asc' : 'desc'
+    if (sortDir === firstDir) {
+      setSortDir(firstDir === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortKey(null)
+    }
+  }
+
+  function handleSelect(symbol: string) {
+    setSelected(prev => (prev.includes(symbol) ? prev.filter(s => s !== symbol) : [...prev, symbol]))
+  }
+
+  function toggleCompare() {
+    if (compare) {
+      exitCompare()
+      return
+    }
+    setPicking(selected.length === 0)
+    setCompare(true)
+  }
+
+  // Clear is the way out of compare mode: it drops the selection and leaves,
+  // rather than leaving an empty comparison the user has to dismiss twice.
+  function exitCompare() {
+    setSelected([])
+    setCompare(false)
   }
 
   function handleForget() {
@@ -253,6 +292,21 @@ export function WatchlistTab({ accent }: Props) {
       </div>
     )
   }
+
+  // With a column sorted, that sort is the whole order. With no column sorted,
+  // pinned items lead and the rest fall back to symbol order.
+  const ordered = sortKey
+    ? sortItems(items, sortKey, sortDir)
+    : (() => {
+        const bySymbol = sortItems(items, 'symbol', 'asc')
+        return [...bySymbol.filter(i => i.pinned), ...bySymbol.filter(i => !i.pinned)]
+      })()
+  const visibleRows = compare
+    ? [
+        ...ordered.filter(i => selected.includes(i.symbol)),
+        ...(picking ? ordered.filter(i => !selected.includes(i.symbol)) : []),
+      ]
+    : ordered
 
   return (
     <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
@@ -310,6 +364,25 @@ export function WatchlistTab({ accent }: Props) {
 
       {error && <ErrorLine text={error} />}
 
+      {items.length > 0 && (
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
+          <button onClick={toggleCompare} style={compare ? primaryBtn(accent) : secondaryBtn}>
+            {compare ? `Comparing ${selected.length}` : 'Compare'}
+          </button>
+          {compare && (
+            <>
+              <button onClick={() => setPicking(v => !v)} style={secondaryBtn}>
+                {picking ? 'Done picking' : 'Add more'}
+              </button>
+              <button onClick={exitCompare} style={secondaryBtn}>
+                Clear
+              </button>
+              <span style={{ fontSize: 11, color: '#555555' }}>Click a row to add or drop it from the comparison.</span>
+            </>
+          )}
+        </div>
+      )}
+
       {loading && items.length === 0 ? (
         <span style={{ fontSize: 12, color: '#666666' }}>Loading…</span>
       ) : items.length === 0 ? (
@@ -344,8 +417,16 @@ export function WatchlistTab({ accent }: Props) {
             </tr>
           </thead>
           <tbody>
-            {sortItems(items, sortKey, sortDir).map(item => (
-              <Row key={item.symbol} item={item} accent={accent} onSave={handleSave} onRemove={handleRemove} />
+            {visibleRows.map(item => (
+              <Row
+                key={item.symbol}
+                item={item}
+                accent={accent}
+                onSave={handleSave}
+                onRemove={handleRemove}
+                selected={compare && selected.includes(item.symbol)}
+                onSelect={compare ? handleSelect : undefined}
+              />
             ))}
           </tbody>
         </table>
@@ -369,11 +450,15 @@ function Row({
   accent,
   onSave,
   onRemove,
+  selected,
+  onSelect,
 }: {
   item: WatchlistItem
   accent: string
   onSave: (item: WatchlistItem, patch: Partial<WatchlistItem>) => void
   onRemove: (symbol: string) => void
+  selected: boolean
+  onSelect?: (symbol: string) => void
 }) {
   const [note, setNote] = useState(item.note ?? '')
   const [target, setTarget] = useState(item.targetPrice ? String(item.targetPrice) : '')
@@ -390,24 +475,33 @@ function Row({
   // input turns green. No target or no price means nothing to compare.
   const hit = item.targetPrice > 0 && p?.currentPrice != null && p.currentPrice < item.targetPrice
   const gap = targetGap(item)
+  // Pinned and compare-selected are separate states a row can be in at once, so
+  // they get separate visual channels: pinned owns the amber edge and wash,
+  // selection owns the accent wash and wins the background when both apply.
+  // The first cell is sticky, so its background has to stay opaque or the
+  // scrolled columns show through it.
+  const restBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
+  const stickyBg = selected ? '#121212' : item.pinned ? PIN_STICKY : '#000000'
 
   return (
     // Clicking the row opens the same lookup modal the Positions tab uses.
     // The inputs and the remove button stop propagation so editing a note does
     // not also open the popup.
     <tr
-      onClick={() => openStockLookup(item.symbol)}
-      style={{ borderTop: '1px solid #161616', cursor: 'pointer' }}
+      onClick={() => (onSelect ? onSelect(item.symbol) : openStockLookup(item.symbol))}
+      style={{ borderTop: '1px solid #161616', cursor: 'pointer', background: restBg }}
       onMouseEnter={e => {
         e.currentTarget.style.background = accent + '11'
         ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#111111'
       }}
       onMouseLeave={e => {
-        e.currentTarget.style.background = 'transparent'
-        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#000000'
+        e.currentTarget.style.background = restBg
+        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = stickyBg
       }}
     >
-      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol('#000000', 1) }}>{item.symbol}</td>
+      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol(stickyBg, 1), borderLeft: item.pinned ? `2px solid ${PIN_EDGE}` : selected ? `2px solid ${accent}` : undefined }}>
+        {item.symbol}
+      </td>
       <IndicatorGroup p={p} keys={LEAD_INDICATORS} />
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
@@ -487,6 +581,27 @@ function Row({
         />
       </td>
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
+        <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+        <button
+          onClick={() => onSave(item, { pinned: !item.pinned })}
+          title={item.pinned ? `Unpin ${item.symbol}` : `Pin ${item.symbol} to the top`}
+          aria-label={item.pinned ? `Unpin ${item.symbol}` : `Pin ${item.symbol} to the top`}
+          aria-pressed={item.pinned}
+          style={{
+            background: 'transparent',
+            border: `1px solid ${item.pinned ? PIN_EDGE + '55' : '#262626'}`,
+            borderRadius: 6,
+            width: 24,
+            height: 24,
+            lineHeight: 1,
+            padding: 0,
+            color: item.pinned ? PIN_EDGE : '#777777',
+            fontSize: 13,
+            cursor: 'pointer',
+          }}
+        >
+          {item.pinned ? '★' : '☆'}
+        </button>
         <button
           onClick={() => onRemove(item.symbol)}
           title={`Remove ${item.symbol}`}
@@ -514,6 +629,7 @@ function Row({
         >
           ×
         </button>
+        </div>
       </td>
     </tr>
   )
@@ -570,6 +686,12 @@ function primaryBtn(accent: string): React.CSSProperties {
     cursor: 'pointer',
   }
 }
+
+// Pinned rows are marked in amber rather than the portfolio accent, so a pinned
+// row and a compare-selected row never read as the same thing.
+const PIN_EDGE = '#d9a441'
+const PIN_TINT = '#d9a4410f'
+const PIN_STICKY = '#151209'
 
 function stickyCol(background: string, zIndex: number): React.CSSProperties {
   return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid #161616' }

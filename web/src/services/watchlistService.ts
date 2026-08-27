@@ -7,6 +7,7 @@ export interface WatchlistItem {
   symbol: string
   note: string
   targetPrice: number
+  pinned: boolean
   addedAt: number
   // Live indicators, fetched server-side in the same request. Absent when the
   // symbol returned no upstream data.
@@ -17,6 +18,7 @@ interface RawWatchlistEntry {
   symbol: string
   note: string
   targetPrice: number
+  pinned: boolean
   addedAt: number
   indicators?: RawPosition
 }
@@ -79,6 +81,7 @@ export async function listWatchlist(): Promise<WatchlistItem[]> {
     symbol: e.symbol,
     note: e.note,
     targetPrice: e.targetPrice,
+    pinned: e.pinned ?? false,
     addedAt: e.addedAt,
     indicators: e.indicators ? mapPosition(e.indicators) : undefined,
   }))

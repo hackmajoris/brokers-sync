@@ -9,6 +9,7 @@ interface MockEntry {
   symbol: string
   note: string
   targetPrice: number
+  pinned: boolean
   addedAt: number
   indicators?: Record<string, unknown>
 }
@@ -18,6 +19,7 @@ const SEED: MockEntry[] = [
     symbol: 'NVDA',
     note: 'Waiting for a pullback under 150',
     targetPrice: 150,
+    pinned: false,
     addedAt: Date.now() - 86400000 * 12,
     indicators: {
       symbol: 'NVDA', currency: 'USD', quantity: 0, avg_cost: 0, total_cost: 0,
@@ -32,6 +34,7 @@ const SEED: MockEntry[] = [
     symbol: 'ASML',
     note: 'Monopoly on EUV, cyclical entry point',
     targetPrice: 620,
+    pinned: false,
     addedAt: Date.now() - 86400000 * 30,
     indicators: {
       symbol: 'ASML', currency: 'EUR', quantity: 0, avg_cost: 0, total_cost: 0,
@@ -46,6 +49,7 @@ const SEED: MockEntry[] = [
     symbol: 'KO',
     note: '',
     targetPrice: 0,
+    pinned: false,
     addedAt: Date.now() - 86400000 * 3,
     indicators: {
       symbol: 'KO', currency: 'USD', quantity: 0, avg_cost: 0, total_cost: 0,
@@ -60,6 +64,7 @@ const SEED: MockEntry[] = [
     symbol: 'PLTR',
     note: 'Too rich for now, tracking only',
     targetPrice: 45,
+    pinned: false,
     addedAt: Date.now() - 86400000 * 60,
     indicators: {
       symbol: 'PLTR', currency: 'USD', quantity: 0, avg_cost: 0, total_cost: 0,
@@ -74,6 +79,7 @@ const SEED: MockEntry[] = [
     symbol: 'BAYN.DE',
     note: 'Litigation overhang — no indicators upstream',
     targetPrice: 22,
+    pinned: false,
     addedAt: Date.now() - 86400000 * 5,
   },
 ]
@@ -193,6 +199,7 @@ export function mockApi(): Plugin | false {
               symbol: patch.symbol,
               note: patch.note ?? '',
               targetPrice: patch.targetPrice ?? 0,
+              pinned: patch.pinned ?? false,
               addedAt: Date.now(),
               indicators: seeded?.indicators ?? synthIndicators(patch.symbol),
             })

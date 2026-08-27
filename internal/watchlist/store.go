@@ -46,6 +46,7 @@ type Item struct {
 	Symbol      string  `dynamodbav:"symbol" json:"symbol"`
 	Note        string  `dynamodbav:"note" json:"note"`
 	TargetPrice float64 `dynamodbav:"targetPrice" json:"targetPrice"`
+	Pinned      bool    `dynamodbav:"pinned" json:"pinned"`
 	AddedAt     int64   `dynamodbav:"addedAt" json:"addedAt"`
 }
 
