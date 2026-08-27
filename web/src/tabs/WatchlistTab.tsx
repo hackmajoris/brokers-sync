@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react'
+import { useIsMobile } from '../lib/useIsMobile'
 import { searchSymbols, type TickerSearchResult } from '../services/portfolioService'
 import {
   createCode,
@@ -42,15 +43,27 @@ const TRAIL_INDICATORS: IndicatorKey[] = INDICATOR_COLUMNS.map(c => c.key).filte
 
 const indicatorColumn = (key: IndicatorKey) => INDICATOR_COLUMNS.find(c => c.key === key)!
 
-const COLUMNS: { key: SortKey; label: string; align?: 'left' | 'right' }[] = [
-  { key: 'symbol', label: 'Symbol', align: 'left' },
-  ...LEAD_INDICATORS.map(indicatorColumn),
-  { key: 'target', label: 'Target Value' },
-  { key: 'targetGap', label: 'Target Diff' },
-  { key: 'price', label: 'Price' },
-  ...TRAIL_INDICATORS.map(indicatorColumn),
-  { key: 'note', label: 'Note', align: 'left' },
-]
+// A phone cannot usefully pan across 22 columns, so the narrow layout keeps
+// only what the watchlist is actually for: what it costs, how far it is from
+// the target, and how it has moved. Everything else stays one rotation away.
+const MOBILE_LEAD: IndicatorKey[] = ['today', 'ytd']
+const MOBILE_TRAIL: IndicatorKey[] = []
+
+type Column = { key: SortKey; label: string; align?: 'left' | 'right' }
+
+function buildColumns(mobile: boolean): Column[] {
+  const lead = mobile ? MOBILE_LEAD : LEAD_INDICATORS
+  const trail = mobile ? MOBILE_TRAIL : TRAIL_INDICATORS
+  return [
+    { key: 'symbol', label: 'Symbol', align: 'left' },
+    ...lead.map(indicatorColumn),
+    ...(mobile ? [] : [{ key: 'target' as SortKey, label: 'Target Value' }]),
+    { key: 'targetGap', label: 'Target Diff' },
+    { key: 'price', label: 'Price' },
+    ...trail.map(indicatorColumn),
+    ...(mobile ? [] : [{ key: 'note' as SortKey, label: 'Note', align: 'left' as const }]),
+  ]
+}
 
 // targetGap is how far the price still has to move to reach the target, as a
 // percentage of the price. Negative means it has to fall, positive means it is
@@ -116,6 +129,20 @@ export function WatchlistTab({ accent }: Props) {
   // symbol is selected.
   const [picking, setPicking] = useState(true)
   const searchTimer = useRef<number | undefined>(undefined)
+  const mobile = useIsMobile()
+  // The narrow column set is the default on a phone, but it is a default, not a
+  // ceiling: the toggle brings the full table back and the user pans it.
+  const [allColumns, setAllColumns] = useState(false)
+  const [searchFocused, setSearchFocused] = useState(false)
+  const compact = mobile && !allColumns
+  const columns = buildColumns(compact)
+
+  // Rotating to portrait drops columns. Sorting by one that is no longer on
+  // screen leaves the rows in an order with no visible explanation, so the sort
+  // is released instead.
+  useEffect(() => {
+    setSortKey(prev => (prev && !buildColumns(compact).some(c => c.key === prev) ? null : prev))
+  }, [compact])
 
   async function refresh(): Promise<WatchlistItem[]> {
     setLoading(true)
@@ -283,7 +310,7 @@ export function WatchlistTab({ accent }: Props) {
             onChange={e => setEntryCode(e.target.value)}
             onKeyDown={e => e.key === 'Enter' && handleUseExisting()}
             placeholder="Already have one? Paste it here"
-            style={{ ...inputStyle, flex: 1 }}
+            style={{ ...inputStyle, flex: 1, fontSize: mobile ? 16 : 12 }}
           />
           <button onClick={handleUseExisting} style={secondaryBtn}>
             Use
@@ -339,23 +366,69 @@ export function WatchlistTab({ accent }: Props) {
         </div>
       )}
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 420 }}>
+      <div style={{ position: 'relative', width: '100%', maxWidth: 520 }}>
+        <span
+          aria-hidden
+          style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: searchFocused ? accent : '#555555', fontSize: 15, pointerEvents: 'none', transition: 'color .15s' }}
+        >
+          ⌕
+        </span>
         <input
           value={query}
           onChange={e => setQuery(e.target.value)}
+          onFocus={() => setSearchFocused(true)}
+          onBlur={() => setSearchFocused(false)}
           placeholder="Search a symbol to add…"
-          style={{ ...inputStyle, width: '100%' }}
+          aria-label="Search a symbol to add"
+          style={{
+            ...inputStyle,
+            width: '100%',
+            // 16px on touch keeps iOS from zooming the page on focus.
+            fontSize: mobile ? 16 : 14,
+            padding: '13px 38px 13px 38px',
+            borderRadius: 10,
+            borderColor: searchFocused ? accent + '66' : '#1f1f1f',
+            background: searchFocused ? '#0d0d0d' : '#0a0a0a',
+            boxShadow: searchFocused ? `0 0 0 3px ${accent}1a` : 'none',
+            transition: 'border-color .15s, box-shadow .15s, background .15s',
+          }}
         />
+        {query !== '' && (
+          <button
+            onMouseDown={e => e.preventDefault()}
+            onClick={() => {
+              setQuery('')
+              setResults([])
+            }}
+            title="Clear search"
+            aria-label="Clear search"
+            style={{
+              position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
+              width: mobile ? 34 : 26, height: mobile ? 34 : 26, borderRadius: 6,
+              background: 'transparent', border: 'none', color: '#666666',
+              fontSize: 14, lineHeight: 1, cursor: 'pointer',
+            }}
+          >
+            ×
+          </button>
+        )}
         {results.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#0a0a0a', border: '1px solid #1f1f1f', borderRadius: 7, marginTop: 4, maxHeight: 260, overflowY: 'auto' }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#0d0d0d', border: '1px solid #232323', borderRadius: 10, marginTop: 6, maxHeight: 300, overflowY: 'auto', boxShadow: '0 12px 28px rgba(0,0,0,.55)', padding: 4 }}>
             {results.map(r => (
               <button
                 key={r.symbol}
                 onClick={() => handleAdd(r.symbol)}
-                style={{ display: 'flex', justifyContent: 'space-between', gap: 10, width: '100%', padding: '8px 10px', background: 'transparent', border: 'none', color: '#d0d0d0', fontSize: 12, cursor: 'pointer', textAlign: 'left' }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                  width: '100%', padding: mobile ? '12px 10px' : '9px 10px', borderRadius: 7,
+                  background: 'transparent', border: 'none', color: '#d0d0d0',
+                  fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                }}
+                onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
+                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
               >
-                <span style={{ fontWeight: 600 }}>{r.symbol}</span>
-                <span style={{ color: '#777777', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                <span style={{ fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{r.symbol}</span>
+                <span style={{ color: '#777777', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
               </button>
             ))}
           </div>
@@ -365,10 +438,15 @@ export function WatchlistTab({ accent }: Props) {
       {error && <ErrorLine text={error} />}
 
       {items.length > 0 && (
-        <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ width: '100%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
           <button onClick={toggleCompare} style={compare ? primaryBtn(accent) : secondaryBtn}>
             {compare ? `Comparing ${selected.length}` : 'Compare'}
           </button>
+          {mobile && (
+            <button onClick={() => setAllColumns(v => !v)} style={secondaryBtn}>
+              {allColumns ? 'Fewer columns' : 'All columns'}
+            </button>
+          )}
           {compare && (
             <>
               <button onClick={() => setPicking(v => !v)} style={secondaryBtn}>
@@ -388,11 +466,11 @@ export function WatchlistTab({ accent }: Props) {
       ) : items.length === 0 ? (
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
       ) : (
-        <div style={{ width: '100%', overflowX: 'auto' }}>
+        <div style={{ width: '100%', overflow: 'auto', maxHeight: `calc(100dvh - ${mobile ? 300 : 240}px)`, minHeight: 320 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ color: '#666666', textAlign: 'left', background: '#000000' }}>
-              {COLUMNS.map(col => (
+              {columns.map(col => (
                 <th
                   key={col.key}
                   onClick={() => handleSort(col.key)}
@@ -403,7 +481,15 @@ export function WatchlistTab({ accent }: Props) {
                     cursor: 'pointer',
                     userSelect: 'none',
                     color: sortKey === col.key ? '#c0c0c0' : '#666666',
-                    ...(col.key === 'symbol' ? stickyCol('#000000', 2) : {}),
+                    // Sticky lives on the cells, not the row: with
+                    // border-collapse a sticky <tr> is ignored. The symbol
+                    // header is sticky on both axes and has to outrank both the
+                    // other headers and the sticky body cells.
+                    position: 'sticky',
+                    top: 0,
+                    zIndex: 3,
+                    background: '#000000',
+                    ...(col.key === 'symbol' ? { ...stickyCol('#000000', 4), top: 0 } : {}),
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
@@ -413,7 +499,7 @@ export function WatchlistTab({ accent }: Props) {
                   </span>
                 </th>
               ))}
-              <th style={th} />
+              <th style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: '#000000' }} />
             </tr>
           </thead>
           <tbody>
@@ -426,6 +512,8 @@ export function WatchlistTab({ accent }: Props) {
                 onRemove={handleRemove}
                 selected={compare && selected.includes(item.symbol)}
                 onSelect={compare ? handleSelect : undefined}
+                compact={compact}
+                touch={mobile}
               />
             ))}
           </tbody>
@@ -452,6 +540,8 @@ function Row({
   onRemove,
   selected,
   onSelect,
+  compact,
+  touch,
 }: {
   item: WatchlistItem
   accent: string
@@ -459,6 +549,8 @@ function Row({
   onRemove: (symbol: string) => void
   selected: boolean
   onSelect?: (symbol: string) => void
+  compact: boolean
+  touch: boolean
 }) {
   const [note, setNote] = useState(item.note ?? '')
   const [target, setTarget] = useState(item.targetPrice ? String(item.targetPrice) : '')
@@ -482,6 +574,11 @@ function Row({
   // scrolled columns show through it.
   const restBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
   const stickyBg = selected ? '#121212' : item.pinned ? PIN_STICKY : '#000000'
+  // The edge is an inset shadow rather than a border: border-collapse hands
+  // collapsed borders to the table to paint, so a border here scrolls out of
+  // view with the table instead of staying with the sticky cell.
+  const edge = item.pinned ? PIN_EDGE : selected ? accent : null
+  const tap = touch ? 38 : 24
 
   return (
     // Clicking the row opens the same lookup modal the Positions tab uses.
@@ -499,10 +596,11 @@ function Row({
         ;(e.currentTarget.firstElementChild as HTMLElement).style.background = stickyBg
       }}
     >
-      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol(stickyBg, 1), borderLeft: item.pinned ? `2px solid ${PIN_EDGE}` : selected ? `2px solid ${accent}` : undefined }}>
+      <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol(stickyBg, 1), boxShadow: edge ? `inset 2px 0 0 0 ${edge}` : undefined }}>
         {item.symbol}
       </td>
-      <IndicatorGroup p={p} keys={LEAD_INDICATORS} />
+      <IndicatorGroup p={p} keys={compact ? MOBILE_LEAD : LEAD_INDICATORS} />
+      {!compact && (
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
           <input
@@ -516,6 +614,7 @@ function Row({
             placeholder="—"
             style={{
               ...inputStyle,
+              fontSize: touch ? 16 : 12,
               width: 90,
               textAlign: 'right',
               ...(hit ? { color: '#34d399', borderColor: '#34d39955', background: '#34d39914', fontWeight: 600 } : {}),
@@ -553,6 +652,7 @@ function Row({
           </button>
         </div>
       </td>
+      )}
       <td
         style={{
           ...td,
@@ -569,7 +669,8 @@ function Row({
       <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
         {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
       </td>
-      <IndicatorGroup p={p} keys={TRAIL_INDICATORS} />
+      <IndicatorGroup p={p} keys={compact ? MOBILE_TRAIL : TRAIL_INDICATORS} />
+      {!compact && (
       <td style={td} onClick={e => e.stopPropagation()}>
         <input
           value={note}
@@ -577,9 +678,10 @@ function Row({
           onChange={e => setNote(e.target.value)}
           onBlur={() => note !== (item.note ?? '') && onSave(item, { note })}
           placeholder="Add a note"
-          style={{ ...inputStyle, width: '100%', minWidth: 140 }}
+          style={{ ...inputStyle, width: '100%', minWidth: 140, fontSize: touch ? 16 : 12 }}
         />
       </td>
+      )}
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
         <button
@@ -591,8 +693,8 @@ function Row({
             background: 'transparent',
             border: `1px solid ${item.pinned ? PIN_EDGE + '55' : '#262626'}`,
             borderRadius: 6,
-            width: 24,
-            height: 24,
+            width: tap,
+            height: tap,
             lineHeight: 1,
             padding: 0,
             color: item.pinned ? PIN_EDGE : '#777777',
@@ -610,8 +712,8 @@ function Row({
             background: 'transparent',
             border: '1px solid #262626',
             borderRadius: 6,
-            width: 24,
-            height: 24,
+            width: tap,
+            height: tap,
             lineHeight: 1,
             padding: 0,
             color: '#777777',

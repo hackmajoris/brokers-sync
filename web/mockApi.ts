@@ -14,6 +14,42 @@ interface MockEntry {
   indicators?: Record<string, unknown>
 }
 
+// Enough rows to scroll, so the sticky header, the sticky symbol column, pinning
+// and compare mode can all be exercised in dev. Indicators are synthesised from
+// the symbol, which keeps the values stable across reloads but varied enough to
+// sort on. Two are pinned so the pinned-first order is visible on first load.
+const BULK: MockEntry[] = [
+  ['AAPL', 'Core holding candidate', 190, true],
+  ['MSFT', 'Waiting on cloud margin', 350, true],
+  ['GOOGL', 'Antitrust discount', 140, false],
+  ['AMZN', 'Retail margin inflecting', 160, false],
+  ['TSLA', 'No thesis, watching only', 180, false],
+  ['META', 'Capex risk', 420, false],
+  ['AVGO', 'Rich but compounding', 900, false],
+  ['AMD', 'Second source to NVDA', 110, false],
+  ['TSM', 'Geopolitical discount', 150, false],
+  ['NESN.SW', 'Defensive, slow', 82, false],
+  ['BRK-B', 'Cash pile optionality', 400, false],
+  ['JNJ', 'Dividend anchor', 140, false],
+  ['V', 'Toll booth', 250, false],
+  ['MA', 'Same thesis as V', 420, false],
+  ['UNH', 'Regulatory overhang', 450, false],
+  ['COST', 'Never cheap', 700, false],
+  ['LVMH.PA', 'China demand', 550, false],
+  ['SAP.DE', 'Cloud transition', 180, false],
+  ['NOVO-B.CO', 'GLP-1 concentration risk', 90, false],
+  ['SHOP', 'High beta', 60, false],
+  ['UBER', 'FCF turning', 55, false],
+  ['NFLX', 'Ads ramp', 600, false],
+].map(([symbol, note, targetPrice, pinned], i) => ({
+  symbol: symbol as string,
+  note: note as string,
+  targetPrice: targetPrice as number,
+  pinned: pinned as boolean,
+  addedAt: Date.now() - 86400000 * (7 + i * 3),
+  indicators: synthIndicators(symbol as string),
+}))
+
 const SEED: MockEntry[] = [
   {
     symbol: 'NVDA',
@@ -82,6 +118,7 @@ const SEED: MockEntry[] = [
     pinned: false,
     addedAt: Date.now() - 86400000 * 5,
   },
+  ...BULK,
 ]
 
 const SEARCH_UNIVERSE = [
