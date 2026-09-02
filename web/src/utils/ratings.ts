@@ -9,7 +9,7 @@ export const VALUATION_COLORS: Record<string, string> = {
   undervalued: '#34d399',
   fair: '#fbbf24',
   overvalued: '#f87171',
-  unclear: '#555555',
+  unclear: '#8b8fa3',
 }
 
 export function ratingLabel(v: string): string {

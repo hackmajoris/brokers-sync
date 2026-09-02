@@ -28,7 +28,7 @@ export function LineChart({ data, keyX, keyY, color = '#fb923c', height = 160, f
         pointRadius: 3,
         pointHoverRadius: 5,
         pointBackgroundColor: color,
-        pointBorderColor: '#0f0f0f',
+        pointBorderColor: '#090f1c',
         pointBorderWidth: 1.5,
         tension: 0.35,
       }],

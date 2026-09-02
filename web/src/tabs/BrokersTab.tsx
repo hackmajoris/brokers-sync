@@ -33,15 +33,15 @@ function IndividualBroker({ b }: { b: BrokerData }) {
           { label: 'MTD Return', value: fmtPct(b.mtdGain), color: clr(b.mtdGain) },
           { label: 'Total Dividends', value: fc(Math.abs(b.dividends)), color: '#facc15' },
         ].map(k => (
-          <div key={k.label} style={{ background: '#0f0f0f', borderRadius: 10, padding: '12px 14px', border: `1px solid ${bColor}22` }}>
-            <div style={{ fontSize: 10, color: '#555555', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{k.label}</div>
+          <div key={k.label} style={{ background: '#090f1c', borderRadius: 10, padding: '12px 14px', border: `1px solid ${bColor}22` }}>
+            <div style={{ fontSize: 10, color: '#8b8fa3', fontWeight: 500, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>{k.label}</div>
             <div style={{ fontSize: 20, fontWeight: 700, color: k.color }}>{k.value}</div>
           </div>
         ))}
       </div>
 
       <div className="grid-2">
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31' }}>
           <SectionLabel>Annual Return — {BROKER_LABELS[b.name] ?? b.name}</SectionLabel>
           {b.byYear.length > 0 ? (
             <>
@@ -62,12 +62,12 @@ function IndividualBroker({ b }: { b: BrokerData }) {
               </div>
             </>
           ) : (
-            <div style={{ color: '#555555', fontSize: 12, padding: '20px 0' }}>No yearly data</div>
+            <div style={{ color: '#8b8fa3', fontSize: 12, padding: '20px 0' }}>No yearly data</div>
           )}
         </div>
 
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
             <SectionLabel>Open Positions</SectionLabel>
             <div style={{ display: 'flex', gap: 12 }}>
               <span style={{ fontSize: 12, color: '#c0c0c0' }}>MV: <strong style={{ color: '#ffffff' }}>{fc(openMV)}</strong></span>
@@ -79,14 +79,14 @@ function IndividualBroker({ b }: { b: BrokerData }) {
               <thead>
                 <tr style={{ background: '#080808', position: 'sticky', top: 0 }}>
                   {['Symbol', 'Qty', 'Avg Cost', 'Cur. Price', 'Mkt Value', 'Cost', 'U.PnL', 'Return'].map(h => (
-                    <th key={h} style={{ padding: '7px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
+                    <th key={h} style={{ padding: '7px 14px', textAlign: h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#8b8fa3', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {b.positions.slice().sort((x, y) => (y.mv ?? 0) - (x.mv ?? 0)).map(p => (
-                  <tr key={p.symbol} style={{ borderTop: '1px solid #1a1a1a' }}
-                    onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a44')}
+                  <tr key={p.symbol} style={{ borderTop: '1px solid #161f31' }}
+                    onMouseEnter={e => (e.currentTarget.style.background = '#161f3144')}
                     onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                   >
                     <td style={{ padding: '8px 14px' }}>
@@ -104,7 +104,7 @@ function IndividualBroker({ b }: { b: BrokerData }) {
                     <td style={{ padding: '8px 14px', textAlign: 'right' }}>
                       {p.pct != null
                         ? <span style={{ padding: '1px 6px', borderRadius: 3, fontSize: 10, fontWeight: 600, background: clr(p.pct) + '22', color: clr(p.pct) }}>{fmtPct(p.pct)}</span>
-                        : <span style={{ color: '#555555' }}>—</span>}
+                        : <span style={{ color: '#8b8fa3' }}>—</span>}
                     </td>
                   </tr>
                 ))}
@@ -132,13 +132,13 @@ function IndividualBroker({ b }: { b: BrokerData }) {
           { title: 'Top Realized Gainers', items: b.realizedBySymbol.filter(p => p.pnl > 0).sort((a, c) => c.pnl - a.pnl).slice(0, 8), max: maxGain, color: '#34d399' },
           { title: 'Top Realized Losers', items: b.realizedBySymbol.filter(p => p.pnl < 0).sort((a, c) => a.pnl - c.pnl).slice(0, 8), max: maxLoss, color: '#f87171' },
         ].map(({ title, items, max, color }) => (
-          <div key={title} style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+          <div key={title} style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
               <SectionLabel>{title}</SectionLabel>
             </div>
             <div style={{ padding: '8px 0' }}>
               {items.length === 0 ? (
-                <div style={{ padding: '16px', color: '#555555', fontSize: 12 }}>None</div>
+                <div style={{ padding: '16px', color: '#8b8fa3', fontSize: 12 }}>None</div>
               ) : items.map((p, i) => (
                 <div key={p.symbol} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '7px 16px' }}>
                   <span style={{ width: 16, fontSize: 11, color: '#252525', fontWeight: 600, textAlign: 'right' }}>{i + 1}</span>
@@ -157,8 +157,8 @@ function IndividualBroker({ b }: { b: BrokerData }) {
 
       {/* Annual breakdown table */}
       {b.byYear.length > 0 && (
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
             <SectionLabel>Annual Breakdown — {BROKER_LABELS[b.name] ?? b.name}</SectionLabel>
           </div>
           <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -166,14 +166,14 @@ function IndividualBroker({ b }: { b: BrokerData }) {
             <thead>
               <tr style={{ background: '#080808' }}>
                 {['Year', 'Return %', 'Realized PnL', 'Dividends', 'Deposits', 'Buy Vol', 'Sell Vol'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Year' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
+                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Year' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#8b8fa3', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{h}</th>
                 ))}
               </tr>
             </thead>
             <tbody>
               {b.byYear.map(y => (
-                <tr key={y.label} style={{ borderTop: '1px solid #1a1a1a' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a44')}
+                <tr key={y.label} style={{ borderTop: '1px solid #161f31' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#161f3144')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '9px 14px', fontWeight: 600 }}>{y.label}</td>
@@ -183,8 +183,8 @@ function IndividualBroker({ b }: { b: BrokerData }) {
                   <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: clr(y.rPnl) }}>{fc(y.rPnl)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#facc15' }}>{fc(y.divs)}</td>
                   <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#888888' }}>{fc(y.deposits)}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#555555' }}>{fk(y.buyVol)}</td>
-                  <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#555555' }}>{fk(y.sellVol)}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#8b8fa3' }}>{fk(y.buyVol)}</td>
+                  <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, color: '#8b8fa3' }}>{fk(y.sellVol)}</td>
                 </tr>
               ))}
             </tbody>
@@ -199,7 +199,7 @@ function IndividualBroker({ b }: { b: BrokerData }) {
 function MiniStat({ label, value, color, large, mono }: { label: string; value: string; color: string; large?: boolean; mono?: boolean }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
-      <span style={{ fontSize: 9, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
+      <span style={{ fontSize: 9, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: '0.05em' }}>{label}</span>
       <span style={{
         fontSize: large ? 14 : 11,
         fontWeight: large ? 700 : 500,
@@ -226,8 +226,8 @@ export function BrokersTab({ data, accent }: Props) {
           onClick={() => setActiveBroker('all')}
           style={{
             padding: '5px 14px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-            background: activeBroker === 'all' ? accent + '33' : '#0f0f0f',
-            border: activeBroker === 'all' ? `1px solid ${accent}66` : '1px solid #1a1a1a',
+            background: activeBroker === 'all' ? accent + '33' : '#090f1c',
+            border: activeBroker === 'all' ? `1px solid ${accent}66` : '1px solid #161f31',
             color: activeBroker === 'all' ? accent : '#888888',
           }}
         >All Brokers</button>
@@ -239,8 +239,8 @@ export function BrokersTab({ data, accent }: Props) {
               onClick={() => setActiveBroker(b.name)}
               style={{
                 padding: '5px 14px', borderRadius: 999, fontSize: 11, fontWeight: 600, cursor: 'pointer',
-                background: activeBroker === b.name ? bc + '33' : '#0f0f0f',
-                border: activeBroker === b.name ? `1px solid ${bc}66` : '1px solid #1a1a1a',
+                background: activeBroker === b.name ? bc + '33' : '#090f1c',
+                border: activeBroker === b.name ? `1px solid ${bc}66` : '1px solid #161f31',
                 color: activeBroker === b.name ? bc : '#888888',
                 display: 'flex', alignItems: 'center', gap: 5,
               }}
@@ -256,8 +256,8 @@ export function BrokersTab({ data, accent }: Props) {
       {activeBroker === 'all' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
           {/* Comparison table */}
-          <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-            <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+          <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+            <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
               <SectionLabel>Broker Comparison</SectionLabel>
             </div>
             <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -265,7 +265,7 @@ export function BrokersTab({ data, accent }: Props) {
                 <thead>
                   <tr style={{ background: '#080808' }}>
                     {['Broker', 'Currency', 'Value', 'Cash', 'Deposits', 'Withdrawals', 'Transfer In', 'Transfer Out', 'All-Time Return', 'All-Time R.PnL', 'YTD Return', 'YTD R.PnL', 'YTD Divs', 'MTD Return', 'Dividends (AT)', 'Unrealized P&L', 'Open Positions'].map(h => (
-                      <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Broker' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                      <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Broker' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#8b8fa3', letterSpacing: '0.07em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -273,9 +273,9 @@ export function BrokersTab({ data, accent }: Props) {
                   {data.brokers.map(b => (
                     <tr
                       key={b.name}
-                      style={{ borderTop: '1px solid #1a1a1a', cursor: 'pointer' }}
+                      style={{ borderTop: '1px solid #161f31', cursor: 'pointer' }}
                       onClick={() => setActiveBroker(b.name)}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a55')}
+                      onMouseEnter={e => (e.currentTarget.style.background = '#161f3155')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '10px 14px' }}><BrokerPill name={b.name} /></td>
@@ -304,13 +304,13 @@ export function BrokersTab({ data, accent }: Props) {
                       </td>
                       <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 12, color: '#c0c0c0' }}>
                         {b.positions.filter(p => p.mv != null).length}{' '}
-                        <span style={{ color: '#555555', fontSize: 10 }}>/ {b.positions.length}</span>
+                        <span style={{ color: '#8b8fa3', fontSize: 10 }}>/ {b.positions.length}</span>
                       </td>
                     </tr>
                   ))}
                   <tr style={{ borderTop: '2px solid #252525', background: '#080808' }}>
                     <td style={{ padding: '10px 14px', fontWeight: 700, color: '#ffffff', fontSize: 11 }}>TOTAL / ALL</td>
-                    <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, color: '#555555' }}>USD</td>
+                    <td style={{ padding: '10px 14px', textAlign: 'right', fontSize: 11, color: '#8b8fa3' }}>USD</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0) + data.cashBalance)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: data.cashBalance >= 0 ? '#34d399' : '#f87171' }}>{fmtCurrency(data.cashBalance)}</td>
                     <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono',monospace", fontSize: 12, fontWeight: 700, color: '#ffffff' }}>{fmtCurrency(data.allTime.deposits)}</td>
@@ -342,7 +342,7 @@ export function BrokersTab({ data, accent }: Props) {
 
           {/* Bar charts */}
           <div className="grid-2">
-            <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+            <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31' }}>
               <SectionLabel>All-Time Return by Broker</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                 {data.brokers.map(b => {
@@ -363,7 +363,7 @@ export function BrokersTab({ data, accent }: Props) {
               </div>
             </div>
 
-            <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+            <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31' }}>
               <SectionLabel>Realized P&L by Broker (All-Time)</SectionLabel>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
                 {data.brokers.slice().sort((a, b) => b.allTimeRPnl - a.allTimeRPnl).map(b => (
@@ -384,12 +384,12 @@ export function BrokersTab({ data, accent }: Props) {
             {data.brokers.map(b => {
               const bc = BROKER_COLORS[b.name] ?? '#c0c0c0'
               return (
-                <div key={b.name} style={{ background: '#0f0f0f', borderRadius: 10, border: `1px solid ${bc}33`, padding: '12px 14px', minWidth: 0 }}>
+                <div key={b.name} style={{ background: '#090f1c', borderRadius: 10, border: `1px solid ${bc}33`, padding: '12px 14px', minWidth: 0 }}>
                   <BrokerPill name={b.name} />
                   <div style={{ marginTop: 10, display: 'flex', flexDirection: 'column', gap: 5 }}>
                     <MiniStat label="YTD" value={fmtPct(b.ytdGain)} color={clr(b.ytdGain)} large />
                     <MiniStat label="MTD" value={fmtPct(b.mtdGain)} color={clr(b.mtdGain)} large />
-                    <div style={{ height: 1, background: '#1a1a1a', margin: '2px 0' }} />
+                    <div style={{ height: 1, background: '#161f31', margin: '2px 0' }} />
                     <MiniStat label="Cash" value={fmtCurrency(b.cashBalance, b.currency)} color={b.cashBalance >= 0 ? '#34d399' : '#f87171'} mono />
                     <MiniStat label="R.PnL YTD" value={fmtCurrency(b.ytdRPnl, b.currency)} color={clr(b.ytdRPnl)} mono />
                     <MiniStat label="Divs YTD" value={fmtCurrency(b.ytdDivs, b.currency)} color="#facc15" mono />

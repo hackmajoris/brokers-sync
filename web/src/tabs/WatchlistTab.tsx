@@ -16,7 +16,7 @@ import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
 import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
-import { fmtCurrency, fmtPct, clr } from '../utils/format'
+import { fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import type { Position } from '../types/portfolio'
 
 interface Props {
@@ -128,6 +128,12 @@ export function WatchlistTab({ accent }: Props) {
   const [searchFocused, setSearchFocused] = useState(false)
   // Symbol whose long-press action sheet is open, if any.
   const [sheetFor, setSheetFor] = useState<string | null>(null)
+  // Compare and the column-mode toggle live behind an overflow menu: both are
+  // occasional, and a permanent button row costs a whole strip of table height.
+  const [menuOpen, setMenuOpen] = useState(false)
+  // Phone-only quick filter. Kept out of the desktop table, which filters by
+  // sorting instead.
+  const [mobileFilter, setMobileFilter] = useState<MobileFilter>('All')
   const stacked = mobile && !allColumns
 
   async function refresh(): Promise<WatchlistItem[]> {
@@ -339,10 +345,21 @@ export function WatchlistTab({ accent }: Props) {
       ]
     : ordered
 
-  return (
-    <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16 }}>
-      <SectionLabel>Watchlist</SectionLabel>
+  // The chips narrow the phone list only, and read against whichever column is
+  // sorted so "Gainers" means gainers over the timeframe on screen.
+  const tf: SortKey = sortKey ?? 'today'
+  const matrixRows = stacked ? visibleRows.filter(i => matchesFilter(i, mobileFilter, tf)) : visibleRows
 
+  // Top three movers each way, off the whole list rather than the filtered view:
+  // the rails are an overview, so a chip narrowing the table below should not
+  // quietly redefine what "today's biggest gainer" means.
+  const withDayMove = items.filter(i => i.indicators?.todayReturn != null)
+  const byDayMove = withDayMove.slice().sort((a, b) => b.indicators!.todayReturn! - a.indicators!.todayReturn!)
+  const gainers = byDayMove.filter(i => i.indicators!.todayReturn! > 0).slice(0, 3)
+  const losers = byDayMove.filter(i => i.indicators!.todayReturn! < 0).slice(-3).reverse()
+
+  return (
+    <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 12 : 8 }}>
       {freshCode && (
         <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -370,10 +387,11 @@ export function WatchlistTab({ accent }: Props) {
         </div>
       )}
 
-      <div style={{ position: 'relative', width: '100%', maxWidth: 520 }}>
+      <div style={{ width: '100%', maxWidth: 520, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <div style={{ position: 'relative', flex: 1 }}>
         <span
           aria-hidden
-          style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: searchFocused ? accent : '#555555', fontSize: 15, pointerEvents: 'none', transition: 'color .15s' }}
+          style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: searchFocused ? accent : '#8b8fa3', fontSize: 15, pointerEvents: 'none', transition: 'color .15s' }}
         >
           ⌕
         </span>
@@ -389,7 +407,7 @@ export function WatchlistTab({ accent }: Props) {
             width: '100%',
             // 16px on touch keeps iOS from zooming the page on focus.
             fontSize: mobile ? 16 : 14,
-            padding: '13px 38px 13px 38px',
+            padding: mobile ? '10px 36px' : '9px 34px',
             borderRadius: 10,
             borderColor: searchFocused ? accent + '66' : '#1f1f1f',
             background: searchFocused ? '#0d0d0d' : '#0a0a0a',
@@ -439,18 +457,82 @@ export function WatchlistTab({ accent }: Props) {
         )}
       </div>
 
+      {items.length > 0 && (
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => setMenuOpen(v => !v)}
+            title="View options"
+            aria-label="View options"
+            aria-expanded={menuOpen}
+            style={{
+              ...secondaryBtn,
+              width: mobile ? 38 : 34,
+              height: mobile ? 38 : 34,
+              padding: 0,
+              fontSize: 15,
+              lineHeight: 1,
+              borderColor: menuOpen ? accent + '66' : '#262626',
+              color: menuOpen ? accent : '#8b8fa3',
+            }}
+          >
+            ⋯
+          </button>
+          {menuOpen && (
+            <>
+              <div onClick={() => setMenuOpen(false)} style={{ position: 'fixed', inset: 0, zIndex: 19 }} />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  marginTop: 6,
+                  zIndex: 20,
+                  minWidth: 170,
+                  background: '#0d0d0d',
+                  border: '1px solid #232323',
+                  borderRadius: 10,
+                  boxShadow: '0 12px 28px rgba(0,0,0,.55)',
+                  padding: 4,
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <MenuItem
+                  label="Compare"
+                  active={compare}
+                  accent={accent}
+                  mobile={mobile}
+                  onClick={() => {
+                    toggleCompare()
+                    setMenuOpen(false)
+                  }}
+                />
+                {mobile && (
+                  <MenuItem
+                    label="All columns"
+                    active={allColumns}
+                    accent={accent}
+                    mobile={mobile}
+                    onClick={() => {
+                      setAllColumns(v => !v)
+                      setMenuOpen(false)
+                    }}
+                  />
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      </div>
+
       {error && <ErrorLine text={error} />}
 
-      {items.length > 0 && (
+      {compare && items.length > 0 && (
         <div style={{ width: '100%', display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: 8 }}>
-          <button onClick={toggleCompare} style={compare ? primaryBtn(accent) : secondaryBtn}>
-            {compare ? `Comparing ${selected.length}` : 'Compare'}
+          <button onClick={toggleCompare} style={primaryBtn(accent)}>
+            {`Comparing ${selected.length}`}
           </button>
-          {mobile && (
-            <button onClick={() => setAllColumns(v => !v)} style={secondaryBtn}>
-              {allColumns ? 'List view' : 'All columns'}
-            </button>
-          )}
           {compare && (
             <>
               <button onClick={() => setPicking(v => !v)} style={secondaryBtn}>
@@ -459,7 +541,7 @@ export function WatchlistTab({ accent }: Props) {
               <button onClick={exitCompare} style={secondaryBtn}>
                 Clear
               </button>
-              <span style={{ fontSize: 11, color: '#555555' }}>
+              <span style={{ fontSize: 11, color: '#8b8fa3' }}>
                 {stacked ? 'Tap a row to add or drop it.' : 'Click a row to add or drop it from the comparison.'}
               </span>
             </>
@@ -473,18 +555,47 @@ export function WatchlistTab({ accent }: Props) {
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
       ) : stacked ? (
         <>
-          <SortBar sortKey={sortKey} sortDir={sortDir} onPick={pickSort} onFlip={flipSort} />
-          <div style={{ width: '100%', overflowY: 'auto', maxHeight: 'calc(100dvh - 320px)', minHeight: 320 }}>
-            {visibleRows.map(item => (
-              <StackedRow
-                key={item.symbol}
-                item={item}
-                accent={accent}
-                selected={compare && selected.includes(item.symbol)}
-                onSelect={compare ? handleSelect : undefined}
-                onLongPress={() => setSheetFor(item.symbol)}
-              />
-            ))}
+          <StatTiles total={items.length} rows={matrixRows} tf={tf} />
+          <Rail title="Today's Gainers" accentBar="#34d399" items={gainers} onOpen={openStockLookup} />
+          <Rail title="Today's Losers" accentBar="#f87171" items={losers} onOpen={openStockLookup} />
+          <FilterChips value={mobileFilter} onPick={setMobileFilter} accent={accent} />
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+            <SectionLabel>All Stats</SectionLabel>
+            <span style={{ fontSize: 9.5, color: '#475569' }}>{matrixRows.length} rows · swipe table →</span>
+          </div>
+          <div
+            className="rail"
+            style={{
+              width: '100%',
+              // Sideways only. The rows run as long as the list does and the
+              // page carries the vertical scroll, so the matrix never becomes a
+              // second scroll region competing with the one under the thumb.
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              background: '#090f1c',
+              border: '1px solid #161f31',
+              borderRadius: 12,
+              WebkitOverflowScrolling: 'touch',
+            }}
+          >
+            <div style={{ minWidth: PIN_W + MOBILE_COLS.length * COL_W }}>
+              <MatrixHead sortKey={sortKey} sortDir={sortDir} onPick={pickSort} onFlip={flipSort} />
+              {matrixRows.map((item, i) => (
+                <MatrixRow
+                  key={item.symbol}
+                  item={item}
+                  accent={accent}
+                  sortKey={sortKey}
+                  selected={compare && selected.includes(item.symbol)}
+                  onSelect={compare ? handleSelect : undefined}
+                  onLongPress={() => setSheetFor(item.symbol)}
+                  last={i === matrixRows.length - 1}
+                />
+              ))}
+              {matrixRows.length === 0 && (
+                <div style={{ padding: '28px 14px', textAlign: 'center', color: '#475569', fontSize: 12 }}>No symbols match.</div>
+              )}
+            </div>
           </div>
           {sheetFor && (
             <ActionSheet
@@ -503,10 +614,10 @@ export function WatchlistTab({ accent }: Props) {
           )}
         </>
       ) : (
-        <div style={{ width: '100%', overflow: 'auto', maxHeight: `calc(100dvh - ${mobile ? 300 : 240}px)`, minHeight: 320 }}>
+        <div style={{ width: '100%', overflow: 'auto', maxHeight: `calc(100dvh - ${mobile ? 300 : compare ? 218 : 178}px)`, minHeight: 240, background: '#090f1c', border: '1px solid #161f31', borderRadius: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
-            <tr style={{ color: '#666666', textAlign: 'left', background: '#000000' }}>
+            <tr style={{ color: '#666666', textAlign: 'left', background: '#090f1c' }}>
               {COLUMNS.map(col => (
                 <th
                   key={col.key}
@@ -525,8 +636,8 @@ export function WatchlistTab({ accent }: Props) {
                     position: 'sticky',
                     top: 0,
                     zIndex: 3,
-                    background: '#000000',
-                    ...(col.key === 'symbol' ? { ...stickyCol('#000000', 4), top: 0 } : {}),
+                    background: '#090f1c',
+                    ...(col.key === 'symbol' ? { ...stickyCol('#090f1c', 4), top: 0 } : {}),
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
@@ -536,7 +647,7 @@ export function WatchlistTab({ accent }: Props) {
                   </span>
                 </th>
               ))}
-              <th style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: '#000000' }} />
+              <th style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: '#090f1c' }} />
             </tr>
           </thead>
           <tbody>
@@ -557,8 +668,8 @@ export function WatchlistTab({ accent }: Props) {
         </div>
       )}
 
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161616', paddingTop: 12 }}>
-        <span style={{ fontSize: 11, color: '#555555' }}>
+      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161f31', paddingTop: 12 }}>
+        <span style={{ fontSize: 11, color: '#8b8fa3' }}>
           {items.length} tracked. Your code is stored in this browser only.
         </span>
         <button onClick={handleForget} style={secondaryBtn}>
@@ -607,7 +718,7 @@ function Row({
   // The first cell is sticky, so its background has to stay opaque or the
   // scrolled columns show through it.
   const restBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
-  const stickyBg = selected ? '#121212' : item.pinned ? PIN_STICKY : '#000000'
+  const stickyBg = selected ? '#16203a' : item.pinned ? PIN_STICKY : '#090f1c'
   // The edge is an inset shadow rather than a border: border-collapse hands
   // collapsed borders to the table to paint, so a border here scrolls out of
   // view with the table instead of staying with the sticky cell.
@@ -620,10 +731,10 @@ function Row({
     // not also open the popup.
     <tr
       onClick={() => (onSelect ? onSelect(item.symbol) : openStockLookup(item.symbol))}
-      style={{ borderTop: '1px solid #161616', cursor: 'pointer', background: restBg }}
+      style={{ borderTop: '1px solid #161f31', cursor: 'pointer', background: restBg }}
       onMouseEnter={e => {
         e.currentTarget.style.background = accent + '11'
-        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#111111'
+        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#141c2c'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.background = restBg
@@ -693,7 +804,7 @@ function Row({
           fontWeight: 600,
           fontFamily: "'DM Mono', monospace",
           whiteSpace: 'nowrap',
-          color: gap == null ? '#555555' : clr(gap),
+          color: gap == null ? '#8b8fa3' : clr(gap),
         }}
       >
         {gap == null ? '—' : fmtPct(gap)}
@@ -774,7 +885,7 @@ function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
   return (
     <>
       {keys.map(key => (
-        <td key={key} style={{ ...td, textAlign: 'right', color: '#555555' }}>
+        <td key={key} style={{ ...td, textAlign: 'right', color: '#8b8fa3' }}>
           —
         </td>
       ))}
@@ -782,33 +893,174 @@ function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
   )
 }
 
-// A P/E of zero or less carries no meaning, so it reads as absent.
-function ratio(v?: number): string {
-  return v != null && v > 0 ? v.toFixed(1) : '—'
-}
-
 // ── Stacked mobile list ──────────────────────────────────────────────────────
 
-// Three lines per row: symbol and price, then the note against the day move,
-// then the target and YTD. Everything the table shows across 22 columns that
-// actually matters at a glance, without any horizontal panning.
-function StackedRow({
+// The phone view is a stats matrix rather than a card list: the pinned symbol
+// column stays put while every timeframe and ratio scrolls past it sideways, so
+// a row can be read across without collapsing the data down to three lines.
+const MC = {
+  surf: '#111827',
+  line: '#161f31',
+  mut: '#64748b',
+  dim: '#475569',
+  txt: '#e2e8f0',
+}
+
+const PIN_W = 104
+const COL_W = 58
+
+type MobileGroup = 'perf' | 'val'
+type MobileKind = 'pct' | 'num' | 'cap'
+
+// marketCap has no IndicatorKey behind it, so Cap displays but never sorts.
+type MobileColKey = SortKey | 'marketCap'
+
+const MOBILE_COLS: { key: MobileColKey; label: string; kind: MobileKind; group: MobileGroup }[] = [
+  { key: 'today', label: '1D', kind: 'pct', group: 'perf' },
+  { key: 'oneWeek', label: '1W', kind: 'pct', group: 'perf' },
+  { key: 'oneMonth', label: '1M', kind: 'pct', group: 'perf' },
+  { key: 'ytd', label: 'YTD', kind: 'pct', group: 'perf' },
+  { key: 'fiveYr', label: '5Y', kind: 'pct', group: 'perf' },
+  { key: 'tenYr', label: '10Y', kind: 'pct', group: 'perf' },
+  { key: 'pe', label: 'P/E', kind: 'num', group: 'val' },
+  { key: 'forwardPe', label: 'Fwd', kind: 'num', group: 'val' },
+  { key: 'targetGap', label: 'Tgt', kind: 'pct', group: 'val' },
+  { key: 'marketCap', label: 'Cap', kind: 'cap', group: 'val' },
+]
+
+const MOBILE_FILTERS = ['All', '★ Pinned', 'Gainers', 'Losers', 'Undervalued'] as const
+type MobileFilter = (typeof MOBILE_FILTERS)[number]
+
+// "Undervalued" is the target reading, not a screen: the price still has room
+// to rise to the target the user set.
+function matchesFilter(item: WatchlistItem, filter: MobileFilter, tf: SortKey): boolean {
+  if (filter === 'All') return true
+  if (filter === '★ Pinned') return item.pinned
+  if (filter === 'Undervalued') return (targetGap(item) ?? 0) > 0
+  const v = cellValue(item, tf)
+  if (v == null) return false
+  return filter === 'Gainers' ? v > 0 : v < 0
+}
+
+function cellValue(item: WatchlistItem, key: MobileColKey): number | undefined {
+  const p = item.indicators
+  switch (key) {
+    case 'today':
+      return p?.todayReturn
+    case 'oneWeek':
+      return p?.oneWeekReturn
+    case 'oneMonth':
+      return p?.oneMonthReturn
+    case 'ytd':
+      return p?.ytdReturn
+    case 'fiveYr':
+      return p?.fiveYrReturn
+    case 'tenYr':
+      return p?.tenYrReturn
+    case 'pe':
+      return p?.pe != null && p.pe > 0 ? p.pe : undefined
+    case 'forwardPe':
+      return p?.forwardPE != null && p.forwardPE > 0 ? p.forwardPE : undefined
+    case 'targetGap':
+      return targetGap(item) ?? undefined
+    case 'marketCap':
+      return p?.marketCap
+    default:
+      return undefined
+  }
+}
+
+// A four-digit percentage eats two columns, so anything past 1000% collapses to
+// a multiple: +1,284% reads as 13x in the same width.
+function compactPct(v: number): string {
+  if (Math.abs(v) >= 1000) return `${v < 0 ? '-' : ''}${(Math.abs(v) / 100).toFixed(0)}x`
+  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
+}
+
+function MatrixCell({ item, kind, colKey }: { item: WatchlistItem; kind: MobileKind; colKey: MobileColKey }) {
+  const v = cellValue(item, colKey)
+  if (v == null) return <span style={{ fontSize: 11, color: MC.dim, fontFamily: "'DM Mono', monospace" }}>—</span>
+  if (kind === 'pct')
+    return (
+      <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", color: clr(v), letterSpacing: '-0.04em' }}>
+        {compactPct(v)}
+      </span>
+    )
+  if (kind === 'cap')
+    return <span style={{ fontSize: 10.5, fontFamily: "'DM Mono', monospace", color: '#94a3b8' }}>{fmtKMBT(v)}</span>
+  return <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: '#cbd5e1', letterSpacing: '-0.03em' }}>{v.toFixed(1)}</span>
+}
+
+// Sorting lives entirely on the headers: tap a column to sort by it, tap the
+// active one again to reverse. Same contract as the desktop table.
+function MatrixHead({
+  sortKey,
+  sortDir,
+  onPick,
+  onFlip,
+}: {
+  sortKey: SortKey | null
+  sortDir: SortDir
+  onPick: (key: SortKey) => void
+  onFlip: () => void
+}) {
+  return (
+    <div style={{ display: 'flex', alignItems: 'stretch', height: 28, background: '#0f172a', borderBottom: `1px solid ${MC.line}`, position: 'sticky', top: 0, zIndex: 3 }}>
+      <div style={{ position: 'sticky', left: 0, zIndex: 2, width: PIN_W, flexShrink: 0, background: '#0f172a', borderRight: `1px solid ${MC.line}`, display: 'flex', alignItems: 'center', padding: '0 8px 0 10px' }}>
+        <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: MC.dim }}>Symbol</span>
+      </div>
+      {MOBILE_COLS.map((c, i) => (
+        <div
+          key={c.key}
+          onClick={() => c.key !== 'marketCap' && (c.key === sortKey ? onFlip() : onPick(c.key))}
+          style={{
+            width: COL_W,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: '0 8px',
+            cursor: c.key === 'marketCap' ? 'default' : 'pointer',
+            background: c.key === sortKey ? ACCENT_TINT_HEAD : 'transparent',
+            borderLeft: MOBILE_COLS[i - 1] && MOBILE_COLS[i - 1].group !== c.group ? `1px solid ${MC.line}` : 'none',
+          }}
+        >
+          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: c.key === sortKey ? '#818cf8' : MC.dim }}>
+            {c.label}
+            {c.key === sortKey && <span style={{ fontSize: 7, marginLeft: 2 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const ACCENT_TINT_HEAD = '#818cf81c'
+const ACCENT_TINT_CELL = '#818cf80f'
+
+// One matrix row. The pinned cell has to stay opaque for the same reason the
+// desktop table's does: the scrolled columns pass underneath it.
+function MatrixRow({
   item,
   accent,
+  sortKey,
   selected,
   onSelect,
   onLongPress,
+  last,
 }: {
   item: WatchlistItem
   accent: string
+  sortKey: SortKey | null
   selected: boolean
   onSelect?: (symbol: string) => void
   onLongPress: () => void
+  last: boolean
 }) {
   const p = item.indicators
-  const gap = targetGap(item)
   const edge = item.pinned ? PIN_EDGE : selected ? accent : null
-  const bg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
+  const rowBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
+  const pinBg = selected ? '#16203a' : item.pinned ? PIN_STICKY : '#090f1c'
 
   // A long press opens the action sheet. The press also fires a click when the
   // finger lifts, which would open the lookup modal on top of the sheet, so the
@@ -847,122 +1099,225 @@ function StackedRow({
       }}
       style={{
         display: 'flex',
-        flexDirection: 'column',
-        gap: 3,
-        padding: '11px 12px 11px 14px',
-        borderTop: '1px solid #161616',
-        background: bg,
-        boxShadow: edge ? `inset 3px 0 0 0 ${edge}` : undefined,
+        alignItems: 'stretch',
+        height: 44,
+        background: rowBg,
+        borderBottom: last ? 'none' : `1px solid ${MC.line}`,
         cursor: 'pointer',
-        // Stops the press turning into a text selection or the iOS callout.
         userSelect: 'none',
         WebkitUserSelect: 'none',
         WebkitTouchCallout: 'none',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10 }}>
-        <span style={{ fontWeight: 600, fontSize: 15, color: accent }}>
-          {item.pinned && <span style={{ color: PIN_EDGE, marginRight: 5, fontSize: 11 }}>★</span>}
-          {item.symbol}
-        </span>
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, color: '#e0e0e0' }}>
+      <div
+        style={{
+          position: 'sticky',
+          left: 0,
+          zIndex: 2,
+          width: PIN_W,
+          flexShrink: 0,
+          background: pinBg,
+          borderRight: `1px solid ${MC.line}`,
+          borderLeft: edge ? `2px solid ${edge}` : '2px solid transparent',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          gap: 1,
+          padding: '0 8px',
+        }}
+      >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+          <span style={{ fontSize: 12.5, fontWeight: 700, letterSpacing: '-0.02em', color: accent, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {item.symbol}
+          </span>
+          {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 8, flexShrink: 0 }}>★</span>}
+        </div>
+        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: '#94a3b8', letterSpacing: '-0.03em' }}>
           {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
         </span>
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 12, color: '#777777' }}>
-        <span style={{ whiteSpace: 'nowrap' }}>
-          P/E
-          <span style={{ color: '#b0b0b0', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>{ratio(p?.pe)}</span>
-        </span>
-        <span
+      {MOBILE_COLS.map((c, i) => (
+        <div
+          key={c.key}
           style={{
-            fontFamily: "'DM Mono', monospace",
-            fontSize: 13,
-            fontWeight: 600,
-            whiteSpace: 'nowrap',
-            color: p?.todayReturn != null ? clr(p.todayReturn) : '#555555',
+            width: COL_W,
+            flexShrink: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'flex-end',
+            padding: '0 8px',
+            background: c.key === sortKey ? ACCENT_TINT_CELL : 'transparent',
+            borderLeft: MOBILE_COLS[i - 1] && MOBILE_COLS[i - 1].group !== c.group ? `1px solid ${MC.line}` : 'none',
           }}
         >
-          {p?.todayReturn != null ? fmtPct(p.todayReturn) : '—'}
-        </span>
-      </div>
+          <MatrixCell item={item} kind={c.kind} colKey={c.key} />
+        </div>
+      ))}
+    </div>
+  )
+}
 
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 12, color: '#777777' }}>
-        <span style={{ whiteSpace: 'nowrap' }}>
-          Fwd P/E
-          <span style={{ color: '#b0b0b0', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>{ratio(p?.forwardPE)}</span>
-        </span>
-        <span style={{ whiteSpace: 'nowrap', fontSize: 11, color: '#5a5a5a' }}>
-          YTD
-          <span style={{ color: p?.ytdReturn != null ? clr(p.ytdReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
-            {p?.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}
-          </span>
-        </span>
+// Tracked / up / down / average across whatever the active filter left visible,
+// read off the column the list is currently sorted by.
+// Horizontal rail of cards. The design carries a sparkline on each one; there
+// is no price series behind a watchlist item, so the card shows the numbers it
+// can actually stand behind instead of a drawn-from-noise trend.
+function Rail({
+  title,
+  accentBar,
+  items,
+  onOpen,
+}: {
+  title: string
+  accentBar: string
+  items: WatchlistItem[]
+  onOpen: (symbol: string) => void
+}) {
+  if (items.length === 0) return null
+  return (
+    <div style={{ width: '100%' }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
+        <span style={{ width: 3, height: 11, borderRadius: 2, background: accentBar }} />
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#94a3b8' }}>{title}</span>
       </div>
-
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 10, fontSize: 11, color: '#5a5a5a' }}>
-        <span style={{ whiteSpace: 'nowrap' }}>
-          {item.targetPrice > 0 ? `tgt ${fmtCurrency(item.targetPrice)}` : 'no target'}
-          {gap != null && <span style={{ color: clr(gap), marginLeft: 6, fontFamily: "'DM Mono', monospace" }}>{fmtPct(gap)}</span>}
-        </span>
-        <span style={{ whiteSpace: 'nowrap' }}>
-          5Y
-          <span style={{ color: p?.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
-            {p?.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
-          </span>
-        </span>
-      </div>
-
-      <div style={{ display: 'flex', justifyContent: 'flex-end', fontSize: 11, color: '#5a5a5a' }}>
-        <span style={{ whiteSpace: 'nowrap' }}>
-          10Y
-          <span style={{ color: p?.tenYrReturn != null ? clr(p.tenYrReturn) : '#5a5a5a', marginLeft: 5, fontFamily: "'DM Mono', monospace" }}>
-            {p?.tenYrReturn != null ? fmtPct(p.tenYrReturn) : '—'}
-          </span>
-        </span>
+      <div className="rail" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
+        {items.map(item => (
+          <div key={item.symbol} style={{ scrollSnapAlign: 'start' }}>
+            <MoverCard item={item} tone={accentBar} onOpen={onOpen} />
+          </div>
+        ))}
       </div>
     </div>
   )
 }
 
-// The stacked list has no column headers, so sorting moves into an explicit
-// control. "Pinned first" is the same no-sort state the table reaches by
-// cycling a header past its second direction.
-function SortBar({
-  sortKey,
-  sortDir,
-  onPick,
-  onFlip,
+function MoverCard({ item, tone, onOpen }: { item: WatchlistItem; tone: string; onOpen: (symbol: string) => void }) {
+  const p = item.indicators
+  return (
+    <button
+      onClick={() => onOpen(item.symbol)}
+      style={{
+        width: 132,
+        background: MC.surf,
+        border: `1px solid ${tone}2e`,
+        borderRadius: 11,
+        padding: '9px 10px',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 6,
+        cursor: 'pointer',
+        textAlign: 'left',
+        fontFamily: "'DM Sans', sans-serif",
+        flexShrink: 0,
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, width: '100%' }}>
+        <span style={{ fontSize: 12.5, fontWeight: 700, color: MC.txt, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          {item.symbol}
+        </span>
+        {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 9, flexShrink: 0 }}>★</span>}
+      </div>
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' }}>
+        <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#cbd5e1' }}>
+          {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+        </span>
+        <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: tone }}>
+          {p?.todayReturn != null ? fmtPct(p.todayReturn) : '—'}
+        </span>
+      </div>
+    </button>
+  )
+}
+
+function StatTiles({ total, rows, tf }: { total: number; rows: WatchlistItem[]; tf: SortKey }) {
+  const vals = rows.map(r => cellValue(r, tf)).filter((v): v is number => v != null)
+  const up = vals.filter(v => v > 0).length
+  const down = vals.filter(v => v < 0).length
+  const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
+  const tiles: [string, string, string][] = [
+    ['Tracked', String(total), MC.txt],
+    ['Up', String(up), '#34d399'],
+    ['Down', String(down), '#f87171'],
+    ['Avg', avg == null ? '—' : compactPct(avg), avg == null ? MC.mut : clr(avg)],
+  ]
+  return (
+    <div style={{ display: 'flex', gap: 6, width: '100%' }}>
+      {tiles.map(([k, v, c]) => (
+        <div key={k} style={{ flex: 1, background: MC.surf, border: `1px solid ${MC.line}`, borderRadius: 9, padding: '6px 8px' }}>
+          <div style={{ fontSize: 8.5, color: MC.dim, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k}</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: c, fontFamily: "'DM Mono', monospace", letterSpacing: '-0.03em' }}>{v}</div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function FilterChips({ value, onPick, accent }: { value: MobileFilter; onPick: (f: MobileFilter) => void; accent: string }) {
+  return (
+    <div className="rail" style={{ display: 'flex', gap: 6, overflowX: 'auto', width: '100%' }}>
+      {MOBILE_FILTERS.map(c => (
+        <button
+          key={c}
+          onClick={() => onPick(c)}
+          style={{
+            padding: '5px 11px',
+            borderRadius: 999,
+            fontSize: 11,
+            fontWeight: 600,
+            cursor: 'pointer',
+            whiteSpace: 'nowrap',
+            fontFamily: "'DM Sans', sans-serif",
+            background: value === c ? accent + '26' : MC.surf,
+            color: value === c ? accent : MC.mut,
+            border: `1px solid ${value === c ? accent + '55' : MC.line}`,
+          }}
+        >
+          {c}
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function MenuItem({
+  label,
+  active,
+  accent,
+  mobile,
+  onClick,
 }: {
-  sortKey: SortKey | null
-  sortDir: SortDir
-  onPick: (key: SortKey | null) => void
-  onFlip: () => void
+  label: string
+  active: boolean
+  accent: string
+  mobile: boolean
+  onClick: () => void
 }) {
   return (
-    <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8 }}>
-      <select
-        value={sortKey ?? ''}
-        onChange={e => onPick((e.target.value || null) as SortKey | null)}
-        aria-label="Sort by"
-        style={{ ...inputStyle, fontSize: 16, flex: 1, padding: '9px 10px' }}
-      >
-        <option value="">Pinned first</option>
-        {COLUMNS.map(col => (
-          <option key={col.key} value={col.key}>
-            {col.label}
-          </option>
-        ))}
-      </select>
-      <button
-        onClick={onFlip}
-        aria-label={sortDir === 'asc' ? 'Sort descending' : 'Sort ascending'}
-        style={{ ...secondaryBtn, width: 44, height: 40, padding: 0, fontSize: 13, opacity: sortKey == null ? 0.5 : 1 }}
-      >
-        {sortKey == null ? '↕' : sortDir === 'asc' ? '▲' : '▼'}
-      </button>
-    </div>
+    <button
+      onClick={onClick}
+      style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        gap: 12,
+        width: '100%',
+        padding: mobile ? '11px 10px' : '8px 10px',
+        borderRadius: 7,
+        border: 'none',
+        background: 'transparent',
+        color: active ? accent : '#d0d0d0',
+        fontSize: 12,
+        fontWeight: active ? 600 : 500,
+        fontFamily: "'DM Sans', sans-serif",
+        cursor: 'pointer',
+        textAlign: 'left',
+      }}
+      onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
+      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+    >
+      {label}
+      {active && <span style={{ fontSize: 10 }}>✓</span>}
+    </button>
   )
 }
 
@@ -987,7 +1342,7 @@ function ActionSheet({
     padding: '15px 16px',
     background: 'transparent',
     border: 'none',
-    borderTop: '1px solid #1a1a1a',
+    borderTop: '1px solid #161f31',
     color: '#d0d0d0',
     fontSize: 15,
     textAlign: 'left',
@@ -1070,7 +1425,7 @@ const PIN_TINT = '#d9a4410f'
 const PIN_STICKY = '#151209'
 
 function stickyCol(background: string, zIndex: number): React.CSSProperties {
-  return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid #161616' }
+  return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid #161f31' }
 }
 
 const th: React.CSSProperties = { padding: '6px 8px', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }

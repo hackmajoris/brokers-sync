@@ -9,10 +9,10 @@ export function StatCard({ label, value, sub, valueColor }: StatCardProps) {
   return (
     <div
       style={{
-        background: '#0f0f0f',
+        background: '#090f1c',
         borderRadius: 10,
         padding: '14px 16px',
-        border: '1px solid #1a1a1a',
+        border: '1px solid #161f31',
         display: 'flex',
         flexDirection: 'column',
         gap: 4,
@@ -23,7 +23,7 @@ export function StatCard({ label, value, sub, valueColor }: StatCardProps) {
           fontSize: 10,
           fontWeight: 500,
           letterSpacing: '0.08em',
-          color: '#555555',
+          color: '#8b8fa3',
           textTransform: 'uppercase',
         }}
       >

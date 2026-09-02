@@ -198,7 +198,7 @@ export function SettingsView({ noData, onImported }: Props) {
                 key={b.id}
                 style={{
                   background: '#0a0a0a',
-                  border: `1px solid ${open ? accent + '44' : '#1a1a1a'}`,
+                  border: `1px solid ${open ? accent + '44' : '#161f31'}`,
                   borderRadius: 8,
                   overflow: 'hidden',
                   transition: 'border-color 0.15s',
@@ -272,7 +272,7 @@ export function SettingsView({ noData, onImported }: Props) {
               {cachedZipName}
             </div>
             {cachedZipDate && (
-              <div style={{ fontSize: 11, color: '#555555', marginTop: 1 }}>
+              <div style={{ fontSize: 11, color: '#8b8fa3', marginTop: 1 }}>
                 Cached {new Date(cachedZipDate).toLocaleString()}
               </div>
             )}
@@ -282,9 +282,9 @@ export function SettingsView({ noData, onImported }: Props) {
             onClick={handleReprocess}
             disabled={busy}
             style={{
-              background: busy ? '#1a1a1a' : accent + '22',
+              background: busy ? '#161f31' : accent + '22',
               border: `1px solid ${busy ? '#252525' : accent + '55'}`,
-              color: busy ? '#555555' : accent,
+              color: busy ? '#8b8fa3' : accent,
               borderRadius: 6, padding: '4px 12px', fontSize: 12, fontWeight: 500,
               cursor: busy ? 'not-allowed' : 'pointer', flexShrink: 0,
             }}
@@ -310,7 +310,7 @@ export function SettingsView({ noData, onImported }: Props) {
       <form onSubmit={handleSubmit} style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 6 }}>
         <label style={{
           display: 'flex', alignItems: 'center', gap: 10, flex: 1,
-          background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 8,
+          background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 8,
           padding: '8px 12px', cursor: 'pointer',
         }}>
           <input
@@ -329,7 +329,7 @@ export function SettingsView({ noData, onImported }: Props) {
           }}>
             Choose ZIP…
           </span>
-          <span style={{ fontSize: 13, color: fileName ? '#c0c0c0' : '#555555', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+          <span style={{ fontSize: 13, color: fileName ? '#c0c0c0' : '#8b8fa3', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             {fileName ?? 'No file chosen'}
           </span>
         </label>
@@ -337,9 +337,9 @@ export function SettingsView({ noData, onImported }: Props) {
           type="submit"
           disabled={busy || !fileName}
           style={{
-            background: busy ? '#1a1a1a' : accent + '22',
+            background: busy ? '#161f31' : accent + '22',
             border: `1px solid ${busy ? '#252525' : accent + '55'}`,
-            color: busy ? '#555555' : accent,
+            color: busy ? '#8b8fa3' : accent,
             borderRadius: 8, padding: '8px 16px', fontSize: 13, fontWeight: 500,
             cursor: busy || !fileName ? 'not-allowed' : 'pointer',
             whiteSpace: 'nowrap', flexShrink: 0,
@@ -349,7 +349,7 @@ export function SettingsView({ noData, onImported }: Props) {
         </button>
       </form>
 
-      <div style={{ fontSize: 11, color: '#555555', marginBottom: 12 }}>Max file size: 10 MB</div>
+      <div style={{ fontSize: 11, color: '#8b8fa3', marginBottom: 12 }}>Max file size: 10 MB</div>
 
       {fetchError && !busy && (
         <div style={{
@@ -365,13 +365,13 @@ export function SettingsView({ noData, onImported }: Props) {
           background: '#0a0d12', border: `1px solid ${
             status === 'done'
               ? success ? accent + '44' : '#f8717144'
-              : '#1a1a1a'
+              : '#161f31'
           }`,
           borderRadius: 8, overflow: 'hidden',
         }}>
           {status === 'done' && (
             <div style={{
-              padding: '8px 14px', borderBottom: '1px solid #1a1a1a',
+              padding: '8px 14px', borderBottom: '1px solid #161f31',
               fontSize: 12, fontWeight: 500,
               color: success ? accent : '#f87171',
             }}>
@@ -380,8 +380,8 @@ export function SettingsView({ noData, onImported }: Props) {
           )}
           {busy && (
             <div style={{
-              padding: '8px 14px', borderBottom: '1px solid #1a1a1a',
-              fontSize: 12, color: '#555555',
+              padding: '8px 14px', borderBottom: '1px solid #161f31',
+              fontSize: 12, color: '#8b8fa3',
             }}>
               Processing…
             </div>

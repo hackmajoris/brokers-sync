@@ -57,7 +57,7 @@ export const chartDefaults: ChartOptions = {
     x: {
       grid: { color: 'rgba(255,255,255,0.04)' },
       ticks: {
-        color: 'rgba(238,238,248,0.35)',
+        color: 'rgba(238,238,248,0.55)',
         font: { size: 10, family: 'DM Sans' },
         maxRotation: 0,
         minRotation: 0,
@@ -67,7 +67,7 @@ export const chartDefaults: ChartOptions = {
     y: {
       grid: { color: 'rgba(255,255,255,0.04)' },
       ticks: {
-        color: 'rgba(238,238,248,0.35)',
+        color: 'rgba(238,238,248,0.55)',
         font: { size: 10, family: 'DM Mono' },
         maxTicksLimit: 5,
       },

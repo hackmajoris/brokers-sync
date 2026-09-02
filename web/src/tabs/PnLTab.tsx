@@ -24,8 +24,8 @@ export function PnLTab({ data }: Props) {
       </div>
 
       <div className="grid-2">
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
             <SectionLabel>Top Realized Gainers</SectionLabel>
           </div>
           <div style={{ padding: '8px 0' }}>
@@ -45,8 +45,8 @@ export function PnLTab({ data }: Props) {
           </div>
         </div>
 
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
             <SectionLabel>Top Realized Losers</SectionLabel>
           </div>
           <div style={{ padding: '8px 0' }}>
@@ -68,8 +68,8 @@ export function PnLTab({ data }: Props) {
       </div>
 
       {/* Annual breakdown */}
-      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+      <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
           <SectionLabel>Annual Breakdown</SectionLabel>
         </div>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -77,7 +77,7 @@ export function PnLTab({ data }: Props) {
             <thead>
               <tr style={{ background: '#080808' }}>
                 {['Year', 'Realized P&L', 'Dividends', 'Return %', 'Deposits', 'Buy Vol', 'Sell Vol'].map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Year' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Year' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#8b8fa3', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -85,8 +85,8 @@ export function PnLTab({ data }: Props) {
               {data.byYear.map(y => (
                 <tr
                   key={y.label}
-                  style={{ borderTop: '1px solid #1a1a1a' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a44')}
+                  style={{ borderTop: '1px solid #161f31' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#161f3144')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '10px 14px', fontWeight: 600 }}>{y.label}</td>

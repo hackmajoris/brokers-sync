@@ -99,7 +99,7 @@ export function App() {
   return (
     <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff' }}>
       {/* Header */}
-      <header style={{ background: '#0a0a0a', borderBottom: '1px solid #1a1a1a', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, position: 'sticky', top: 0, zIndex: 10, gap: 8 }}>
+      <header style={{ background: '#0a0a0a', borderBottom: '1px solid #161f31', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, position: 'sticky', top: 0, zIndex: 10, gap: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <button
             className="mobile-nav-toggle"
@@ -154,7 +154,7 @@ export function App() {
               userSelect: 'none',
             }}>DEMO</span>
           )}
-          <div style={{ fontSize: 11, color: '#555555' }} className="date-label">
+          <div style={{ fontSize: 11, color: '#8b8fa3' }} className="date-label">
             {refreshing
               ? <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
               : <>As of <span style={{ color: '#c0c0c0' }}>{generatedDate}</span></>
@@ -221,7 +221,7 @@ export function App() {
         )}
 
         {!noData && activeTab !== 'settings' && activeTab !== 'watchlist' && !data && (
-          <div style={{ color: '#555555', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>
+          <div style={{ color: '#8b8fa3', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>
             Loading portfolio data…
           </div>
         )}

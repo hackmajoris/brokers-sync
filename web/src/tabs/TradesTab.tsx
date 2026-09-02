@@ -21,7 +21,7 @@ const TYPE_COLORS: Record<string, string> = {
   FOREX: '#c0c0c0',
   TRANSFER_IN: '#a78bfa',
   TRANSFER_OUT: '#a78bfa',
-  UNKNOWN: '#555555',
+  UNKNOWN: '#8b8fa3',
 }
 
 function typeColor(t: string): string {
@@ -29,7 +29,7 @@ function typeColor(t: string): string {
 }
 
 const selectStyle: React.CSSProperties = {
-  background: '#0f0f0f', border: '1px solid #1a1a1a', color: '#c0c0c0',
+  background: '#090f1c', border: '1px solid #161f31', color: '#c0c0c0',
   borderRadius: 6, padding: '6px 10px', fontSize: 12, cursor: 'pointer',
 }
 
@@ -75,13 +75,13 @@ export function TradesTab({ data }: Props) {
           <option value="">All types</option>
           {types.map(t => <option key={t} value={t}>{t}</option>)}
         </select>
-        <span style={{ fontSize: 11, color: '#555555', marginLeft: 'auto' }}>
+        <span style={{ fontSize: 11, color: '#8b8fa3', marginLeft: 'auto' }}>
           {rows.length} of {data.transactions.length}
         </span>
       </div>
 
-      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+      <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
           <SectionLabel>Ledger</SectionLabel>
         </div>
         <div style={{ overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
@@ -89,7 +89,7 @@ export function TradesTab({ data }: Props) {
             <thead>
               <tr style={{ background: '#080808' }}>
                 {headers.map(h => (
-                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Date' || h === 'Broker' || h === 'Type' || h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#555555', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
+                  <th key={h} style={{ padding: '8px 14px', textAlign: h === 'Date' || h === 'Broker' || h === 'Type' || h === 'Symbol' ? 'left' : 'right', fontSize: 10, fontWeight: 600, color: '#8b8fa3', letterSpacing: '0.08em', textTransform: 'uppercase', whiteSpace: 'nowrap' }}>{h}</th>
                 ))}
               </tr>
             </thead>
@@ -97,8 +97,8 @@ export function TradesTab({ data }: Props) {
               {rows.map(t => (
                 <tr
                   key={t.id}
-                  style={{ borderTop: '1px solid #1a1a1a' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#1a1a1a44')}
+                  style={{ borderTop: '1px solid #161f31' }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#161f3144')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <td style={{ padding: '10px 14px', color: '#888888', fontFamily: "'DM Mono', monospace", fontSize: 12, whiteSpace: 'nowrap' }}>{t.date.slice(0, 10)}</td>
@@ -107,7 +107,7 @@ export function TradesTab({ data }: Props) {
                     <span style={{ padding: '2px 7px', borderRadius: 4, fontSize: 10, fontWeight: 600, background: typeColor(t.type) + '22', color: typeColor(t.type) }}>{t.type}</span>
                   </td>
                   <td style={{ padding: '10px 14px', fontWeight: 600, fontSize: 12 }}>
-                    {t.symbol || <span style={{ color: '#555555' }}>—</span>}
+                    {t.symbol || <span style={{ color: '#8b8fa3' }}>—</span>}
                   </td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#c0c0c0' }}>{t.quantity ? fmt(t.quantity, 4) : '—'}</td>
                   <td style={{ padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#c0c0c0' }}>{t.price ? fmtCurrency(t.price, t.currency) : '—'}</td>
@@ -117,7 +117,7 @@ export function TradesTab({ data }: Props) {
               ))}
               {rows.length === 0 && (
                 <tr>
-                  <td colSpan={headers.length} style={{ padding: '32px 14px', textAlign: 'center', color: '#555555', fontSize: 13 }}>
+                  <td colSpan={headers.length} style={{ padding: '32px 14px', textAlign: 'center', color: '#8b8fa3', fontSize: 13 }}>
                     No transactions match the filters.
                   </td>
                 </tr>

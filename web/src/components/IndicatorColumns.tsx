@@ -124,7 +124,7 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
           <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
         </div>
       ) : (
-        <span style={{ color: '#555555' }}>—</span>
+        <span style={{ color: '#8b8fa3' }}>—</span>
       )}
     </td>
   ),
@@ -182,11 +182,11 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
       <ValueWithNote
         value={
           p.healthRating ? (
-            <span style={{ ...pill, background: (HEALTH_COLORS[p.healthRating] ?? '#555555') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#555555' }}>
+            <span style={{ ...pill, background: (HEALTH_COLORS[p.healthRating] ?? '#8b8fa3') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#8b8fa3' }}>
               {ratingLabel(p.healthRating)}
             </span>
           ) : (
-            <span style={{ color: '#555555' }}>—</span>
+            <span style={{ color: '#8b8fa3' }}>—</span>
           )
         }
         note={p.healthReason}
@@ -198,11 +198,11 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
       <ValueWithNote
         value={
           p.valuationRating ? (
-            <span style={{ ...pill, background: (VALUATION_COLORS[p.valuationRating] ?? '#555555') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#555555' }}>
+            <span style={{ ...pill, background: (VALUATION_COLORS[p.valuationRating] ?? '#8b8fa3') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#8b8fa3' }}>
               {ratingLabel(p.valuationRating)}
             </span>
           ) : (
-            <span style={{ color: '#555555' }}>—</span>
+            <span style={{ color: '#8b8fa3' }}>—</span>
           )
         }
         note={p.valuationReason}

@@ -28,7 +28,7 @@ export function InfoTooltip({ text }: Props) {
           width: 13,
           height: 13,
           borderRadius: '50%',
-          border: '1px solid #555555',
+          border: '1px solid #8b8fa3',
           background: 'transparent',
           color: '#777777',
           fontSize: 9,

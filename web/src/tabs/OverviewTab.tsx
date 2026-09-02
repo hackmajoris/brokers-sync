@@ -81,7 +81,7 @@ export function OverviewTab({ data, accent }: Props) {
 
       {/* Annual chart + donut */}
       <div className="chart-donut">
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a', minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31', minWidth: 0, overflow: 'hidden' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <SectionLabel>Annual Performance</SectionLabel>
             <div style={{ display: 'flex', gap: 4 }}>
@@ -91,7 +91,7 @@ export function OverviewTab({ data, accent }: Props) {
                   onClick={() => setChartMode(m)}
                   style={{
                     fontSize: 10, padding: '2px 8px', borderRadius: 4, cursor: 'pointer',
-                    background: chartMode === m ? accent + '33' : '#1a1a1a',
+                    background: chartMode === m ? accent + '33' : '#161f31',
                     border: chartMode === m ? `1px solid ${accent}66` : '1px solid #252525',
                     color: chartMode === m ? accent : '#888888',
                   }}
@@ -119,7 +119,7 @@ export function OverviewTab({ data, accent }: Props) {
           </div>
         </div>
 
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a', minWidth: 0, overflow: 'hidden' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31', minWidth: 0, overflow: 'hidden' }}>
           <SectionLabel>Broker Allocation</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
             <DonutChart slices={brokerAlloc} size={100} />
@@ -141,12 +141,12 @@ export function OverviewTab({ data, accent }: Props) {
 
       {/* Period summary + broker perf */}
       <div className="grid-2">
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31' }}>
           <SectionLabel>Period Summary</SectionLabel>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
             {periodRows.map(({ label, d }) => (
-              <div key={label} style={{ background: '#080808', borderRadius: 8, padding: '10px 12px', border: '1px solid #1a1a1a' }}>
-                <div style={{ fontSize: 10, color: '#555555', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
+              <div key={label} style={{ background: '#080808', borderRadius: 8, padding: '10px 12px', border: '1px solid #161f31' }}>
+                <div style={{ fontSize: 10, color: '#8b8fa3', fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 6 }}>{label}</div>
                 <div style={{ fontSize: 18, fontWeight: 700, color: clr(d.gainPct), marginBottom: 4 }}>{fmtPct(d.gainPct)}</div>
                 <div style={{ fontSize: 10, color: '#888888' }}>Realized: <span style={{ color: '#c0c0c0' }}>{fmtCurrency(d.realizedPnl)}</span></div>
                 <div style={{ fontSize: 10, color: '#888888' }}>Dividends: <span style={{ color: '#c0c0c0' }}>{fmtCurrency(d.dividends)}</span></div>
@@ -155,7 +155,7 @@ export function OverviewTab({ data, accent }: Props) {
           </div>
         </div>
 
-        <div style={{ background: '#0f0f0f', borderRadius: 10, padding: '16px 18px', border: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, padding: '16px 18px', border: '1px solid #161f31' }}>
           <SectionLabel>Broker Performance (All-Time)</SectionLabel>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
             {data.brokers.map(b => (

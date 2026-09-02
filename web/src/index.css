@@ -89,7 +89,7 @@ nav::-webkit-scrollbar {
   animation: fadeIn .18s ease;
 }
 .chart-modal {
-  background: #111111; border: 1px solid #2a2a2a;
+  background: #141420; border: 1px solid #2a2a2a;
   border-radius: 20px; width: 88vw; max-width: 1200px;
   height: 76vh; max-height: 760px;
   display: flex; flex-direction: column;
@@ -100,10 +100,10 @@ nav::-webkit-scrollbar {
 .chart-modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 28px 16px; flex-shrink: 0;
-  border-bottom: 1px solid #1a1a1a;
+  border-bottom: 1px solid #161f31;
 }
 .chart-modal-meta { display: flex; flex-direction: column; gap: 4px; }
-.chart-modal-label { font-size: 11px; font-weight: 600; color: #555; text-transform: uppercase; letter-spacing: 0.8px; }
+.chart-modal-label { font-size: 11px; font-weight: 600; color: #8b8fa3; text-transform: uppercase; letter-spacing: 0.8px; }
 .chart-modal-value { font-size: 36px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -1px; line-height: 1; color: #fb923c; }
 .chart-modal-actions { display: flex; align-items: center; gap: 8px; }
 .chart-modal-body { flex: 1; padding: 24px 28px 28px; min-height: 0; position: relative; }
@@ -112,10 +112,10 @@ nav::-webkit-scrollbar {
   width: calc(100% - 56px) !important; height: calc(100% - 52px) !important;
 }
 
-.chart-type-toggle { display: flex; gap: 2px; background: #1a1a1a; border-radius: 6px; padding: 2px; }
+.chart-type-toggle { display: flex; gap: 2px; background: #161f31; border-radius: 6px; padding: 2px; }
 .chart-type-btn {
   padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 600;
-  cursor: pointer; border: none; background: transparent; color: #555;
+  cursor: pointer; border: none; background: transparent; color: #8b8fa3;
   font-family: 'DM Sans', sans-serif; transition: all .15s;
 }
 .chart-type-btn.active { background: #2a2a2a; color: #fb923c; }
@@ -123,7 +123,7 @@ nav::-webkit-scrollbar {
 
 .modal-close {
   width: 32px; height: 32px; border-radius: 50%;
-  background: #1a1a1a; border: none; cursor: pointer;
+  background: #161f31; border: none; cursor: pointer;
   color: #888; font-size: 14px; display: flex; align-items: center; justify-content: center;
   transition: background .15s, color .15s;
 }
@@ -172,14 +172,14 @@ nav::-webkit-scrollbar {
 .mobile-drawer {
   position: fixed; top: 0; left: 0; bottom: 0;
   width: 78vw; max-width: 300px;
-  background: #0a0a0a; border-right: 1px solid #1a1a1a;
+  background: #0a0a0a; border-right: 1px solid #161f31;
   z-index: 101; display: flex; flex-direction: column;
   animation: slideInLeft .2s ease;
 }
 .mobile-drawer-header {
   display: flex; align-items: center; justify-content: space-between;
   height: 52px; padding: 0 12px 0 16px;
-  border-bottom: 1px solid #1a1a1a; flex-shrink: 0;
+  border-bottom: 1px solid #161f31; flex-shrink: 0;
 }
 .mobile-drawer-nav {
   display: flex; flex-direction: column; gap: 4px;
@@ -212,4 +212,13 @@ nav::-webkit-scrollbar {
   /* swap inline nav for hamburger + drawer */
   .desktop-nav { display: none !important; }
   .mobile-nav-toggle { display: inline-flex !important; }
+}
+
+/* horizontal rails (filter chips, mobile stats matrix) hide their scrollbar */
+.rail {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.rail::-webkit-scrollbar {
+  display: none;
 }

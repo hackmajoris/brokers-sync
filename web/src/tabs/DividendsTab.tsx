@@ -55,8 +55,8 @@ export function DividendsTab({ data }: Props) {
       {/* Progress chart + Annual dividends side by side */}
       <div className="div-chart-annual">
         {/* Dividend progress by year */}
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31', display: 'flex', alignItems: 'center', gap: 8 }}>
             <SectionLabel>Dividend Progress by Year</SectionLabel>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#555', marginLeft: 4 }}>
               {yearDivs.length}y
@@ -89,8 +89,8 @@ export function DividendsTab({ data }: Props) {
         </div>
 
         {/* Annual dividends */}
-        <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-          <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+        <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+          <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
             <SectionLabel>Annual Dividends</SectionLabel>
           </div>
           <div style={{ padding: '12px 0' }}>
@@ -104,13 +104,13 @@ export function DividendsTab({ data }: Props) {
               </div>
             ))}
           </div>
-          <div style={{ padding: '12px 16px', borderTop: '1px solid #1a1a1a', background: '#080808' }}>
+          <div style={{ padding: '12px 16px', borderTop: '1px solid #161f31', background: '#080808' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 11, fontWeight: 600, color: '#c0c0c0' }}>Total Net</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 14, fontWeight: 700, color: '#fb923c' }}>{fmtCurrency(data.allTime.dividends)}</span>
             </div>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 4 }}>
-              <span style={{ fontSize: 11, color: '#555555' }}>Tax withheld</span>
+              <span style={{ fontSize: 11, color: '#8b8fa3' }}>Tax withheld</span>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, color: '#f87171' }}>−{fmtCurrency(Math.abs(data.allTime.taxWithheld))}</span>
             </div>
           </div>
@@ -118,8 +118,8 @@ export function DividendsTab({ data }: Props) {
       </div>
 
       {/* By symbol */}
-      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+      <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
           <SectionLabel>Dividends by Symbol (Net, USD)</SectionLabel>
         </div>
         <div style={{ padding: '12px 16px', display: 'flex', flexDirection: 'column', gap: 6 }}>
@@ -130,7 +130,7 @@ export function DividendsTab({ data }: Props) {
               </div>
               <span style={{ width: 56, fontWeight: 500, fontSize: 12, flexShrink: 0 }}>{d.symbol}</span>
               <div style={{ flex: 1, minWidth: 40 }}>
-                <HorizBar value={d.net} total={maxDiv} color="#facc15" height={6} bg="#1a1a1a" />
+                <HorizBar value={d.net} total={maxDiv} color="#facc15" height={6} bg="#161f31" />
               </div>
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 600, color: '#facc15', minWidth: 64, textAlign: 'right' }}>{fmtCurrency(d.net)}</span>
             </div>
@@ -139,8 +139,8 @@ export function DividendsTab({ data }: Props) {
       </div>
 
       {/* Broker breakdown */}
-      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a' }}>
+      <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31' }}>
           <SectionLabel>Dividends by Broker</SectionLabel>
         </div>
         <div className="broker-div-row">
@@ -149,13 +149,13 @@ export function DividendsTab({ data }: Props) {
             return (
               <div
                 key={b.name}
-                style={{ padding: '16px', borderRight: '1px solid #1a1a1a', borderBottom: '1px solid #1a1a1a' }}
+                style={{ padding: '16px', borderRight: '1px solid #161f31', borderBottom: '1px solid #161f31' }}
               >
                 <BrokerPill name={b.name} />
                 <div style={{ marginTop: 12, fontSize: 20, fontWeight: 700, color: b.dividends > 0 ? '#facc15' : '#f87171' }}>
                   {fmtCurrency(Math.abs(b.dividends))}
                 </div>
-                <div style={{ marginTop: 4, fontSize: 11, color: '#555555' }}>
+                <div style={{ marginTop: 4, fontSize: 11, color: '#8b8fa3' }}>
                   {b.dividends > 0 ? 'Net dividends' : 'Tax-negative'}
                 </div>
                 <div style={{ marginTop: 10 }}>

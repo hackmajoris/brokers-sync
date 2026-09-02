@@ -160,14 +160,14 @@ export function PositionsTab({ data, accent }: Props) {
       </div>
 
       {/* All positions table */}
-      <div style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-        <div style={{ padding: '14px 18px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+      <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+        <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
           <SectionLabel>Open Positions</SectionLabel>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
             <select
               value={format}
               onChange={e => setFormat(e.target.value as ExportFormat)}
-              style={{ background: '#080808', color: '#c0c0c0', border: '1px solid #1a1a1a', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
+              style={{ background: '#080808', color: '#c0c0c0', border: '1px solid #161f31', borderRadius: 6, padding: '5px 8px', fontSize: 11, fontWeight: 600, cursor: 'pointer' }}
             >
               <option value="csv">CSV</option>
               <option value="md">Markdown</option>
@@ -194,13 +194,13 @@ export function PositionsTab({ data, accent }: Props) {
                       textAlign: col.align ?? 'right',
                       fontSize: 10,
                       fontWeight: 600,
-                      color: sortKey === col.key ? '#c0c0c0' : '#555555',
+                      color: sortKey === col.key ? '#c0c0c0' : '#8b8fa3',
                       letterSpacing: '0.08em',
                       textTransform: 'uppercase',
                       whiteSpace: 'nowrap',
                       cursor: 'pointer',
                       userSelect: 'none',
-                      ...(col.key === 'symbol' ? { position: 'sticky', left: 0, background: '#080808', zIndex: 2, borderRight: '1px solid #1a1a1a' } : {}),
+                      ...(col.key === 'symbol' ? { position: 'sticky', left: 0, background: '#080808', zIndex: 2, borderRight: '1px solid #161f31' } : {}),
                     }}
                   >
                     <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
@@ -217,17 +217,17 @@ export function PositionsTab({ data, accent }: Props) {
                 <tr
                   key={p.symbol}
                   onClick={() => openStockLookup(p.symbol)}
-                  style={{ borderTop: '1px solid #1a1a1a', transition: 'background 0.1s', cursor: 'pointer' }}
+                  style={{ borderTop: '1px solid #161f31', transition: 'background 0.1s', cursor: 'pointer' }}
                   onMouseEnter={e => {
                     e.currentTarget.style.background = accent + '1c'
                     ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#1f1f1f'
                   }}
                   onMouseLeave={e => {
                     e.currentTarget.style.background = 'transparent'
-                    ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#0f0f0f'
+                    ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#090f1c'
                   }}
                 >
-                  <td style={{ padding: '10px 14px', position: 'sticky', left: 0, background: '#0f0f0f', zIndex: 1, borderRight: '1px solid #1a1a1a' }}>
+                  <td style={{ padding: '10px 14px', position: 'sticky', left: 0, background: '#090f1c', zIndex: 1, borderRight: '1px solid #161f31' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                       <div style={{ width: 26, height: 26, borderRadius: 6, background: accent + '22', border: `1px solid ${accent}33`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: accent, flexShrink: 0 }}>
                         {p.symbol.slice(0, 3)}
@@ -263,10 +263,10 @@ export function PositionsTab({ data, accent }: Props) {
         {data.brokers.filter(b => b.positions.some(p => p.mv != null)).map(b => {
           const bc = BROKER_COLORS[b.name] ?? '#c0c0c0'
           return (
-            <div key={b.name} style={{ background: '#0f0f0f', borderRadius: 10, border: '1px solid #1a1a1a', overflow: 'hidden' }}>
-              <div style={{ padding: '12px 16px', borderBottom: '1px solid #1a1a1a', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <div key={b.name} style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
+              <div style={{ padding: '12px 16px', borderBottom: '1px solid #161f31', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                 <BrokerPill name={b.name} />
-                <div style={{ fontSize: 11, color: '#555555' }}>{b.currency}</div>
+                <div style={{ fontSize: 11, color: '#8b8fa3' }}>{b.currency}</div>
               </div>
               <div style={{ padding: '8px 0' }}>
                 {b.positions.filter(p => p.mv != null).map(p => (

@@ -23,7 +23,7 @@ export function Candlestick({ candles, ma }: Props) {
   const [hover, setHover] = useState<number | null>(null)
 
   if (candles.length === 0) {
-    return <div style={{ color: '#555555', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>No history available</div>
+    return <div style={{ color: '#8b8fa3', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>No history available</div>
   }
 
   const plotW = W - PAD_L - PAD_R
@@ -85,12 +85,12 @@ export function Candlestick({ candles, ma }: Props) {
       >
         {yLabels.map((p, k) => (
           <g key={k}>
-            <line x1={PAD_L} x2={W - PAD_R} y1={y(p)} y2={y(p)} stroke="#1a1a1a" strokeWidth={1} />
-            <text x={W - PAD_R + 5} y={y(p) + 3} fill="#555555" fontSize={10} fontFamily="'DM Mono', monospace">{fmt(p, p >= 100 ? 0 : 1)}</text>
+            <line x1={PAD_L} x2={W - PAD_R} y1={y(p)} y2={y(p)} stroke="#161f31" strokeWidth={1} />
+            <text x={W - PAD_R + 5} y={y(p) + 3} fill="#8b8fa3" fontSize={10} fontFamily="'DM Mono', monospace">{fmt(p, p >= 100 ? 0 : 1)}</text>
           </g>
         ))}
         {xLabels.map((t, k) => (
-          <text key={k} x={x(t.i)} y={H - 6} fill="#555555" fontSize={10} textAnchor="middle" fontFamily="'DM Mono', monospace">{t.label}</text>
+          <text key={k} x={x(t.i)} y={H - 6} fill="#8b8fa3" fontSize={10} textAnchor="middle" fontFamily="'DM Mono', monospace">{t.label}</text>
         ))}
         {candles.map((c, i) => {
           const up = c.c >= c.o
@@ -121,7 +121,7 @@ export function Candlestick({ candles, ma }: Props) {
           )
         })()}
         {hc && (
-          <line x1={x(hover!)} x2={x(hover!)} y1={PAD_T} y2={H - PAD_B} stroke="#555555" strokeWidth={1} strokeDasharray="3 3" pointerEvents="none" />
+          <line x1={x(hover!)} x2={x(hover!)} y1={PAD_T} y2={H - PAD_B} stroke="#8b8fa3" strokeWidth={1} strokeDasharray="3 3" pointerEvents="none" />
         )}
       </svg>
 
@@ -145,10 +145,10 @@ export function Candlestick({ candles, ma }: Props) {
         >
           <div style={{ color: '#888888', marginBottom: 3 }}>{new Date(hc.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
           <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '1px 10px' }}>
-            <span style={{ color: '#555555' }}>O</span><span>{fmt(hc.o)}</span>
-            <span style={{ color: '#555555' }}>H</span><span>{fmt(hc.h)}</span>
-            <span style={{ color: '#555555' }}>L</span><span>{fmt(hc.l)}</span>
-            <span style={{ color: '#555555' }}>C</span><span style={{ color: hc.c >= hc.o ? UP : DOWN }}>{fmt(hc.c)}</span>
+            <span style={{ color: '#8b8fa3' }}>O</span><span>{fmt(hc.o)}</span>
+            <span style={{ color: '#8b8fa3' }}>H</span><span>{fmt(hc.h)}</span>
+            <span style={{ color: '#8b8fa3' }}>L</span><span>{fmt(hc.l)}</span>
+            <span style={{ color: '#8b8fa3' }}>C</span><span style={{ color: hc.c >= hc.o ? UP : DOWN }}>{fmt(hc.c)}</span>
             {hMa != null && (<><span style={{ color: MA_COLOR }}>MA</span><span style={{ color: MA_COLOR }}>{fmt(hMa)}</span></>)}
           </div>
         </div>

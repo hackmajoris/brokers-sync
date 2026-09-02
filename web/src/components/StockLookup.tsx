@@ -31,8 +31,8 @@ interface Props {
 
 function Metric({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
   return (
-    <div style={{ background: '#0a0a0a', border: '1px solid #1a1a1a', borderRadius: 7, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 9, fontWeight: 600, color: '#555555', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 7, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontSize: 9, fontWeight: 600, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {label}
         {note && <InfoTooltip text={note} />}
       </span>
@@ -42,8 +42,8 @@ function Metric({ label, children, note }: { label: string; children: ReactNode;
 }
 
 function RatingPill({ rating, colors }: { rating?: string; colors: Record<string, string> }) {
-  if (!rating) return <span style={{ color: '#555555' }}>—</span>
-  const c = colors[rating] ?? '#555555'
+  if (!rating) return <span style={{ color: '#8b8fa3' }}>—</span>
+  const c = colors[rating] ?? '#8b8fa3'
   return (
     <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: c + '22', color: c }}>
       {ratingLabel(rating)}
@@ -60,7 +60,7 @@ function MetricGroup({ title, children }: { title: string; children: ReactNode }
   )
 }
 
-const NA = <span style={{ color: '#555555' }}>N/A</span>
+const NA = <span style={{ color: '#8b8fa3' }}>N/A</span>
 const DASH = <span style={{ color: '#e0e0e0' }}>—</span>
 
 // pctColored renders a percentage tinted by sign, or an em dash when absent.
@@ -265,7 +265,7 @@ export function StockLookup({ accent }: Props) {
           onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' }}
         >
-          <div style={{ width: 'min(520px, 92vw)', background: '#0f0f0f', border: '1px solid #262626', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+          <div style={{ width: 'min(520px, 92vw)', background: '#090f1c', border: '1px solid #262626', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
             <input
               ref={inputRef}
               value={query}
@@ -275,7 +275,7 @@ export function StockLookup({ accent }: Props) {
               style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: 'none', outline: 'none', color: '#f0f0f0', fontSize: 16, padding: '16px 18px' }}
             />
             {results.length > 0 && (
-              <div style={{ borderTop: '1px solid #1a1a1a', maxHeight: 320, overflowY: 'auto' }}>
+              <div style={{ borderTop: '1px solid #161f31', maxHeight: 320, overflowY: 'auto' }}>
                 {results.map((r, i) => (
                   <div
                     key={`${r.symbol}-${i}`}
@@ -285,12 +285,12 @@ export function StockLookup({ accent }: Props) {
                   >
                     <span style={{ fontWeight: 700, fontSize: 13, color: '#f0f0f0', minWidth: 64 }}>{r.symbol}</span>
                     <span style={{ flex: 1, fontSize: 12, color: '#999999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    <span style={{ fontSize: 10, color: '#555555' }}>{r.exchange}</span>
+                    <span style={{ fontSize: 10, color: '#8b8fa3' }}>{r.exchange}</span>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ borderTop: '1px solid #1a1a1a', padding: '7px 18px', fontSize: 10, color: '#555555' }}>
+            <div style={{ borderTop: '1px solid #161f31', padding: '7px 18px', fontSize: 10, color: '#8b8fa3' }}>
               ↑↓ to navigate · Enter to open · Esc to close
             </div>
           </div>
@@ -310,7 +310,7 @@ export function StockLookup({ accent }: Props) {
               </div>
             </div>
             <div className="chart-modal-body" style={{ overflowY: 'auto' }}>
-              {loading && <div style={{ color: '#555555', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>Loading {detailSymbol}…</div>}
+              {loading && <div style={{ color: '#8b8fa3', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>Loading {detailSymbol}…</div>}
               {!loading && error && <div style={{ color: '#f87171', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>{error}</div>}
               {!loading && !error && detail && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -329,9 +329,9 @@ export function StockLookup({ accent }: Props) {
                       </div>
                     </div>
                     {chartError ? (
-                      <div style={{ color: '#555555', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{chartError}</div>
+                      <div style={{ color: '#8b8fa3', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{chartError}</div>
                     ) : history == null ? (
-                      <div style={{ color: '#555555', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Loading chart…</div>
+                      <div style={{ color: '#8b8fa3', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Loading chart…</div>
                     ) : (
                       <Candlestick candles={history.candles} ma={history.ma} />
                     )}
