@@ -284,6 +284,77 @@ func FetchCashFlowQualities(ctx context.Context, symbols []string) (map[string]C
 	})
 }
 
+// AnalystRating holds Yahoo's average analyst recommendation for a symbol:
+// a score from 1 (Strong Buy) to 5 (Sell) and the label Yahoo derives from it.
+type AnalystRating struct {
+	Score  float64
+	Rating string
+}
+
+// FetchAnalystRatings fetches analyst recommendations for a list of ticker
+// symbols in parallel. Symbols with no coverage are omitted from the result.
+func FetchAnalystRatings(ctx context.Context, symbols []string) (map[string]AnalystRating, error) {
+	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (AnalystRating, bool) {
+		r, err := c.GetAnalystRating(ctx, sym)
+		if err != nil || r.Rating == "" {
+			return AnalystRating{}, false
+		}
+		return AnalystRating{Score: r.Score, Rating: r.Rating}, true
+	})
+}
+
+// SectorFigures holds a symbol's sector and how its own valuation compares with
+// the sector aggregate. Percentages are negative when the symbol is cheaper than
+// its sector.
+type SectorFigures struct {
+	Sector             string
+	SectorPE           float64
+	PEVsSector         float64
+	SectorEVToEBITDA   float64
+	EVToEBITDAVsSector float64
+	PeerCount          int
+}
+
+// FetchSectorFigures classifies each symbol by sector and compares it against
+// its sector's aggregate valuation. The aggregate is fetched once per distinct
+// sector and shared — see SectorValuationFor for why that matters — so the cost
+// scales with the number of sectors held, not the number of positions.
+//
+// pe and ev are the already-fetched per-symbol ratios; this function never
+// refetches them. Symbols whose sector or aggregate cannot be resolved are
+// omitted.
+func FetchSectorFigures(ctx context.Context, symbols []string, pe map[string]PERatio, ev map[string]EVToEBITDA) (map[string]SectorFigures, error) {
+	sectors, err := fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (string, bool) {
+		return SectorOf(ctx, c, sym)
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	client, err := yahoo.New()
+	if err != nil {
+		return nil, err
+	}
+
+	out := make(map[string]SectorFigures, len(sectors))
+	for sym, sector := range sectors {
+		fig := SectorFigures{Sector: sector}
+		if sv := SectorValuationFor(ctx, client, sector, sym); sv != nil {
+			fig.SectorPE = sv.PE
+			fig.SectorEVToEBITDA = sv.EVToEBITDA
+			fig.PeerCount = sv.PeerCount
+			if p, ok := pe[sym]; ok && p.PE > 0 && sv.PE > 0 {
+				fig.PEVsSector = (p.PE - sv.PE) / sv.PE * 100
+			}
+			if e, ok := ev[sym]; ok && e.Ratio > 0 && sv.EVToEBITDA > 0 {
+				fig.EVToEBITDAVsSector = (e.Ratio - sv.EVToEBITDA) / sv.EVToEBITDA * 100
+			}
+		}
+		out[sym] = fig
+	}
+	return out, nil
+}
+
 // ClassifyRatings runs go-finance's health and valuation classifiers over
 // already-fetched FCF, cash-flow-quality, debt-to-equity, P/E, and EV/EBITDA
 // results for a list of ticker symbols. Symbols missing all inputs are omitted.

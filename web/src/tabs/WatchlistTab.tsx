@@ -10,12 +10,25 @@ import {
   saveCode,
   clearCode,
   InvalidCodeError,
+  defaultTarget,
+  saveTracked,
+  onWatchlistChanged,
   type WatchlistItem,
 } from '../services/watchlistService'
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
 import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
+import {
+  InsightsBand,
+  MC,
+  cellValue,
+  compactPct,
+  matchesFilter,
+  type BandMetric,
+  type BandRow,
+  type RowFilter,
+} from '../components/InsightsBand'
 import { fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import type { Position } from '../types/portfolio'
 
@@ -25,15 +38,7 @@ interface Props {
 
 const MAX_NOTE = 500
 
-// A new symbol starts with a buy target 20% below the current price, which is a
-// usable starting point to edit rather than an empty field.
-const DEFAULT_TARGET_DISCOUNT = 0.8
-
-function defaultTarget(price: number): number {
-  return Number((price * DEFAULT_TARGET_DISCOUNT).toFixed(2))
-}
-
-type SortKey = 'symbol' | 'note' | 'target' | 'targetGap' | 'price' | IndicatorKey
+type SortKey = 'symbol' | 'note' | 'target' | 'price' | BandMetric
 type SortDir = 'asc' | 'desc'
 
 // Performance and the 52-week range sit ahead of the target columns; the
@@ -95,6 +100,7 @@ function sortItems(items: WatchlistItem[], key: SortKey, dir: SortDir): Watchlis
   })
 }
 
+
 export function WatchlistTab({ accent }: Props) {
   const [code, setCode] = useState<string | null>(loadCode())
   const [items, setItems] = useState<WatchlistItem[]>([])
@@ -131,9 +137,13 @@ export function WatchlistTab({ accent }: Props) {
   // Compare and the column-mode toggle live behind an overflow menu: both are
   // occasional, and a permanent button row costs a whole strip of table height.
   const [menuOpen, setMenuOpen] = useState(false)
-  // Phone-only quick filter. Kept out of the desktop table, which filters by
-  // sorting instead.
-  const [mobileFilter, setMobileFilter] = useState<MobileFilter>('All')
+  // Quick filter, shared by both views: the same chips narrow the phone list and
+  // the desktop table.
+  const [filter, setFilter] = useState<RowFilter>('All')
+  // The timeframe the summary widgets and the Gainers/Losers chips read against.
+  // It used to follow whichever column was sorted, which meant sorting by P/E
+  // silently left the chips with nothing to compare; it is now its own control.
+  const [tf, setTf] = useState<BandMetric>('today')
   const stacked = mobile && !allColumns
 
   async function refresh(): Promise<WatchlistItem[]> {
@@ -142,6 +152,7 @@ export function WatchlistTab({ accent }: Props) {
     try {
       const fetched = await listWatchlist()
       setItems(fetched)
+      saveTracked(fetched.map(i => i.symbol))
       return fetched
     } catch (e) {
       if (e instanceof InvalidCodeError) {
@@ -162,6 +173,8 @@ export function WatchlistTab({ accent }: Props) {
     if (code) void refresh()
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
+
+  useEffect(() => onWatchlistChanged(() => { if (loadCode()) void refresh() }), [])
 
   useEffect(() => {
     if (query.trim().length < 2) {
@@ -201,6 +214,7 @@ export function WatchlistTab({ accent }: Props) {
   }
 
   async function handleAdd(symbol: string) {
+    if (items.some(i => i.symbol === symbol)) return
     setQuery('')
     setResults([])
     try {
@@ -345,21 +359,15 @@ export function WatchlistTab({ accent }: Props) {
       ]
     : ordered
 
-  // The chips narrow the phone list only, and read against whichever column is
-  // sorted so "Gainers" means gainers over the timeframe on screen.
-  const tf: SortKey = sortKey ?? 'today'
-  const matrixRows = stacked ? visibleRows.filter(i => matchesFilter(i, mobileFilter, tf)) : visibleRows
+  // The band reads a neutral row shape, so the watchlist's target gap and pin
+  // travel as fields rather than the band knowing what a WatchlistItem is.
+  const bandRow = (i: WatchlistItem): BandRow => ({ symbol: i.symbol, indicators: i.indicators, pinned: i.pinned, targetGap: targetGap(i) })
+  const bandRows = items.map(bandRow)
+  const filteredRows = visibleRows.filter(i => matchesFilter(bandRow(i), filter, tf))
 
-  // Top three movers each way, off the whole list rather than the filtered view:
-  // the rails are an overview, so a chip narrowing the table below should not
-  // quietly redefine what "today's biggest gainer" means.
-  const withDayMove = items.filter(i => i.indicators?.todayReturn != null)
-  const byDayMove = withDayMove.slice().sort((a, b) => b.indicators!.todayReturn! - a.indicators!.todayReturn!)
-  const gainers = byDayMove.filter(i => i.indicators!.todayReturn! > 0).slice(0, 3)
-  const losers = byDayMove.filter(i => i.indicators!.todayReturn! < 0).slice(-3).reverse()
 
   return (
-    <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 12 : 8 }}>
+    <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 12 : 14 }}>
       {freshCode && (
         <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -436,23 +444,59 @@ export function WatchlistTab({ accent }: Props) {
         )}
         {results.length > 0 && (
           <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#0d0d0d', border: '1px solid #232323', borderRadius: 10, marginTop: 6, maxHeight: 300, overflowY: 'auto', boxShadow: '0 12px 28px rgba(0,0,0,.55)', padding: 4 }}>
-            {results.map(r => (
-              <button
-                key={r.symbol}
-                onClick={() => handleAdd(r.symbol)}
-                style={{
-                  display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
-                  width: '100%', padding: mobile ? '12px 10px' : '9px 10px', borderRadius: 7,
-                  background: 'transparent', border: 'none', color: '#d0d0d0',
-                  fontSize: 13, cursor: 'pointer', textAlign: 'left',
-                }}
-                onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
-                onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-              >
-                <span style={{ fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{r.symbol}</span>
-                <span style={{ color: '#777777', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-              </button>
-            ))}
+            {results.map(r => {
+              const tracked = items.some(i => i.symbol === r.symbol)
+              return (
+                // Picking a result reads it; adding it is the separate, explicit
+                // act of the + button. A search is far more often a look-up than
+                // a decision to track something, and adding on click meant every
+                // look-up silently grew the list.
+                <div
+                  key={r.symbol}
+                  style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 7 }}
+                  onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
+                  onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
+                >
+                  <button
+                    onClick={() => {
+                      openStockLookup(r.symbol)
+                      setQuery('')
+                      setResults([])
+                    }}
+                    style={{
+                      display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
+                      flex: 1, minWidth: 0, padding: mobile ? '12px 10px' : '9px 10px', borderRadius: 7,
+                      background: 'transparent', border: 'none', color: '#d0d0d0',
+                      fontSize: 13, cursor: 'pointer', textAlign: 'left',
+                    }}
+                  >
+                    <span style={{ fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{r.symbol}</span>
+                    <span style={{ color: '#777777', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                  </button>
+                  <button
+                    onClick={() => handleAdd(r.symbol)}
+                    disabled={tracked}
+                    title={tracked ? `${r.symbol} is already on your watchlist` : `Add ${r.symbol} to your watchlist`}
+                    aria-label={tracked ? `${r.symbol} is already on your watchlist` : `Add ${r.symbol} to your watchlist`}
+                    style={{
+                      flexShrink: 0,
+                      width: mobile ? 34 : 28,
+                      height: mobile ? 34 : 28,
+                      marginRight: 4,
+                      borderRadius: 7,
+                      background: 'transparent',
+                      border: `1px solid ${tracked ? 'transparent' : '#262626'}`,
+                      color: tracked ? '#34d399' : accent,
+                      fontSize: 14,
+                      lineHeight: 1,
+                      cursor: tracked ? 'default' : 'pointer',
+                    }}
+                  >
+                    {tracked ? '✓' : '+'}
+                  </button>
+                </div>
+              )
+            })}
           </div>
         )}
       </div>
@@ -507,18 +551,6 @@ export function WatchlistTab({ accent }: Props) {
                     setMenuOpen(false)
                   }}
                 />
-                {mobile && (
-                  <MenuItem
-                    label="All columns"
-                    active={allColumns}
-                    accent={accent}
-                    mobile={mobile}
-                    onClick={() => {
-                      setAllColumns(v => !v)
-                      setMenuOpen(false)
-                    }}
-                  />
-                )}
               </div>
             </>
           )}
@@ -555,13 +587,23 @@ export function WatchlistTab({ accent }: Props) {
         <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
       ) : stacked ? (
         <>
-          <StatTiles total={items.length} rows={matrixRows} tf={tf} />
-          <Rail title="Today's Gainers" accentBar="#34d399" items={gainers} onOpen={openStockLookup} />
-          <Rail title="Today's Losers" accentBar="#f87171" items={losers} onOpen={openStockLookup} />
-          <FilterChips value={mobileFilter} onPick={setMobileFilter} accent={accent} />
-          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <SectionLabel>All Stats</SectionLabel>
-            <span style={{ fontSize: 9.5, color: '#475569' }}>{matrixRows.length} rows · swipe table →</span>
+          <InsightsBand
+            accent={accent}
+            items={bandRows}
+            rows={filteredRows.map(bandRow)}
+            tf={tf}
+            filter={filter}
+            onFilter={setFilter}
+            onTf={setTf}
+            features={{ targets: true, pinned: true }}
+            compact
+          />
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <SectionLabel>Key Stats</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 9.5, color: '#475569' }}>{filteredRows.length} rows · swipe →</span>
+              <ColumnModeToggle all={false} accent={accent} onToggle={() => setAllColumns(true)} />
+            </div>
           </div>
           <div
             className="rail"
@@ -580,7 +622,7 @@ export function WatchlistTab({ accent }: Props) {
           >
             <div style={{ minWidth: PIN_W + MOBILE_COLS.length * COL_W }}>
               <MatrixHead sortKey={sortKey} sortDir={sortDir} onPick={pickSort} onFlip={flipSort} />
-              {matrixRows.map((item, i) => (
+              {filteredRows.map((item, i) => (
                 <MatrixRow
                   key={item.symbol}
                   item={item}
@@ -589,10 +631,10 @@ export function WatchlistTab({ accent }: Props) {
                   selected={compare && selected.includes(item.symbol)}
                   onSelect={compare ? handleSelect : undefined}
                   onLongPress={() => setSheetFor(item.symbol)}
-                  last={i === matrixRows.length - 1}
+                  last={i === filteredRows.length - 1}
                 />
               ))}
-              {matrixRows.length === 0 && (
+              {filteredRows.length === 0 && (
                 <div style={{ padding: '28px 14px', textAlign: 'center', color: '#475569', fontSize: 12 }}>No symbols match.</div>
               )}
             </div>
@@ -614,7 +656,33 @@ export function WatchlistTab({ accent }: Props) {
           )}
         </>
       ) : (
-        <div style={{ width: '100%', overflow: 'auto', maxHeight: `calc(100dvh - ${mobile ? 300 : compare ? 218 : 178}px)`, minHeight: 240, background: '#090f1c', border: '1px solid #161f31', borderRadius: 12 }}>
+        <>
+        {!mobile && (
+          <InsightsBand
+            accent={accent}
+            items={bandRows}
+            rows={filteredRows.map(bandRow)}
+            tf={tf}
+            filter={filter}
+            onFilter={setFilter}
+            onTf={setTf}
+            features={{ targets: true, pinned: true }}
+          />
+        )}
+        {mobile && (
+          <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+            <SectionLabel>All Columns</SectionLabel>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={{ fontSize: 9.5, color: '#475569' }}>{filteredRows.length} rows · swipe →</span>
+              <ColumnModeToggle all accent={accent} onToggle={() => setAllColumns(false)} />
+            </div>
+          </div>
+        )}
+        {/* Horizontal pan only, no height cap: the page owns the vertical
+            scroll, same as the positions table and the phone matrix. A second
+            scroll region inside the page meant the wheel did different things
+            depending on where the pointer happened to be. */}
+        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: '#090f1c', border: '1px solid #161f31', borderRadius: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
             <tr style={{ color: '#666666', textAlign: 'left', background: '#090f1c' }}>
@@ -651,7 +719,7 @@ export function WatchlistTab({ accent }: Props) {
             </tr>
           </thead>
           <tbody>
-            {visibleRows.map(item => (
+            {filteredRows.map(item => (
               <Row
                 key={item.symbol}
                 item={item}
@@ -663,9 +731,17 @@ export function WatchlistTab({ accent }: Props) {
                 touch={mobile}
               />
             ))}
+            {filteredRows.length === 0 && (
+              <tr>
+                <td colSpan={COLUMNS.length + 1} style={{ ...td, padding: '28px 14px', textAlign: 'center', color: '#475569' }}>
+                  No symbols match.
+                </td>
+              </tr>
+            )}
           </tbody>
         </table>
         </div>
+        </>
       )}
 
       <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161f31', paddingTop: 12 }}>
@@ -898,14 +974,6 @@ function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
 // The phone view is a stats matrix rather than a card list: the pinned symbol
 // column stays put while every timeframe and ratio scrolls past it sideways, so
 // a row can be read across without collapsing the data down to three lines.
-const MC = {
-  surf: '#111827',
-  line: '#161f31',
-  mut: '#64748b',
-  dim: '#475569',
-  txt: '#e2e8f0',
-}
-
 const PIN_W = 104
 const COL_W = 58
 
@@ -913,7 +981,7 @@ type MobileGroup = 'perf' | 'val'
 type MobileKind = 'pct' | 'num' | 'cap'
 
 // marketCap has no IndicatorKey behind it, so Cap displays but never sorts.
-type MobileColKey = SortKey | 'marketCap'
+type MobileColKey = BandMetric | 'marketCap'
 
 const MOBILE_COLS: { key: MobileColKey; label: string; kind: MobileKind; group: MobileGroup }[] = [
   { key: 'today', label: '1D', kind: 'pct', group: 'perf' },
@@ -923,62 +991,14 @@ const MOBILE_COLS: { key: MobileColKey; label: string; kind: MobileKind; group: 
   { key: 'fiveYr', label: '5Y', kind: 'pct', group: 'perf' },
   { key: 'tenYr', label: '10Y', kind: 'pct', group: 'perf' },
   { key: 'pe', label: 'P/E', kind: 'num', group: 'val' },
+  { key: 'peVsSector', label: 'vs Sec', kind: 'pct', group: 'val' },
   { key: 'forwardPe', label: 'Fwd', kind: 'num', group: 'val' },
   { key: 'targetGap', label: 'Tgt', kind: 'pct', group: 'val' },
   { key: 'marketCap', label: 'Cap', kind: 'cap', group: 'val' },
 ]
 
-const MOBILE_FILTERS = ['All', '★ Pinned', 'Gainers', 'Losers', 'Undervalued'] as const
-type MobileFilter = (typeof MOBILE_FILTERS)[number]
-
-// "Undervalued" is the target reading, not a screen: the price still has room
-// to rise to the target the user set.
-function matchesFilter(item: WatchlistItem, filter: MobileFilter, tf: SortKey): boolean {
-  if (filter === 'All') return true
-  if (filter === '★ Pinned') return item.pinned
-  if (filter === 'Undervalued') return (targetGap(item) ?? 0) > 0
-  const v = cellValue(item, tf)
-  if (v == null) return false
-  return filter === 'Gainers' ? v > 0 : v < 0
-}
-
-function cellValue(item: WatchlistItem, key: MobileColKey): number | undefined {
-  const p = item.indicators
-  switch (key) {
-    case 'today':
-      return p?.todayReturn
-    case 'oneWeek':
-      return p?.oneWeekReturn
-    case 'oneMonth':
-      return p?.oneMonthReturn
-    case 'ytd':
-      return p?.ytdReturn
-    case 'fiveYr':
-      return p?.fiveYrReturn
-    case 'tenYr':
-      return p?.tenYrReturn
-    case 'pe':
-      return p?.pe != null && p.pe > 0 ? p.pe : undefined
-    case 'forwardPe':
-      return p?.forwardPE != null && p.forwardPE > 0 ? p.forwardPE : undefined
-    case 'targetGap':
-      return targetGap(item) ?? undefined
-    case 'marketCap':
-      return p?.marketCap
-    default:
-      return undefined
-  }
-}
-
-// A four-digit percentage eats two columns, so anything past 1000% collapses to
-// a multiple: +1,284% reads as 13x in the same width.
-function compactPct(v: number): string {
-  if (Math.abs(v) >= 1000) return `${v < 0 ? '-' : ''}${(Math.abs(v) / 100).toFixed(0)}x`
-  return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`
-}
-
 function MatrixCell({ item, kind, colKey }: { item: WatchlistItem; kind: MobileKind; colKey: MobileColKey }) {
-  const v = cellValue(item, colKey)
+  const v = cellValue({ symbol: item.symbol, indicators: item.indicators, pinned: item.pinned, targetGap: targetGap(item) }, colKey)
   if (v == null) return <span style={{ fontSize: 11, color: MC.dim, fontFamily: "'DM Mono', monospace" }}>—</span>
   if (kind === 'pct')
     return (
@@ -1162,120 +1182,28 @@ function MatrixRow({
 // Horizontal rail of cards. The design carries a sparkline on each one; there
 // is no price series behind a watchlist item, so the card shows the numbers it
 // can actually stand behind instead of a drawn-from-noise trend.
-function Rail({
-  title,
-  accentBar,
-  items,
-  onOpen,
-}: {
-  title: string
-  accentBar: string
-  items: WatchlistItem[]
-  onOpen: (symbol: string) => void
-}) {
-  if (items.length === 0) return null
-  return (
-    <div style={{ width: '100%' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <span style={{ width: 3, height: 11, borderRadius: 2, background: accentBar }} />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#94a3b8' }}>{title}</span>
-      </div>
-      <div className="rail" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
-        {items.map(item => (
-          <div key={item.symbol} style={{ scrollSnapAlign: 'start' }}>
-            <MoverCard item={item} tone={accentBar} onOpen={onOpen} />
-          </div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-function MoverCard({ item, tone, onOpen }: { item: WatchlistItem; tone: string; onOpen: (symbol: string) => void }) {
-  const p = item.indicators
+function ColumnModeToggle({ all, accent, onToggle }: { all: boolean; accent: string; onToggle: () => void }) {
   return (
     <button
-      onClick={() => onOpen(item.symbol)}
+      onClick={onToggle}
       style={{
-        width: 132,
-        background: MC.surf,
-        border: `1px solid ${tone}2e`,
-        borderRadius: 11,
-        padding: '9px 10px',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: 6,
-        cursor: 'pointer',
-        textAlign: 'left',
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 4,
+        padding: '4px 9px',
+        borderRadius: 999,
+        background: all ? accent + '1f' : 'transparent',
+        border: `1px solid ${all ? accent + '55' : MC.line}`,
+        color: all ? accent : MC.mut,
+        fontSize: 10,
+        fontWeight: 700,
         fontFamily: "'DM Sans', sans-serif",
-        flexShrink: 0,
+        cursor: 'pointer',
+        whiteSpace: 'nowrap',
       }}
     >
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4, width: '100%' }}>
-        <span style={{ fontSize: 12.5, fontWeight: 700, color: MC.txt, letterSpacing: '-0.01em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {item.symbol}
-        </span>
-        {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 9, flexShrink: 0 }}>★</span>}
-      </div>
-      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' }}>
-        <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#cbd5e1' }}>
-          {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
-        </span>
-        <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: tone }}>
-          {p?.todayReturn != null ? fmtPct(p.todayReturn) : '—'}
-        </span>
-      </div>
+      {all ? '‹ Key stats' : 'All columns ›'}
     </button>
-  )
-}
-
-function StatTiles({ total, rows, tf }: { total: number; rows: WatchlistItem[]; tf: SortKey }) {
-  const vals = rows.map(r => cellValue(r, tf)).filter((v): v is number => v != null)
-  const up = vals.filter(v => v > 0).length
-  const down = vals.filter(v => v < 0).length
-  const avg = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null
-  const tiles: [string, string, string][] = [
-    ['Tracked', String(total), MC.txt],
-    ['Up', String(up), '#34d399'],
-    ['Down', String(down), '#f87171'],
-    ['Avg', avg == null ? '—' : compactPct(avg), avg == null ? MC.mut : clr(avg)],
-  ]
-  return (
-    <div style={{ display: 'flex', gap: 6, width: '100%' }}>
-      {tiles.map(([k, v, c]) => (
-        <div key={k} style={{ flex: 1, background: MC.surf, border: `1px solid ${MC.line}`, borderRadius: 9, padding: '6px 8px' }}>
-          <div style={{ fontSize: 8.5, color: MC.dim, fontWeight: 600, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{k}</div>
-          <div style={{ fontSize: 14, fontWeight: 700, color: c, fontFamily: "'DM Mono', monospace", letterSpacing: '-0.03em' }}>{v}</div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-function FilterChips({ value, onPick, accent }: { value: MobileFilter; onPick: (f: MobileFilter) => void; accent: string }) {
-  return (
-    <div className="rail" style={{ display: 'flex', gap: 6, overflowX: 'auto', width: '100%' }}>
-      {MOBILE_FILTERS.map(c => (
-        <button
-          key={c}
-          onClick={() => onPick(c)}
-          style={{
-            padding: '5px 11px',
-            borderRadius: 999,
-            fontSize: 11,
-            fontWeight: 600,
-            cursor: 'pointer',
-            whiteSpace: 'nowrap',
-            fontFamily: "'DM Sans', sans-serif",
-            background: value === c ? accent + '26' : MC.surf,
-            color: value === c ? accent : MC.mut,
-            border: `1px solid ${value === c ? accent + '55' : MC.line}`,
-          }}
-        >
-          {c}
-        </button>
-      ))}
-    </div>
   )
 }
 

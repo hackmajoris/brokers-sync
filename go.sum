@@ -40,6 +40,10 @@ github.com/hackmajoris/go-finance v0.7.1 h1:WuJdjX+nz3Q4RPHtWh+QHgSjkBAUaAfaPX6S
 github.com/hackmajoris/go-finance v0.7.1/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
 github.com/hackmajoris/go-finance v0.8.0 h1:C0s5PqFrW4lDksRBPh3Q6UdbXwHUn6aZPx482zGvQbU=
 github.com/hackmajoris/go-finance v0.8.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
+github.com/hackmajoris/go-finance v0.10.0 h1:phXGe56yQtwf7rlg6ZPbIjANy+edNYWDvfg2QZB58VI=
+github.com/hackmajoris/go-finance v0.10.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
+github.com/hackmajoris/go-finance v0.11.0 h1:bYKqcpIM0aUJTdZ7bsSH1ozaHXwOaOBYTWP6lfOnPIM=
+github.com/hackmajoris/go-finance v0.11.0/go.mod h1:+vwvTHlIfGSpnKVozN8JyzBTA7sEhIPLdl81J+vRYjg=
 github.com/pmezard/go-difflib v1.0.0 h1:4DBwDE0NGyQoBHbLQYPwSUPoCMWR5BEzIk/f1lZbAQM=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/richardlehane/mscfb v1.0.6 h1:eN3bvvZCp00bs7Zf52bxNwAx5lJDBK1tCuH19qq5aC8=

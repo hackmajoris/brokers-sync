@@ -392,6 +392,47 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	logf(fmt.Sprintf("fetching analyst ratings for %d symbol(s)…", len(yahooTickers)))
+	analystResultMap, err := prices.FetchAnalystRatings(context.Background(), yahooTickers)
+	analystScoreMap := make(map[string]float64, len(analystResultMap))
+	analystRatingMap := make(map[string]string, len(analystResultMap))
+	if err != nil {
+		log.Printf("analyst rating fetch error: %v", err)
+		logf("warning: analyst rating fetch failed")
+	} else {
+		for yahooTicker, r := range analystResultMap {
+			analystScoreMap[yahooTicker] = r.Score
+			analystRatingMap[yahooTicker] = r.Rating
+			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				analystScoreMap[origSymbol] = r.Score
+				analystRatingMap[origSymbol] = r.Rating
+			}
+		}
+	}
+
+	logf(fmt.Sprintf("fetching sector valuations for %d symbol(s)…", len(yahooTickers)))
+	sectorResultMap, err := prices.FetchSectorFigures(context.Background(), yahooTickers, peRatioMap, evResultMap)
+	sectorMap := make(map[string]stats.SectorFigures, len(sectorResultMap))
+	if err != nil {
+		log.Printf("sector fetch error: %v", err)
+		logf("warning: sector fetch failed")
+	} else {
+		for yahooTicker, r := range sectorResultMap {
+			fig := stats.SectorFigures{
+				Sector:             r.Sector,
+				SectorPE:           r.SectorPE,
+				PEVsSector:         r.PEVsSector,
+				SectorEVToEBITDA:   r.SectorEVToEBITDA,
+				EVToEBITDAVsSector: r.EVToEBITDAVsSector,
+				PeerCount:          r.PeerCount,
+			}
+			sectorMap[yahooTicker] = fig
+			if origSymbol, ok := reverseMap[yahooTicker]; ok {
+				sectorMap[origSymbol] = fig
+			}
+		}
+	}
+
 	healthMap, healthReasonMap, valuationMap, valuationReasonMap := prices.ClassifyRatings(yahooTickers, fcfResultMap, cfqResultMap, deResultMap, peRatioMap, evResultMap)
 
 	stats.EnrichWithPrices(&combinedStats, priceMap, fxRates)
@@ -402,6 +443,8 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 	stats.EnrichWithEVToEBITDA(&combinedStats, evMap, evInterpMap)
 	stats.EnrichWithDebtToEquity(&combinedStats, deMap, deInterpMap)
 	stats.EnrichWithCashFlowQuality(&combinedStats, cfqMap, cfqInterpMap)
+	stats.EnrichWithSector(&combinedStats, sectorMap)
+	stats.EnrichWithAnalystRating(&combinedStats, analystScoreMap, analystRatingMap)
 	stats.EnrichWithRatings(&combinedStats, healthMap, healthReasonMap, valuationMap, valuationReasonMap)
 	stats.RecalcGainPct(&combinedStats)
 
@@ -421,6 +464,8 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		stats.EnrichWithEVToEBITDA(&bs, evMap, evInterpMap)
 		stats.EnrichWithDebtToEquity(&bs, deMap, deInterpMap)
 		stats.EnrichWithCashFlowQuality(&bs, cfqMap, cfqInterpMap)
+		stats.EnrichWithSector(&bs, sectorMap)
+		stats.EnrichWithAnalystRating(&bs, analystScoreMap, analystRatingMap)
 		stats.EnrichWithRatings(&bs, healthMap, healthReasonMap, valuationMap, valuationReasonMap)
 		stats.RecalcGainPct(&bs)
 		brokerReports = append(brokerReports, output.BuildBrokerReport(b, bs, bl.Realized))
@@ -610,6 +655,16 @@ func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 		out["payout_date"] = ti.PayoutDate.Format("2006-01-02")
 	}
 	putStr("payout_date_interpretation", ti.PayoutDateInterp)
+	putStr("analyst_rating", ti.AnalystRating)
+	putFloat("analyst_score", ti.AnalystScore)
+	putStr("sector", ti.Sector)
+	putFloat("sector_pe", ti.SectorPE)
+	putFloat("pe_vs_sector", ti.PEVsSector)
+	putFloat("sector_ev_to_ebitda", ti.SectorEVToEBITDA)
+	putFloat("ev_to_ebitda_vs_sector", ti.EVVsSector)
+	if ti.SectorPeerCount > 0 {
+		out["sector_peer_count"] = ti.SectorPeerCount
+	}
 	putStr("health_rating", ti.HealthRating)
 	putStr("health_reason", ti.HealthReason)
 	putStr("valuation_rating", ti.ValuationRating)

@@ -74,6 +74,14 @@ export interface RawPosition {
   payout_ratio_interpretation?: string
   payout_date?: string
   payout_date_interpretation?: string
+  analyst_rating?: string
+  analyst_score?: number
+  sector?: string
+  sector_pe?: number
+  pe_vs_sector?: number
+  sector_ev_to_ebitda?: number
+  ev_to_ebitda_vs_sector?: number
+  sector_peer_count?: number
   health_rating?: string
   health_reason?: string
   valuation_rating?: string
@@ -193,6 +201,14 @@ export interface Position {
   payoutRatioInterpretation?: string
   payoutDate?: string
   payoutDateInterpretation?: string
+  analystRating?: string
+  analystScore?: number
+  sector?: string
+  sectorPe?: number
+  peVsSector?: number
+  sectorEvToEbitda?: number
+  evToEbitdaVsSector?: number
+  sectorPeerCount?: number
   healthRating?: string
   healthReason?: string
   valuationRating?: string

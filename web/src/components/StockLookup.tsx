@@ -3,6 +3,7 @@ import type { Position } from '../types/portfolio'
 import { fetchTicker, fetchHistory, searchSymbols, type TickerSearchResult, type HistoryData } from '../services/portfolioService'
 import { fmt, fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import { HEALTH_COLORS, VALUATION_COLORS, ratingLabel } from '../utils/ratings'
+import { loadCode, loadTracked, saveTracked, upsertWatchlist, defaultTarget } from '../services/watchlistService'
 import { RangeGauge } from './charts/RangeGauge'
 import { Candlestick } from './charts/Candlestick'
 import { InfoTooltip } from './ui/InfoTooltip'
@@ -140,6 +141,12 @@ export function StockLookup({ accent }: Props) {
   const [chartRange, setChartRange] = useState<ChartRangeKey>('1Y')
   const [history, setHistory] = useState<HistoryData | null>(null)
   const [chartError, setChartError] = useState<string | null>(null)
+  // Tracked state comes from the locally cached symbol list, not a request: the
+  // watchlist endpoint re-fetches indicators for every symbol, which is far too
+  // much work to answer a yes/no question about one of them.
+  const [tracked, setTracked] = useState(false)
+  const [adding, setAdding] = useState(false)
+  const [addError, setAddError] = useState<string | null>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
   // Ctrl+Space opens the lookup from anywhere.
@@ -199,6 +206,26 @@ export function StockLookup({ accent }: Props) {
     setLoading(false)
     setHistory(null)
     setChartError(null)
+    setAddError(null)
+  }
+
+  // Adding from here seeds the same 20%-below-price target the watchlist tab
+  // seeds, so a symbol arrives in the same state either way. Never called for a
+  // symbol already tracked: the write is a full replace server-side and would
+  // drop the note, target and pin the user already set.
+  async function addToWatchlist() {
+    if (detailSymbol == null || tracked || adding) return
+    setAdding(true)
+    setAddError(null)
+    try {
+      const price = detail?.currentPrice
+      await upsertWatchlist({ symbol: detailSymbol, ...(price != null ? { targetPrice: defaultTarget(price) } : {}) })
+      saveTracked([...loadTracked(), detailSymbol])
+      setTracked(true)
+    } catch (err) {
+      setAddError(err instanceof Error ? err.message : 'Could not add')
+    }
+    setAdding(false)
   }
 
   async function pick(symbol: string) {
@@ -208,6 +235,8 @@ export function StockLookup({ accent }: Props) {
     setResults([])
     setDetail(null)
     setError(null)
+    setAddError(null)
+    setTracked(loadTracked().includes(sym))
     setLoading(true)
     setChartRange('1Y')
     setDetailSymbol(sym)
@@ -306,6 +335,27 @@ export function StockLookup({ accent }: Props) {
                 <div className="chart-modal-value" style={{ color: accent }}>{detailSymbol}</div>
               </div>
               <div className="chart-modal-actions">
+                {loadCode() && (
+                  <button
+                    onClick={addToWatchlist}
+                    disabled={tracked || adding}
+                    title={addError ?? (tracked ? `${detailSymbol} is on your watchlist` : `Add ${detailSymbol} to your watchlist`)}
+                    style={{
+                      padding: '6px 12px',
+                      borderRadius: 999,
+                      background: tracked ? '#34d39914' : accent + '1f',
+                      border: `1px solid ${tracked ? '#34d39955' : accent + '55'}`,
+                      color: addError ? '#f87171' : tracked ? '#34d399' : accent,
+                      fontSize: 11,
+                      fontWeight: 700,
+                      fontFamily: "'DM Sans', sans-serif",
+                      cursor: tracked || adding ? 'default' : 'pointer',
+                      whiteSpace: 'nowrap',
+                    }}
+                  >
+                    {addError ? 'Failed' : tracked ? '✓ On watchlist' : adding ? 'Adding…' : '+ Watchlist'}
+                  </button>
+                )}
                 <button className="modal-close" onClick={closeAll}>✕</button>
               </div>
             </div>

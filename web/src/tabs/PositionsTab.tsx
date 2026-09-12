@@ -9,6 +9,8 @@ import { BrokerPill } from '../components/ui/BrokerPill'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
 import { IndicatorCells, INDICATOR_INFO, indicatorSortValue } from '../components/IndicatorColumns'
+import { useIsMobile } from '../lib/useIsMobile'
+import { InsightsBand, matchesFilter, type BandMetric, type BandRow, type RowFilter } from '../components/InsightsBand'
 
 interface Props {
   data: PortfolioData
@@ -17,7 +19,7 @@ interface Props {
 
 type ExportFormat = 'csv' | 'md'
 
-type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'today' | 'oneWeek' | 'oneMonth' | 'ytd' | 'threeYr' | 'fiveYr' | 'tenYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'health' | 'valuation' | 'alloc'
+type SortKey = 'symbol' | 'quantity' | 'mv' | 'cost' | 'pnl' | 'pct' | 'range' | 'pe' | 'forwardPe' | 'analyst' | 'sector' | 'sectorPe' | 'peVsSector' | 'evVsSector' | 'today' | 'oneWeek' | 'oneMonth' | 'ytd' | 'threeYr' | 'fiveYr' | 'tenYr' | 'fcf' | 'evToEbitda' | 'debtToEquity' | 'cashFlowQuality' | 'health' | 'valuation' | 'alloc'
 type SortDir = 'asc' | 'desc'
 
 interface Column {
@@ -43,8 +45,13 @@ const COLUMNS: Column[] = [
   { key: 'range', label: '52 Week Low/High' },
   { key: 'pe', label: 'P/E' },
   { key: 'forwardPe', label: 'Forward P/E' },
+  { key: 'analyst', label: 'Analysts' },
+  { key: 'sector', label: 'Sector', align: 'left' },
+  { key: 'sectorPe', label: 'Sector Med.' },
+  { key: 'peVsSector', label: 'vs Sector' },
   { key: 'fcf', label: 'FCF' },
   { key: 'evToEbitda', label: 'EV/EBITDA' },
+  { key: 'evVsSector', label: 'vs Sector' },
   { key: 'debtToEquity', label: 'Debt/Equity' },
   { key: 'cashFlowQuality', label: 'CF Quality' },
   { key: 'health', label: 'Health' },
@@ -127,6 +134,11 @@ export function PositionsTab({ data, accent }: Props) {
   const [format, setFormat] = useState<ExportFormat>('csv')
   const [sortKey, setSortKey] = useState<SortKey>('mv')
   const [sortDir, setSortDir] = useState<SortDir>('desc')
+  // Same controls the watchlist band carries, minus the two that need a buy
+  // target or a pin — a position has neither.
+  const [tf, setTf] = useState<BandMetric>('today')
+  const [filter, setFilter] = useState<RowFilter>('All')
+  const mobile = useIsMobile()
   const totalMV = data.openPositions.reduce((s, p) => s + (p.mv ?? 0), 0)
   const totalUPnl = data.openPositions.reduce((s, p) => s + (p.pnl ?? 0), 0)
 
@@ -135,7 +147,9 @@ export function PositionsTab({ data, accent }: Props) {
     data.openPositions[0]
   )
 
-  const sorted = sortPositions(data.openPositions, sortKey, sortDir)
+  const bandRows: BandRow[] = data.openPositions.map(p => ({ symbol: p.symbol, indicators: p }))
+  const visible = data.openPositions.filter(p => matchesFilter({ symbol: p.symbol, indicators: p }, filter, tf))
+  const sorted = sortPositions(visible, sortKey, sortDir)
 
   function handleSort(key: SortKey) {
     if (key === sortKey) {
@@ -158,6 +172,18 @@ export function PositionsTab({ data, accent }: Props) {
           valueColor="#34d399"
         />
       </div>
+
+      <InsightsBand
+        accent={accent}
+        items={bandRows}
+        rows={sorted.map(p => ({ symbol: p.symbol, indicators: p }))}
+        tf={tf}
+        filter={filter}
+        onFilter={setFilter}
+        onTf={setTf}
+        features={{}}
+        compact={mobile}
+      />
 
       {/* All positions table */}
       <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>

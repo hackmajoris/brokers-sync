@@ -72,6 +72,16 @@ type PositionSummary struct {
 	CashFlowQuality               float64 `json:"cash_flow_quality,omitempty"`
 	CashFlowQualityInterpretation string  `json:"cash_flow_quality_interpretation,omitempty"`
 
+	AnalystRating string  `json:"analyst_rating,omitempty"`
+	AnalystScore  float64 `json:"analyst_score,omitempty"`
+
+	Sector             string  `json:"sector,omitempty"`
+	SectorPE           float64 `json:"sector_pe,omitempty"`
+	PEVsSector         float64 `json:"pe_vs_sector,omitempty"`
+	SectorEVToEBITDA   float64 `json:"sector_ev_to_ebitda,omitempty"`
+	EVToEBITDAVsSector float64 `json:"ev_to_ebitda_vs_sector,omitempty"`
+	SectorPeerCount    int     `json:"sector_peer_count,omitempty"`
+
 	HealthRating    string `json:"health_rating,omitempty"`
 	HealthReason    string `json:"health_reason,omitempty"`
 	ValuationRating string `json:"valuation_rating,omitempty"`
@@ -868,6 +878,59 @@ func EnrichWithDebtToEquity(s *Summary, ratio map[string]float64, interpretation
 		p.DebtToEquity = v
 		p.DebtToEquityInterpretation = txt
 	}
+}
+
+// EnrichWithAnalystRating adds Yahoo's average analyst recommendation to open
+// positions. score/rating are maps of symbol (or Yahoo-normalized symbol) → value.
+func EnrichWithAnalystRating(s *Summary, score map[string]float64, rating map[string]string) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		txt, ok := rating[p.Symbol]
+		v := score[p.Symbol]
+		if !ok {
+			norm := strings.ReplaceAll(p.Symbol, " ", "-")
+			txt, ok = rating[norm]
+			v = score[norm]
+		}
+		if !ok {
+			continue
+		}
+		p.AnalystRating = txt
+		p.AnalystScore = v
+	}
+}
+
+// EnrichWithSector adds sector classification and the symbol's valuation
+// relative to its sector aggregate. vals is a map of symbol (or Yahoo-normalized
+// symbol) → sector valuation.
+func EnrichWithSector(s *Summary, vals map[string]SectorFigures) {
+	for i := range s.OpenPositions {
+		p := &s.OpenPositions[i]
+		v, ok := vals[p.Symbol]
+		if !ok {
+			v, ok = vals[strings.ReplaceAll(p.Symbol, " ", "-")]
+		}
+		if !ok {
+			continue
+		}
+		p.Sector = v.Sector
+		p.SectorPE = v.SectorPE
+		p.PEVsSector = v.PEVsSector
+		p.SectorEVToEBITDA = v.SectorEVToEBITDA
+		p.EVToEBITDAVsSector = v.EVToEBITDAVsSector
+		p.SectorPeerCount = v.PeerCount
+	}
+}
+
+// SectorFigures is one symbol's sector classification and its valuation against
+// the sector aggregate.
+type SectorFigures struct {
+	Sector             string
+	SectorPE           float64
+	PEVsSector         float64
+	SectorEVToEBITDA   float64
+	EVToEBITDAVsSector float64
+	PeerCount          int
 }
 
 // EnrichWithCashFlowQuality adds operating-cash-flow-vs-net-income ratio data to

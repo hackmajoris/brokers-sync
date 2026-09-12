@@ -18,6 +18,82 @@ interface MockEntry {
 // and compare mode can all be exercised in dev. Indicators are synthesised from
 // the symbol, which keeps the values stable across reloads but varied enough to
 // sort on. Two are pinned so the pinned-first order is visible on first load.
+
+
+// Yahoo's average analyst recommendation. It arrives as "2.2 - Buy" sometimes
+// and a bare "Buy" the rest of the time, and is empty for symbols no analyst
+// covers — roughly one in ten. All three shapes are reproduced here.
+function analystFor(symbol: string): { analyst_score?: number; analyst_rating?: string } {
+  let h = 0
+  for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) % 9973
+  const shape = h % 10
+  if (shape === 0) return {}
+  const rating = ['Strong Buy', 'Buy', 'Hold', 'Underperform', 'Sell'][Math.floor(h / 10) % 5]
+  // Yahoo sends "2.2 - Buy" sometimes and a bare "Buy" the rest of the time, so
+  // the mock produces both — the label has to carry the colour on its own.
+  if (shape === 1 || shape === 2) return { analyst_rating: rating, analyst_score: Number((1 + ((h * 13) % 3800) / 1000).toFixed(1)) }
+  return { analyst_rating: rating }
+}
+
+// Yahoo's sector names, as the real feed returns them. ETFs are deliberately
+// absent: they have no sector upstream, and dev needs the "—" path visible.
+const SECTOR_BY_SYMBOL: Record<string, string> = {
+  AAPL: 'Technology', MSFT: 'Technology', AVGO: 'Technology', AMD: 'Technology', TSM: 'Technology',
+  NVDA: 'Technology', ASML: 'Technology', PLTR: 'Technology', 'SAP.DE': 'Technology', SHOP: 'Technology',
+  GOOGL: 'Communication Services', META: 'Communication Services', NFLX: 'Communication Services',
+  AMZN: 'Consumer Cyclical', TSLA: 'Consumer Cyclical', 'LVMH.PA': 'Consumer Cyclical', UBER: 'Consumer Cyclical',
+  COST: 'Consumer Defensive', KO: 'Consumer Defensive', 'NESN.SW': 'Consumer Defensive',
+  V: 'Financial Services', MA: 'Financial Services', 'BRK-B': 'Financial Services',
+  JNJ: 'Healthcare', UNH: 'Healthcare', 'NOVO-B.CO': 'Healthcare', 'BAYN.DE': 'Healthcare',
+}
+
+// Sector aggregates: weighted P/E, weighted EV/EBITDA, peers behind them.
+// Communication Services sits under the backend's four-peer floor on purpose, so
+// the suppressed-comparison path shows up locally instead of only in production.
+const SECTOR_AGGREGATE: Record<string, { pe: number; ev: number; peers: number }> = {
+  Technology: { pe: 43.9, ev: 24.1, peers: 10 },
+  'Communication Services': { pe: 24.6, ev: 13.2, peers: 3 },
+  'Consumer Cyclical': { pe: 27.2, ev: 16.4, peers: 9 },
+  'Consumer Defensive': { pe: 22.8, ev: 14.0, peers: 8 },
+  'Financial Services': { pe: 11.2, ev: 0, peers: 10 },
+  Healthcare: { pe: 8.7, ev: 9.4, peers: 10 },
+  Energy: { pe: 13.6, ev: 6.9, peers: 7 },
+  Industrials: { pe: 21.7, ev: 13.8, peers: 9 },
+}
+
+const SECTOR_NAMES = Object.keys(SECTOR_AGGREGATE)
+
+// withSector derives the sector columns from the P/E and EV/EBITDA an entry
+// already has, so "vs Sector" is always arithmetically consistent with the
+// number beside it rather than an independently invented percentage.
+function withSector(ind: Record<string, unknown>): Record<string, unknown> {
+  const symbol = String(ind.symbol ?? '')
+  let sector = SECTOR_BY_SYMBOL[symbol]
+  if (!sector) {
+    // Unknown symbols still get a sector, picked deterministically so a given
+    // symbol always lands in the same one across reloads.
+    let h = 0
+    for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) % 9973
+    sector = SECTOR_NAMES[h % SECTOR_NAMES.length]
+  }
+  const agg = SECTOR_AGGREGATE[sector]
+  const out: Record<string, unknown> = { ...ind, sector, ...analystFor(symbol) }
+  if (!agg || agg.peers < 4) return out
+
+  out.sector_peer_count = agg.peers
+  const pe = ind.pe as number | undefined
+  if (agg.pe > 0) {
+    out.sector_pe = agg.pe
+    if (pe != null && pe > 0) out.pe_vs_sector = Number((((pe - agg.pe) / agg.pe) * 100).toFixed(1))
+  }
+  const ev = ind.ev_to_ebitda as number | undefined
+  if (agg.ev > 0) {
+    out.sector_ev_to_ebitda = agg.ev
+    if (ev != null && ev > 0) out.ev_to_ebitda_vs_sector = Number((((ev - agg.ev) / agg.ev) * 100).toFixed(1))
+  }
+  return out
+}
+
 const BULK: MockEntry[] = [
   ['AAPL', 'Core holding candidate', 190, true],
   ['MSFT', 'Waiting on cloud margin', 350, true],
@@ -65,7 +141,7 @@ const SEED: MockEntry[] = [
       market_cap: 4_500_000_000_000,
       ytd_return: 34.8, three_year_return: 612.4, five_year_return: 1284.1,
       fcf: 72_100_000_000, ev_to_ebitda: 42.6, debt_to_equity: 12.9, cash_flow_quality: 1.08,
-      health_rating: 'strong', valuation_rating: 'expensive',
+      health_rating: 'healthy', valuation_rating: 'overvalued',
     },
   },
   {
@@ -82,7 +158,7 @@ const SEED: MockEntry[] = [
       market_cap: 292_000_000_000,
       ytd_return: -8.4, three_year_return: 41.2, five_year_return: 168.9,
       fcf: 9_400_000_000, ev_to_ebitda: 24.3, debt_to_equity: 28.4, cash_flow_quality: 0.94,
-      health_rating: 'strong', valuation_rating: 'fair',
+      health_rating: 'healthy', valuation_rating: 'fair',
     },
   },
   {
@@ -99,7 +175,7 @@ const SEED: MockEntry[] = [
       market_cap: 264_000_000_000,
       ytd_return: 6.1, three_year_return: 18.7, five_year_return: 44.3,
       fcf: 9_800_000_000, ev_to_ebitda: 19.2, debt_to_equity: 168.5, cash_flow_quality: 0.87,
-      health_rating: 'moderate', valuation_rating: 'fair',
+      health_rating: 'fair', valuation_rating: 'fair',
     },
   },
   {
@@ -116,7 +192,7 @@ const SEED: MockEntry[] = [
       market_cap: 378_000_000_000,
       ytd_return: 128.6, three_year_return: 1420.5, five_year_return: 1690.2,
       fcf: 1_600_000_000, ev_to_ebitda: 312.4, debt_to_equity: 4.7, cash_flow_quality: 1.42,
-      health_rating: 'strong', valuation_rating: 'very expensive',
+      health_rating: 'healthy', valuation_rating: 'overvalued',
     },
   },
   {
@@ -127,7 +203,7 @@ const SEED: MockEntry[] = [
     addedAt: Date.now() - 86400000 * 5,
   },
   ...BULK,
-]
+].map(e => (e.indicators ? { ...e, indicators: withSector(e.indicators) } : e))
 
 const SEARCH_UNIVERSE = [
   { symbol: 'NVDA', name: 'NVIDIA Corporation' },
@@ -151,7 +227,7 @@ function synthIndicators(symbol: string): Record<string, unknown> {
   for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) % 9973
   const r = (min: number, max: number, salt: number) => min + (((h * (salt + 7)) % 1000) / 1000) * (max - min)
   const price = r(20, 400, 1)
-  return {
+  const base: Record<string, unknown> = {
     symbol, currency: 'USD', quantity: 0, avg_cost: 0, total_cost: 0,
     current_price: price, market_value: 0, unrealized_pnl: 0, unrealized_pct_omitempty: 0,
     week_52_low: price * 0.7, week_52_high: price * 1.4,
@@ -161,9 +237,10 @@ function synthIndicators(symbol: string): Record<string, unknown> {
     ten_year_return: r(-20, 900, 14), market_cap: r(1e9, 3e12, 15),
     fcf: r(-2e9, 4e10, 7), ev_to_ebitda: r(6, 40, 8),
     debt_to_equity: r(0, 200, 9), cash_flow_quality: r(0.4, 1.8, 10),
-    health_rating: ['strong', 'moderate', 'weak'][h % 3],
-    valuation_rating: ['cheap', 'fair', 'expensive'][h % 3],
+    health_rating: ['healthy', 'fair', 'weak', 'unhealthy'][h % 4],
+    valuation_rating: ['undervalued', 'fair', 'overvalued'][h % 3],
   }
+  return withSector(base)
 }
 
 // Every code returns its own list, seeded on first use so the table is never

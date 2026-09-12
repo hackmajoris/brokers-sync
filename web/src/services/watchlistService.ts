@@ -1,4 +1,6 @@
 const CODE_KEY = 'bs.portfolioCode'
+const TRACKED_KEY = 'bs.trackedSymbols'
+const CHANGED_EVENT = 'watchlist-changed'
 
 import { mapPosition } from './portfolioService'
 import type { Position, RawPosition } from '../types/portfolio'
@@ -41,6 +43,43 @@ export function saveCode(code: string): void {
 
 export function clearCode(): void {
   localStorage.removeItem(CODE_KEY)
+  localStorage.removeItem(TRACKED_KEY)
+}
+
+// A new symbol starts with a buy target 20% below the current price, which is a
+// usable starting point to edit rather than an empty field.
+const DEFAULT_TARGET_DISCOUNT = 0.8
+
+export function defaultTarget(price: number): number {
+  return Number((price * DEFAULT_TARGET_DISCOUNT).toFixed(2))
+}
+
+// Which symbols are tracked, cached locally so a caller outside the watchlist
+// tab can tell without calling listWatchlist — that request re-fetches upstream
+// indicators for every symbol, far too expensive to answer "is this one on the
+// list?". Symbol names only; everything else still comes from the server.
+export function loadTracked(): string[] {
+  try {
+    const raw = localStorage.getItem(TRACKED_KEY)
+    return raw ? (JSON.parse(raw) as string[]) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveTracked(symbols: string[]): void {
+  localStorage.setItem(TRACKED_KEY, JSON.stringify(symbols))
+}
+
+// Fired after any write, so a list rendered elsewhere can reload itself rather
+// than showing a symbol the user just added from the lookup modal as missing.
+export function onWatchlistChanged(fn: () => void): () => void {
+  window.addEventListener(CHANGED_EVENT, fn)
+  return () => window.removeEventListener(CHANGED_EVENT, fn)
+}
+
+function announceChange(): void {
+  window.dispatchEvent(new CustomEvent(CHANGED_EVENT))
 }
 
 // watchlistFetch sends the code as a header. It must never go in the URL, where
@@ -94,9 +133,11 @@ export async function upsertWatchlist(item: Partial<WatchlistItem> & { symbol: s
     body: JSON.stringify(item),
   })
   if (!res.ok) throw new Error((await res.text()).trim() || `Could not save (${res.status})`)
+  announceChange()
 }
 
 export async function removeWatchlist(symbol: string): Promise<void> {
   const res = await watchlistFetch(`/api/watchlist?symbol=${encodeURIComponent(symbol)}`, { method: 'DELETE' })
   if (!res.ok) throw new Error(`Could not remove ${symbol} (${res.status})`)
+  announceChange()
 }

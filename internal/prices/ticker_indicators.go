@@ -80,6 +80,16 @@ type TickerIndicators struct {
 	PayoutDate       *time.Time
 	PayoutDateInterp string
 
+	AnalystScore  *float64
+	AnalystRating string
+
+	Sector           string
+	SectorPE         *float64
+	PEVsSector       *float64
+	SectorEVToEBITDA *float64
+	EVVsSector       *float64
+	SectorPeerCount  int
+
 	HealthRating    string
 	HealthReason    string
 	ValuationRating string
@@ -140,6 +150,28 @@ func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, f
 		}()
 	}
 
+	run(func() bool {
+		// Rides the same v7 quote endpoint GetPE uses, so it is close to free.
+		// An empty rating means no analyst covers the symbol — common for small
+		// caps and foreign listings, and not an error.
+		v, err := client.GetAnalystRating(ctx, symbol)
+		if err != nil || v.Rating == "" {
+			return false
+		}
+		ti.AnalystRating = v.Rating
+		if v.Score > 0 {
+			ti.AnalystScore = &v.Score
+		}
+		return true
+	})
+	run(func() bool {
+		sector, ok := SectorOf(ctx, client, symbol)
+		if !ok {
+			return false
+		}
+		ti.Sector = sector
+		return true
+	})
 	run(func() bool {
 		q, err := client.GetQuote(ctx, symbol)
 		if err != nil {
@@ -340,6 +372,23 @@ func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, f
 	if ti.Cash != nil && ti.Debt != nil {
 		n := *ti.Cash - *ti.Debt
 		ti.Net = &n
+	}
+
+	// Sector aggregate last: it needs this symbol's own P/E and EV/EBITDA to
+	// compare against, and it is shared by every symbol in the same sector, so
+	// it is fetched once and cached rather than per row.
+	if sv := SectorValuationFor(ctx, client, ti.Sector, symbol); sv != nil {
+		ti.SectorPeerCount = sv.PeerCount
+		if sv.PE > 0 {
+			pe := sv.PE
+			ti.SectorPE = &pe
+			ti.PEVsSector = vsSector(ti.PE, sv.PE)
+		}
+		if sv.EVToEBITDA > 0 {
+			ev := sv.EVToEBITDA
+			ti.SectorEVToEBITDA = &ev
+			ti.EVVsSector = vsSector(ti.EVToEBITDA, sv.EVToEBITDA)
+		}
 	}
 
 	ti.classify()
