@@ -30,6 +30,7 @@ function mapPeriod(p: RawPeriod): PeriodSummary {
 export function mapPosition(p: RawPosition): Position {
   return {
     symbol: p.symbol,
+    currency: p.currency,
     mv: p.market_value,
     pnl: p.unrealized_pnl,
     pct: p.unrealized_pct_omitempty,

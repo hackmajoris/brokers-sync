@@ -123,6 +123,21 @@ export function Candlestick({ candles, ma }: Props) {
         {hc && (
           <line x1={x(hover!)} x2={x(hover!)} y1={PAD_T} y2={H - PAD_B} stroke="#8b8fa3" strokeWidth={1} strokeDasharray="3 3" pointerEvents="none" />
         )}
+        {(() => {
+          const last = candles[n - 1]
+          const up = last.c >= last.o
+          const color = up ? UP : DOWN
+          const ly = y(last.c)
+          return (
+            <g pointerEvents="none">
+              <line x1={PAD_L} x2={W - PAD_R} y1={ly} y2={ly} stroke={color} strokeWidth={1} strokeDasharray="4 4" opacity={0.6} />
+              <rect x={W - PAD_R + 2} y={ly - 8} width={PAD_R - 4} height={16} rx={3} fill={color} />
+              <text x={W - PAD_R + 2 + (PAD_R - 4) / 2} y={ly + 4} fill="#0a0a0a" fontSize={10} fontWeight={700} textAnchor="middle" fontFamily="'DM Mono', monospace">
+                {fmt(last.c, last.c >= 100 ? 0 : 1)}
+              </text>
+            </g>
+          )
+        })()}
       </svg>
 
       {hc && (

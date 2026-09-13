@@ -148,6 +148,7 @@ export interface RawPortfolio {
 
 export interface Position {
   symbol: string
+  currency?: string
   mv: number | null
   pnl: number | null
   pct: number | null

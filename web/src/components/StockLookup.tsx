@@ -7,6 +7,7 @@ import { loadCode, loadTracked, saveTracked, upsertWatchlist, defaultTarget } fr
 import { RangeGauge } from './charts/RangeGauge'
 import { Candlestick } from './charts/Candlestick'
 import { InfoTooltip } from './ui/InfoTooltip'
+import { useIsMobile } from '../lib/useIsMobile'
 
 const CHART_RANGES = [
   { key: '1M', range: '1mo', interval: '1d' },
@@ -31,6 +32,18 @@ interface Props {
 }
 
 function Metric({ label, children, note }: { label: string; children: ReactNode; note?: string }) {
+  const mobile = useIsMobile()
+  if (mobile) {
+    return (
+      <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
+        <span style={{ fontSize: 10, color: '#8b8fa3', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+          {label}
+          {note && <InfoTooltip text={note} />}
+        </span>
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 600, color: '#e0e0e0', textAlign: 'right' }}>{children}</span>
+      </div>
+    )
+  }
   return (
     <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 7, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
       <span style={{ fontSize: 9, fontWeight: 600, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
@@ -70,8 +83,157 @@ function pctColored(v?: number): ReactNode {
   return <span style={{ color: clr(v) }}>{fmtPct(v)}</span>
 }
 
-function DetailBody({ p }: { p: Position }) {
+// PerfPill is the mobile performance-strip tile: a bordered box with a small
+// label over a colored return value, four to a row.
+function PerfPill({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 10, padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 10, color: '#8b8fa3' }}>{label}</span>
+      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 700 }}>{children}</span>
+    </div>
+  )
+}
+
+// RangeBar is the mobile full-width 52-week range: a wide gradient track plus
+// the percent-of-range and the low/high prices anchoring each end.
+function RangeBar({ low, high, current }: { low: number; high: number; current: number }) {
+  const pct = high > low ? Math.min(Math.max((current - low) / (high - low), 0), 1) : 0.5
+  return (
+    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8b8fa3' }}>
+        <span>52-Week Range</span>
+        <span>{Math.round(pct * 100)}% of range</span>
+      </div>
+      <div style={{ position: 'relative', height: 6, borderRadius: 999 }}>
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'linear-gradient(90deg, #5eead4, #fde68a, #fb923c, #f87171)' }} />
+        <div style={{ position: 'absolute', left: `${pct * 100}%`, top: -4, width: 3, height: 14, background: '#f5f5f5', borderRadius: 1, transform: 'translateX(-50%)' }} />
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#e0e0e0' }}>
+        <span>{fmtCurrency(low)}</span>
+        <span>{fmtCurrency(high)}</span>
+      </div>
+    </div>
+  )
+}
+
+// MobileDetailBody trades the always-visible five-group grid for one group at
+// a time behind a pill switcher, so a phone screen shows dense metrics
+// without the endless stacked scroll the grid produces at 1-2 columns.
+function MobileDetailBody({ p }: { p: Position }) {
   const hasRange = p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null
+  const groups: { title: string; content: ReactNode }[] = [
+    {
+      title: 'Valuation',
+      content: (
+        <>
+          <Metric label="Market Cap" note={p.marketCapInterpretation}>{p.marketCap != null ? fmtKMBT(p.marketCap) : DASH}</Metric>
+          <Metric label="P/E">{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</Metric>
+          <Metric label="Forward P/E">{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</Metric>
+          <Metric label="Price/Sales" note={p.priceToSalesInterpretation}>{p.priceToSales != null && p.priceToSales !== 0 ? fmt(p.priceToSales, 2) : DASH}</Metric>
+          <Metric label="EV/EBITDA" note={p.evToEbitdaInterpretation}>{p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'}</Metric>
+          <Metric label="Price/Book" note={p.priceToBookInterpretation}>{p.priceToBook != null && p.priceToBook !== 0 ? fmt(p.priceToBook, 2) : DASH}</Metric>
+          <Metric label="Valuation" note={p.valuationReason}><RatingPill rating={p.valuationRating} colors={VALUATION_COLORS} /></Metric>
+        </>
+      ),
+    },
+    {
+      title: 'Cash Flow',
+      content: (
+        <>
+          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? clr(p.fcf) : '#e0e0e0' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
+          <Metric label="Free Cash Flow Yield" note={p.fcfYieldInterpretation}>{p.fcfYield != null ? pctColored(p.fcfYield) : DASH}</Metric>
+          <Metric label="SBC Adj. FCF Yield">{NA}</Metric>
+          <Metric label="SBC Impact">{NA}</Metric>
+          <Metric label="CF Quality" note={p.cashFlowQualityInterpretation}>{p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'}</Metric>
+        </>
+      ),
+    },
+    {
+      title: 'Margins & Growth',
+      content: (
+        <>
+          <Metric label="Profit Margin" note={p.profitMarginInterpretation}>{pctColored(p.profitMargin)}</Metric>
+          <Metric label="Operating Margin" note={p.operatingMarginInterpretation}>{pctColored(p.operatingMargin)}</Metric>
+          <Metric label="Quarterly Earnings (YoY)" note={p.quarterlyEarningsGrowthInterpretation}>{pctColored(p.quarterlyEarningsGrowth)}</Metric>
+          <Metric label="Quarterly Revenue (YoY)" note={p.quarterlyRevenueGrowthInterpretation}>{pctColored(p.quarterlyRevenueGrowth)}</Metric>
+        </>
+      ),
+    },
+    {
+      title: 'Balance',
+      content: (
+        <>
+          <Metric label="Cash" note={p.cashInterpretation}>{p.cash != null ? fmtKMBT(p.cash) : DASH}</Metric>
+          <Metric label="Debt" note={p.debtInterpretation}>{p.debt != null ? fmtKMBT(p.debt) : DASH}</Metric>
+          <Metric label="Net">{p.net != null ? <span style={{ color: clr(p.net) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
+          <Metric label="Debt/Equity" note={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</Metric>
+          <Metric label="Health" note={p.healthReason}><RatingPill rating={p.healthRating} colors={HEALTH_COLORS} /></Metric>
+        </>
+      ),
+    },
+    {
+      title: 'Dividend',
+      content: (
+        <>
+          <Metric label="Dividend Yield" note={p.dividendYieldInterpretation}>{p.dividendYield != null ? fmtPct(p.dividendYield) : DASH}</Metric>
+          <Metric label="Payout Ratio" note={p.payoutRatioInterpretation}>{p.payoutRatio != null ? fmtPct(p.payoutRatio) : DASH}</Metric>
+          <Metric label="Payout Date" note={p.payoutDateInterpretation}>{p.payoutDate || DASH}</Metric>
+        </>
+      ),
+    },
+  ]
+  const [active, setActive] = useState(0)
+
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
+        <PerfPill label="1D">{pctColored(p.todayReturn)}</PerfPill>
+        <PerfPill label="YTD">{pctColored(p.ytdReturn)}</PerfPill>
+        <PerfPill label="3Y">{pctColored(p.threeYrReturn)}</PerfPill>
+        <PerfPill label="5Y">{pctColored(p.fiveYrReturn)}</PerfPill>
+        <PerfPill label="10Y">{pctColored(p.tenYrReturn)}</PerfPill>
+      </div>
+
+      {hasRange && <RangeBar low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} />}
+
+      <div className="rail" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
+        {groups.map((g, i) => (
+          <button
+            key={g.title}
+            onClick={() => setActive(i)}
+            style={{
+              flexShrink: 0, padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
+              whiteSpace: 'nowrap', cursor: 'pointer',
+              background: i === active ? '#6366f11f' : 'transparent',
+              border: `1px solid ${i === active ? '#6366f1' : '#262626'}`,
+              color: i === active ? '#a5a6f6' : '#8b8fa3',
+              fontFamily: "'DM Sans', sans-serif",
+            }}
+          >
+            {g.title}
+          </button>
+        ))}
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+          <div style={{ width: 3, height: 14, borderRadius: 2, background: '#6366f1' }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: '#c0c0c0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{groups[active].title}</div>
+        </div>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{groups[active].content}</div>
+      </div>
+
+      <div style={{ fontSize: 10, color: '#5c6070', textAlign: 'center', padding: '4px 0 2px' }}>
+        Fundamentals as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. Verdicts are heuristics, not advice.
+      </div>
+    </div>
+  )
+}
+
+function DetailBody({ p }: { p: Position }) {
+  const mobile = useIsMobile()
+  const hasRange = p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null
+  if (mobile) return <MobileDetailBody p={p} />
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Performance strip — not part of the picture's five groups */}
@@ -83,6 +245,7 @@ function DetailBody({ p }: { p: Position }) {
         <Metric label="YTD">{pctColored(p.ytdReturn)}</Metric>
         <Metric label="3Y">{pctColored(p.threeYrReturn)}</Metric>
         <Metric label="5Y">{pctColored(p.fiveYrReturn)}</Metric>
+        <Metric label="10Y">{pctColored(p.tenYrReturn)}</Metric>
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: 16, alignItems: 'start' }}>
@@ -130,6 +293,7 @@ function DetailBody({ p }: { p: Position }) {
 }
 
 export function StockLookup({ accent }: Props) {
+  const mobile = useIsMobile()
   const [open, setOpen] = useState(false)
   const [query, setQuery] = useState('')
   const [results, setResults] = useState<TickerSearchResult[]>([])
@@ -182,6 +346,16 @@ export function StockLookup({ accent }: Props) {
     }, 250)
     return () => { clearTimeout(t); ctrl.abort() }
   }, [query, open])
+
+  // Lock page scroll while either layer is open, so a touch drag that starts
+  // inside the modal doesn't chain into scrolling the page behind it once the
+  // modal's own content runs out of room.
+  useEffect(() => {
+    if (!open && detailSymbol == null) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [open, detailSymbol])
 
   // Load candles whenever the detail symbol or selected range changes.
   useEffect(() => {
@@ -359,9 +533,26 @@ export function StockLookup({ accent }: Props) {
                 <button className="modal-close" onClick={closeAll}>✕</button>
               </div>
             </div>
-            <div className="chart-modal-body" style={{ overflowY: 'auto' }}>
+            <div className="chart-modal-body">
               {loading && <div style={{ color: '#8b8fa3', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>Loading {detailSymbol}…</div>}
               {!loading && error && <div style={{ color: '#f87171', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>{error}</div>}
+              {!loading && !error && detail && mobile && (
+                <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
+                  {detail.currentPrice != null && (
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 30, fontWeight: 700, color: '#f0f0f0' }}>{fmtCurrency(detail.currentPrice)}</span>
+                  )}
+                  {detail.todayReturn != null && (
+                    <span style={{ padding: '3px 9px', borderRadius: 6, fontSize: 13, fontWeight: 700, background: clr(detail.todayReturn) + '1f', color: clr(detail.todayReturn) }}>
+                      {fmtPct(detail.todayReturn)}
+                    </span>
+                  )}
+                  {(detail.currency || detail.sector) && (
+                    <span style={{ fontSize: 12, color: '#8b8fa3', marginLeft: 'auto' }}>
+                      {[detail.currency, detail.sector].filter(Boolean).join(' · ')}
+                    </span>
+                  )}
+                </div>
+              )}
               {!loading && !error && detail && (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
                   <div>

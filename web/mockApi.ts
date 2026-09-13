@@ -238,9 +238,50 @@ function synthIndicators(symbol: string): Record<string, unknown> {
     fcf: r(-2e9, 4e10, 7), ev_to_ebitda: r(6, 40, 8),
     debt_to_equity: r(0, 200, 9), cash_flow_quality: r(0.4, 1.8, 10),
     health_rating: ['healthy', 'fair', 'weak', 'unhealthy'][h % 4],
+    health_reason: 'Synthesised for dev — not a real assessment.',
     valuation_rating: ['undervalued', 'fair', 'overvalued'][h % 3],
+    valuation_reason: 'Synthesised for dev — not a real assessment.',
+    price_to_sales: r(1, 18, 16), price_to_book: r(1, 14, 17),
+    profit_margin: r(-5, 35, 18), operating_margin: r(-5, 40, 19),
+    quarterly_earnings_growth: r(-20, 60, 20), quarterly_revenue_growth: r(-10, 40, 21),
+    cash: r(1e8, 5e10, 22), debt: r(0, 4e10, 23),
+    dividend_yield: h % 3 === 0 ? 0 : r(0.2, 4.5, 24),
+    payout_ratio: h % 3 === 0 ? 0 : r(10, 80, 25),
+    payout_date: h % 3 === 0 ? undefined : new Date(Date.now() + 86400000 * (h % 90)).toISOString().slice(0, 10),
   }
+  base.net = (base.cash as number) - (base.debt as number)
   return withSector(base)
+}
+
+// synthCandles builds a deterministic-enough OHLC series for the lookup chart,
+// so switching ranges in dev always has something to draw instead of a blank
+// canvas. Point count roughly matches what the real range/interval would return.
+function synthCandles(symbol: string, range: string, interval: string): { candles: { t: number; o: number; h: number; l: number; c: number; v: number }[]; ma: (number | null)[] } {
+  let h = 0
+  for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) % 9973
+  const points: Record<string, number> = { '1mo': 22, '6mo': 130, '1y': 252, '5y': 260, '10y': 520, max: 180 }
+  const n = points[range] ?? 200
+  const stepMs = interval === '1d' ? 86400000 : interval === '1wk' ? 86400000 * 7 : 86400000 * 30
+  const end = Date.now()
+  let price = 20 + (h % 380)
+  const candles = []
+  for (let i = n - 1; i >= 0; i--) {
+    const drift = Math.sin((h + i) / 9) * 0.01
+    const noise = (Math.sin((h * 7 + i * 13) % 97) + Math.sin((h * 3 + i * 29) % 61)) * 0.015
+    price = Math.max(1, price * (1 + drift + noise))
+    const o = price * (1 - 0.004)
+    const c = price
+    const hi = Math.max(o, c) * 1.006
+    const lo = Math.min(o, c) * 0.994
+    candles.push({ t: end - i * stepMs, o, h: hi, l: lo, c, v: 1_000_000 + (h % 5_000_000) })
+  }
+  const ma = candles.map((_, i) => {
+    if (i < 20) return null
+    let sum = 0
+    for (let j = i - 20; j <= i; j++) sum += candles[j].c
+    return sum / 21
+  })
+  return { candles, ma }
 }
 
 // Every code returns its own list, seeded on first use so the table is never
@@ -288,6 +329,29 @@ export function mockApi(): Plugin | false {
         const code = Math.random().toString(36).slice(2, 8).toUpperCase()
         storeFor(code)
         json(res, 200, { code })
+      })
+
+      server.middlewares.use('/api/ticker', (req, res) => {
+        const symbol = decodeURIComponent((req.url ?? '').split('?')[0].replace(/^\//, ''))
+        if (!symbol) {
+          res.statusCode = 404
+          res.end()
+          return
+        }
+        const seeded = SEED.find(e => e.symbol === symbol)
+        json(res, 200, seeded?.indicators ?? synthIndicators(symbol))
+      })
+
+      server.middlewares.use('/api/history', (req, res) => {
+        const [path, qs] = (req.url ?? '').split('?')
+        const symbol = decodeURIComponent(path.replace(/^\//, ''))
+        if (!symbol) {
+          res.statusCode = 404
+          res.end()
+          return
+        }
+        const params = new URLSearchParams(qs ?? '')
+        json(res, 200, synthCandles(symbol, params.get('range') ?? '1y', params.get('interval') ?? '1d'))
       })
 
       server.middlewares.use('/api/search', (req, res) => {
