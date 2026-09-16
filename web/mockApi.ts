@@ -253,6 +253,26 @@ function synthIndicators(symbol: string): Record<string, unknown> {
   return withSector(base)
 }
 
+// synthNews fabricates a handful of today-dated headlines so the lookup
+// dialog's news section always has something to show in dev. One in five
+// symbols gets none, reproducing the real "no news today" empty state.
+function synthNews(symbol: string): { title: string; link: string }[] {
+  let h = 0
+  for (const c of symbol) h = (h * 31 + c.charCodeAt(0)) % 9973
+  if (h % 5 === 0) return []
+  const templates = [
+    `${symbol} shares move on analyst commentary`,
+    `What to know about ${symbol} ahead of earnings`,
+    `${symbol} in focus as sector rotates`,
+    `Here's why investors are watching ${symbol} today`,
+  ]
+  const count = 1 + (h % templates.length)
+  return templates.slice(0, count).map((title, i) => ({
+    title,
+    link: `https://finance.yahoo.com/quote/${encodeURIComponent(symbol)}/news-${i}`,
+  }))
+}
+
 // synthCandles builds a deterministic-enough OHLC series for the lookup chart,
 // so switching ranges in dev always has something to draw instead of a blank
 // canvas. Point count roughly matches what the real range/interval would return.
@@ -352,6 +372,16 @@ export function mockApi(): Plugin | false {
         }
         const params = new URLSearchParams(qs ?? '')
         json(res, 200, synthCandles(symbol, params.get('range') ?? '1y', params.get('interval') ?? '1d'))
+      })
+
+      server.middlewares.use('/api/news', (req, res) => {
+        const symbol = decodeURIComponent((req.url ?? '').split('?')[0].replace(/^\//, ''))
+        if (!symbol) {
+          res.statusCode = 404
+          res.end()
+          return
+        }
+        json(res, 200, synthNews(symbol))
       })
 
       server.middlewares.use('/api/search', (req, res) => {

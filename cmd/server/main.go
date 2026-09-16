@@ -44,6 +44,7 @@ func main() {
 	mux.HandleFunc("/api/ticker/", handleTicker)
 	mux.HandleFunc("/api/search", handleSearch)
 	mux.HandleFunc("/api/history/", handleHistory)
+	mux.HandleFunc("/api/news/", handleNews)
 
 	if wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE")); wl != nil {
 		wl.register(mux)
@@ -564,6 +565,26 @@ func interpolateMA(candles []prices.Candle, ma []prices.MAPoint) []*float64 {
 		out[i] = &v
 	}
 	return out
+}
+
+// handleNews returns today's Yahoo Finance headlines for a symbol.
+func handleNews(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	symbol := strings.ToUpper(strings.TrimSpace(strings.TrimPrefix(r.URL.Path, "/api/news/")))
+	if symbol == "" {
+		http.Error(w, "missing symbol", http.StatusBadRequest)
+		return
+	}
+	items, err := prices.FetchNews(r.Context(), symbol)
+	if err != nil {
+		http.Error(w, "news failed: "+err.Error(), http.StatusBadGateway)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(items)
 }
 
 // handleTicker fetches all indicators for a single arbitrary symbol and returns

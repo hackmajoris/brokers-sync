@@ -213,6 +213,20 @@ export async function searchSymbols(query: string, signal?: AbortSignal): Promis
   return (await res.json()) as TickerSearchResult[]
 }
 
+export interface NewsItem {
+  title: string
+  link: string
+}
+
+// fetchNews fetches today's Yahoo Finance headlines for a symbol.
+export async function fetchNews(symbol: string, signal?: AbortSignal): Promise<NewsItem[]> {
+  const res = await fetch(`/api/news/${encodeURIComponent(symbol)}`, { signal })
+  if (!res.ok) throw new Error(`News failed (${res.status})`)
+  const ct = res.headers.get('content-type') ?? ''
+  if (!ct.includes('application/json')) throw new Error('News unavailable')
+  return (await res.json()) as NewsItem[]
+}
+
 export interface Candle {
   t: number
   o: number

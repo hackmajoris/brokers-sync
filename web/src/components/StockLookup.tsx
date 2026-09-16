@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import type { Position } from '../types/portfolio'
-import { fetchTicker, fetchHistory, searchSymbols, type TickerSearchResult, type HistoryData } from '../services/portfolioService'
+import { fetchTicker, fetchHistory, fetchNews, searchSymbols, type TickerSearchResult, type HistoryData, type NewsItem } from '../services/portfolioService'
 import { fmt, fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import { HEALTH_COLORS, VALUATION_COLORS, ratingLabel } from '../utils/ratings'
 import { loadCode, loadTracked, saveTracked, upsertWatchlist, defaultTarget } from '../services/watchlistService'
@@ -292,6 +292,33 @@ function DetailBody({ p }: { p: Position }) {
   )
 }
 
+function NewsSection({ items }: { items: NewsItem[] | null }) {
+  if (items == null) {
+    return <div style={{ color: '#8b8fa3', fontSize: 13, padding: '8px 0' }}>Loading news…</div>
+  }
+  if (items.length === 0) return null
+  return (
+    <div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Today's News</div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {items.map((n, i) => (
+          <a
+            key={`${n.link}-${i}`}
+            href={n.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            style={{ fontSize: 13, color: '#e0e0e0', textDecoration: 'none' }}
+            onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
+            onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
+          >
+            {n.title}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
 export function StockLookup({ accent }: Props) {
   const mobile = useIsMobile()
   const [open, setOpen] = useState(false)
@@ -305,6 +332,7 @@ export function StockLookup({ accent }: Props) {
   const [chartRange, setChartRange] = useState<ChartRangeKey>('1Y')
   const [history, setHistory] = useState<HistoryData | null>(null)
   const [chartError, setChartError] = useState<string | null>(null)
+  const [news, setNews] = useState<NewsItem[] | null>(null)
   // Tracked state comes from the locally cached symbol list, not a request: the
   // watchlist endpoint re-fetches indicators for every symbol, which is far too
   // much work to answer a yes/no question about one of them.
@@ -370,6 +398,17 @@ export function StockLookup({ accent }: Props) {
     return () => ctrl.abort()
   }, [detailSymbol, chartRange])
 
+  // Load today's news whenever the detail symbol changes.
+  useEffect(() => {
+    if (detailSymbol == null) return
+    const ctrl = new AbortController()
+    setNews(null)
+    fetchNews(detailSymbol, ctrl.signal)
+      .then(setNews)
+      .catch(() => { if (!ctrl.signal.aborted) setNews([]) })
+    return () => ctrl.abort()
+  }, [detailSymbol])
+
   function closeAll() {
     setOpen(false)
     setQuery('')
@@ -381,6 +420,7 @@ export function StockLookup({ accent }: Props) {
     setHistory(null)
     setChartError(null)
     setAddError(null)
+    setNews(null)
   }
 
   // Adding from here seeds the same 20%-below-price target the watchlist tab
@@ -578,6 +618,7 @@ export function StockLookup({ accent }: Props) {
                     )}
                   </div>
                   <DetailBody p={detail} />
+                  <NewsSection items={news} />
                 </div>
               )}
             </div>
