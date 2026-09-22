@@ -321,75 +321,50 @@ func handleUpload(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	logf(fmt.Sprintf("fetching free cash flow for %d symbol(s)…", len(yahooTickers)))
-	fcfResultMap, err := prices.FetchFreeCashFlows(context.Background(), yahooTickers)
+	logf(fmt.Sprintf("fetching fundamentals for %d symbol(s)…", len(yahooTickers)))
+	fcfResultMap, evResultMap, deResultMap, cfqResultMap, err := prices.FetchFundamentals(context.Background(), yahooTickers)
 	fcfMap := make(map[string]float64, len(fcfResultMap))
 	fcfInterpMap := make(map[string]string, len(fcfResultMap))
-	if err != nil {
-		log.Printf("free cash flow fetch error: %v", err)
-		logf("warning: free cash flow fetch failed")
-	} else {
-		for yahooTicker, r := range fcfResultMap {
-			fcfMap[yahooTicker] = r.FCF
-			fcfInterpMap[yahooTicker] = r.Interpretation
-			if origSymbol, ok := reverseMap[yahooTicker]; ok {
-				fcfMap[origSymbol] = r.FCF
-				fcfInterpMap[origSymbol] = r.Interpretation
-			}
-		}
-	}
-
-	logf(fmt.Sprintf("fetching EV/EBITDA for %d symbol(s)…", len(yahooTickers)))
-	evResultMap, err := prices.FetchEVToEBITDAs(context.Background(), yahooTickers)
 	evMap := make(map[string]float64, len(evResultMap))
 	evInterpMap := make(map[string]string, len(evResultMap))
-	if err != nil {
-		log.Printf("EV/EBITDA fetch error: %v", err)
-		logf("warning: EV/EBITDA fetch failed")
-	} else {
-		for yahooTicker, r := range evResultMap {
-			evMap[yahooTicker] = r.Ratio
-			evInterpMap[yahooTicker] = r.Interpretation
-			if origSymbol, ok := reverseMap[yahooTicker]; ok {
-				evMap[origSymbol] = r.Ratio
-				evInterpMap[origSymbol] = r.Interpretation
-			}
-		}
-	}
-
-	logf(fmt.Sprintf("fetching debt/equity for %d symbol(s)…", len(yahooTickers)))
-	deResultMap, err := prices.FetchDebtToEquities(context.Background(), yahooTickers)
 	deMap := make(map[string]float64, len(deResultMap))
 	deInterpMap := make(map[string]string, len(deResultMap))
-	if err != nil {
-		log.Printf("debt/equity fetch error: %v", err)
-		logf("warning: debt/equity fetch failed")
-	} else {
-		for yahooTicker, r := range deResultMap {
-			deMap[yahooTicker] = r.Ratio
-			deInterpMap[yahooTicker] = r.Interpretation
-			if origSymbol, ok := reverseMap[yahooTicker]; ok {
-				deMap[origSymbol] = r.Ratio
-				deInterpMap[origSymbol] = r.Interpretation
-			}
-		}
-	}
-
-	logf(fmt.Sprintf("fetching cash flow quality for %d symbol(s)…", len(yahooTickers)))
-	cfqResultMap, err := prices.FetchCashFlowQualities(context.Background(), yahooTickers)
 	cfqMap := make(map[string]float64, len(cfqResultMap))
 	cfqInterpMap := make(map[string]string, len(cfqResultMap))
 	if err != nil {
-		log.Printf("cash flow quality fetch error: %v", err)
-		logf("warning: cash flow quality fetch failed")
-	} else {
-		for yahooTicker, r := range cfqResultMap {
-			cfqMap[yahooTicker] = r.Ratio
-			cfqInterpMap[yahooTicker] = r.Interpretation
-			if origSymbol, ok := reverseMap[yahooTicker]; ok {
-				cfqMap[origSymbol] = r.Ratio
-				cfqInterpMap[origSymbol] = r.Interpretation
-			}
+		log.Printf("fundamentals fetch error: %v", err)
+		logf("warning: fundamentals fetch failed")
+	}
+	for yahooTicker, r := range fcfResultMap {
+		fcfMap[yahooTicker] = r.FCF
+		fcfInterpMap[yahooTicker] = r.Interpretation
+		if origSymbol, ok := reverseMap[yahooTicker]; ok {
+			fcfMap[origSymbol] = r.FCF
+			fcfInterpMap[origSymbol] = r.Interpretation
+		}
+	}
+	for yahooTicker, r := range evResultMap {
+		evMap[yahooTicker] = r.Ratio
+		evInterpMap[yahooTicker] = r.Interpretation
+		if origSymbol, ok := reverseMap[yahooTicker]; ok {
+			evMap[origSymbol] = r.Ratio
+			evInterpMap[origSymbol] = r.Interpretation
+		}
+	}
+	for yahooTicker, r := range deResultMap {
+		deMap[yahooTicker] = r.Ratio
+		deInterpMap[yahooTicker] = r.Interpretation
+		if origSymbol, ok := reverseMap[yahooTicker]; ok {
+			deMap[origSymbol] = r.Ratio
+			deInterpMap[origSymbol] = r.Interpretation
+		}
+	}
+	for yahooTicker, r := range cfqResultMap {
+		cfqMap[yahooTicker] = r.Ratio
+		cfqInterpMap[yahooTicker] = r.Interpretation
+		if origSymbol, ok := reverseMap[yahooTicker]; ok {
+			cfqMap[origSymbol] = r.Ratio
+			cfqInterpMap[origSymbol] = r.Interpretation
 		}
 	}
 

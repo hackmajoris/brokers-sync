@@ -212,35 +212,11 @@ type FreeCashFlow struct {
 	Interpretation string
 }
 
-// FetchFreeCashFlows fetches trailing twelve-month free cash flow for a list of
-// ticker symbols in parallel. Symbols that fail to resolve are omitted from the result.
-func FetchFreeCashFlows(ctx context.Context, symbols []string) (map[string]FreeCashFlow, error) {
-	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (FreeCashFlow, bool) {
-		fcf, err := c.GetFreeCashFlow(ctx, sym)
-		if err != nil {
-			return FreeCashFlow{}, false
-		}
-		return FreeCashFlow{FCF: fcf.FCF, Interpretation: fcf.Interpretation}, true
-	})
-}
-
 // EVToEBITDA holds the enterprise-value-to-EBITDA ratio for a symbol,
 // plus a plain-language interpretation.
 type EVToEBITDA struct {
 	Ratio          float64
 	Interpretation string
-}
-
-// FetchEVToEBITDAs fetches EV/EBITDA ratios for a list of ticker symbols in
-// parallel. Symbols that fail to resolve are omitted from the result.
-func FetchEVToEBITDAs(ctx context.Context, symbols []string) (map[string]EVToEBITDA, error) {
-	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (EVToEBITDA, bool) {
-		ev, err := c.GetEVToEBITDA(ctx, sym)
-		if err != nil {
-			return EVToEBITDA{}, false
-		}
-		return EVToEBITDA{Ratio: ev.Ratio, Interpretation: ev.Interpretation}, true
-	})
 }
 
 // DebtToEquity holds the debt-to-equity ratio for a symbol (Yahoo reports it as
@@ -251,18 +227,6 @@ type DebtToEquity struct {
 	Interpretation string
 }
 
-// FetchDebtToEquities fetches debt-to-equity ratios for a list of ticker symbols
-// in parallel. Symbols that fail to resolve are omitted from the result.
-func FetchDebtToEquities(ctx context.Context, symbols []string) (map[string]DebtToEquity, error) {
-	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (DebtToEquity, bool) {
-		de, err := c.GetDebtToEquity(ctx, sym)
-		if err != nil {
-			return DebtToEquity{}, false
-		}
-		return DebtToEquity{Ratio: de.Ratio, Interpretation: de.Interpretation}, true
-	})
-}
-
 // CashFlowQuality holds trailing twelve-month operating cash flow vs net income
 // (the "earnings quality" ratio) for a symbol, plus a plain-language interpretation.
 type CashFlowQuality struct {
@@ -271,17 +235,28 @@ type CashFlowQuality struct {
 	Interpretation string
 }
 
-// FetchCashFlowQualities fetches operating-cash-flow-vs-net-income ratios for a
-// list of ticker symbols in parallel. Symbols that fail to resolve are omitted
-// from the result.
-func FetchCashFlowQualities(ctx context.Context, symbols []string) (map[string]CashFlowQuality, error) {
-	return fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (CashFlowQuality, bool) {
-		cfq, err := c.GetOperatingCashFlowVsNetIncome(ctx, sym)
-		if err != nil {
-			return CashFlowQuality{}, false
-		}
-		return CashFlowQuality{Ratio: cfq.Ratio, NetIncome: cfq.NetIncome, Interpretation: cfq.Interpretation}, true
+// FetchFundamentals fetches free cash flow, EV/EBITDA, debt-to-equity and cash
+// flow quality for a list of ticker symbols in parallel, one quoteSummary request
+// per symbol. Symbols that fail to resolve are omitted from every map.
+func FetchFundamentals(ctx context.Context, symbols []string) (map[string]FreeCashFlow, map[string]EVToEBITDA, map[string]DebtToEquity, map[string]CashFlowQuality, error) {
+	all, err := fetchCrumbGuarded(ctx, symbols, func(ctx context.Context, c *yahoo.Client, sym string) (*yahoo.Fundamentals, bool) {
+		f, err := c.GetFundamentals(ctx, sym)
+		return f, err == nil
 	})
+	if err != nil {
+		return nil, nil, nil, nil, err
+	}
+	fcf := make(map[string]FreeCashFlow, len(all))
+	ev := make(map[string]EVToEBITDA, len(all))
+	de := make(map[string]DebtToEquity, len(all))
+	cfq := make(map[string]CashFlowQuality, len(all))
+	for sym, f := range all {
+		fcf[sym] = FreeCashFlow{FCF: f.FreeCashFlow.FCF, Interpretation: f.FreeCashFlow.Interpretation}
+		ev[sym] = EVToEBITDA{Ratio: f.EVToEBITDA.Ratio, Interpretation: f.EVToEBITDA.Interpretation}
+		de[sym] = DebtToEquity{Ratio: f.DebtToEquity.Ratio, Interpretation: f.DebtToEquity.Interpretation}
+		cfq[sym] = CashFlowQuality{Ratio: f.CashFlowQuality.Ratio, NetIncome: f.CashFlowQuality.NetIncome, Interpretation: f.CashFlowQuality.Interpretation}
+	}
+	return fcf, ev, de, cfq, nil
 }
 
 // AnalystRating holds Yahoo's average analyst recommendation for a symbol:
