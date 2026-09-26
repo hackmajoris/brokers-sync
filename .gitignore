@@ -7,4 +7,4 @@ web/dist
 infra/cdk.out
 infra/cdk-outputs.json
 /infra/brokers-sync-infra
-cdk-outputs.json
+cdk-outputs.jsonbin/
