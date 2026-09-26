@@ -1,4 +1,4 @@
-import type { TooltipItem } from 'chart.js';
+import type { CartesianTickOptions, TooltipItem } from 'chart.js';
 import { useChart } from './useChart';
 import { chartDefaults } from '../../lib/chartDefaults';
 
@@ -9,9 +9,10 @@ interface LineChartProps {
   color?: string
   height?: number
   formatValue?: (v: number) => string
+  xLabelRotation?: number
 }
 
-export function LineChart({ data, keyX, keyY, color = '#fb923c', height = 160, formatValue }: LineChartProps) {
+export function LineChart({ data, keyX, keyY, color = '#fb923c', height = 160, formatValue, xLabelRotation = 0 }: LineChartProps) {
   const labels = data.map(d => String(d[keyX]));
   const values = data.map(d => d[keyY] as number);
 
@@ -51,6 +52,11 @@ export function LineChart({ data, keyX, keyY, color = '#fb923c', height = 160, f
       scales: {
         x: {
           ...chartDefaults.scales?.['x'],
+          ticks: {
+            ...(chartDefaults.scales?.['x'] as Record<string, unknown>)?.['ticks'] as object,
+            maxRotation: xLabelRotation,
+            minRotation: xLabelRotation,
+          } as Partial<CartesianTickOptions>,
         },
         y: {
           ...chartDefaults.scales?.['y'],

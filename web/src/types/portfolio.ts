@@ -141,6 +141,7 @@ export interface RawPortfolio {
   mtd: RawPeriod
   by_year: RawPeriod[]
   dividends_by_symbol: RawDividendBySymbol[]
+  dividends_by_month?: { label: string; dividends_net: number }[]
   transactions?: RawTransaction[]
 }
 
@@ -306,5 +307,6 @@ export interface PortfolioData {
   openPositions: Position[]
   topRPnl: RealizedBySymbol[]
   topDivs: DividendBySymbol[]
+  divsByMonth: { label: string; divs: number }[]
   transactions: Transaction[]
 }

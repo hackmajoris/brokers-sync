@@ -451,3 +451,35 @@ func TestCashUsesPerRowFXRateConsistently(t *testing.T) {
 		t.Errorf("combined %.2f != per-broker %.2f — cash must be FX-consistent across views", combined.CashBalance, perBroker.CashBalance)
 	}
 }
+
+// The dividends month view must reconcile with the yearly/all-time totals (net of tax)
+// and show dry months as zero so the timeline is not visually compressed.
+func TestDivsByMonth_ContiguousAndNetOfTax(t *testing.T) {
+	txs := []model.Transaction{
+		{Date: d("2025-11-15"), Type: model.TxDividend, Symbol: "X", Currency: "RON", Net: 100},
+		{Date: d("2025-11-15"), Type: model.TxTaxWithholding, Symbol: "X", Currency: "RON", Net: -10},
+		{Date: d("2026-02-10"), Type: model.TxDividend, Symbol: "Y", Currency: "RON", Net: 50},
+	}
+	l := ledger.New()
+	l.Process(txs)
+	s := stats.Compute(l, txs, d("2026-09-26"), nil, "RON")
+
+	want := []stats.MonthDividend{
+		{Label: "2025-11", Dividends: 90},
+		{Label: "2025-12", Dividends: 0},
+		{Label: "2026-01", Dividends: 0},
+		{Label: "2026-02", Dividends: 50},
+	}
+	if len(s.DivsByMonth) != len(want) {
+		t.Fatalf("DivsByMonth len: got %d (%v), want %d", len(s.DivsByMonth), s.DivsByMonth, len(want))
+	}
+	var sum float64
+	for i, w := range want {
+		if s.DivsByMonth[i].Label != w.Label {
+			t.Errorf("month %d label: got %s, want %s", i, s.DivsByMonth[i].Label, w.Label)
+		}
+		near(t, w.Label, s.DivsByMonth[i].Dividends, w.Dividends, 0.001)
+		sum += s.DivsByMonth[i].Dividends
+	}
+	near(t, "sum of months vs AllTime.Dividends", sum, s.AllTime.Dividends, 0.001)
+}

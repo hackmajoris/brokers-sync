@@ -17,13 +17,18 @@ interface Props {
 export function DividendsTab({ data }: Props) {
   const [chartType, setChartType] = useState<'bar' | 'line'>('bar')
   const [modalOpen, setModalOpen] = useState(false)
+  const [period, setPeriod] = useState<'year' | 'month'>('year')
 
   const maxDiv = data.topDivs[0]?.net ?? 1
   const maxBrokerDiv = Math.max(...data.brokers.map(b => Math.abs(b.dividends)), 1)
   const maxAnnualDiv = Math.max(...data.byYear.map(y => y.divs), 1)
   const largestPayer = data.topDivs[0]
   const yearDivs = data.byYear.filter(y => y.divs > 0)
-  const chartData = yearDivs.map(y => ({ year: y.label, divs: y.divs }))
+  const chartData = period === 'year'
+    ? yearDivs.map(y => ({ x: y.label, divs: y.divs }))
+    : data.divsByMonth.map(m => ({ x: m.label, divs: m.divs }))
+  const rotation = period === 'month' ? 45 : 0
+  const chartLabel = period === 'year' ? 'Dividend Progress by Year' : 'Dividend Progress by Month'
 
   const typeToggle = {
     value: chartType,
@@ -35,8 +40,8 @@ export function DividendsTab({ data }: Props) {
   }
 
   const chart = chartType === 'bar'
-    ? <BarChart data={chartData} keyX="year" keyY="divs" color="#fb923c" height={160} />
-    : <LineChart data={chartData} keyX="year" keyY="divs" color="#fb923c" height={160} />
+    ? <BarChart data={chartData} keyX="x" keyY="divs" color="#fb923c" height={160} xLabelRotation={rotation} />
+    : <LineChart data={chartData} keyX="x" keyY="divs" color="#fb923c" height={160} xLabelRotation={rotation} />
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -57,11 +62,22 @@ export function DividendsTab({ data }: Props) {
         {/* Dividend progress by year */}
         <div style={{ background: '#090f1c', borderRadius: 10, border: '1px solid #161f31', overflow: 'hidden' }}>
           <div style={{ padding: '14px 18px', borderBottom: '1px solid #161f31', display: 'flex', alignItems: 'center', gap: 8 }}>
-            <SectionLabel>Dividend Progress by Year</SectionLabel>
+            <SectionLabel>{chartLabel}</SectionLabel>
             <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, color: '#555', marginLeft: 4 }}>
-              {yearDivs.length}y
+              {chartData.length}{period === 'year' ? 'y' : 'm'}
             </span>
             <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div className="chart-type-toggle">
+                {(['year', 'month'] as const).map(p => (
+                  <button
+                    key={p}
+                    className={`chart-type-btn ${period === p ? 'active' : ''}`}
+                    onClick={() => setPeriod(p)}
+                  >
+                    {p === 'year' ? 'Years' : 'Months'}
+                  </button>
+                ))}
+              </div>
               <div className="chart-type-toggle">
                 {typeToggle.options.map(o => (
                   <button
@@ -170,14 +186,14 @@ export function DividendsTab({ data }: Props) {
       {/* Expanded modal */}
       {modalOpen && (
         <ChartModal
-          label="Dividend Progress by Year"
+          label={chartLabel}
           value={fmtCurrency(data.allTime.dividends)}
           onClose={() => setModalOpen(false)}
           typeToggle={typeToggle}
         >
           {chartType === 'bar'
-            ? <BarChart data={chartData} keyX="year" keyY="divs" color="#fb923c" height={400} />
-            : <LineChart data={chartData} keyX="year" keyY="divs" color="#fb923c" height={400} />
+            ? <BarChart data={chartData} keyX="x" keyY="divs" color="#fb923c" height={400} xLabelRotation={rotation} />
+            : <LineChart data={chartData} keyX="x" keyY="divs" color="#fb923c" height={400} xLabelRotation={rotation} />
           }
         </ChartModal>
       )}

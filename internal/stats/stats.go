@@ -40,6 +40,12 @@ type DividendBySymbol struct {
 	Net         float64 `json:"net"`
 }
 
+// MonthDividend is net dividends (after tax) for one calendar month, labelled "YYYY-MM".
+type MonthDividend struct {
+	Label     string  `json:"label"`
+	Dividends float64 `json:"dividends_net"`
+}
+
 // PositionSummary is a position enriched with optional live price data.
 type PositionSummary struct {
 	Symbol         string  `json:"symbol"`
@@ -98,7 +104,8 @@ type Summary struct {
 	MTD           PeriodSummary
 	ByYear        []PeriodSummary
 	BySymbol      []DividendBySymbol
-	CashBalance   float64 // uninvested cash: deposits - withdrawals - buys + sells + dividends + fees
+	DivsByMonth   []MonthDividend // contiguous from the first dividend month to the last
+	CashBalance   float64         // uninvested cash: deposits - withdrawals - buys + sells + dividends + fees
 
 	// Per-symbol qty/cost of lots opened within the YTD/MTD window (still open).
 	// Used by RecalcGainPct to compute period-specific unrealized gains.
@@ -366,9 +373,19 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 		d.Net = d.Gross - d.TaxWithheld
 	}
 
+	monthMap := make(map[string]float64)
+	var firstMonth, lastMonth time.Time
 	for _, tx := range l.Dividends {
 		y := tx.Date.Year()
 		net := toBase(tx.Net, tx.Currency, fxRates)
+		month := time.Date(y, tx.Date.Month(), 1, 0, 0, 0, 0, time.UTC)
+		monthMap[month.Format("2006-01")] += net
+		if firstMonth.IsZero() || month.Before(firstMonth) {
+			firstMonth = month
+		}
+		if month.After(lastMonth) {
+			lastMonth = month
+		}
 		s.AllTime.Dividends += net
 		if tx.Type == model.TxTaxWithholding {
 			s.AllTime.TaxWithheld += net
@@ -387,6 +404,13 @@ func Compute(l *ledger.Ledger, allTxs []model.Transaction, now time.Time, fxRate
 			if tx.Type == model.TxTaxWithholding {
 				p.TaxWithheld += net
 			}
+		}
+	}
+
+	if !firstMonth.IsZero() {
+		for m := firstMonth; !m.After(lastMonth); m = m.AddDate(0, 1, 0) {
+			label := m.Format("2006-01")
+			s.DivsByMonth = append(s.DivsByMonth, MonthDividend{Label: label, Dividends: monthMap[label]})
 		}
 	}
 

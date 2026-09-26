@@ -70,6 +70,7 @@ export function loadMockPortfolio(): PortfolioData {
     ytd: scalePeriod(mock.ytd),
     mtd: scalePeriod(mock.mtd),
     by_year: mock.by_year.map(scalePeriod),
+    dividends_by_month: mock.dividends_by_month?.map(m => ({ ...m, dividends_net: m.dividends_net * SCALE })),
     dividends_by_symbol: mock.dividends_by_symbol.map(d => ({
       ...d,
       gross: d.gross * SCALE,

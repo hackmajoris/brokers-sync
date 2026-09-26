@@ -24,6 +24,7 @@ type Report struct {
 	MTD               stats.PeriodSummary      `json:"mtd"`
 	ByYear            []stats.PeriodSummary    `json:"by_year"`
 	DividendsBySymbol []stats.DividendBySymbol `json:"dividends_by_symbol"`
+	DividendsByMonth  []stats.MonthDividend    `json:"dividends_by_month"`
 	Transactions      []TxRow                  `json:"transactions"`
 }
 
@@ -134,6 +135,7 @@ func Build(s stats.Summary, realized []ledger.RealizedTx, brokers []BrokerReport
 		MTD:               s.MTD,
 		ByYear:            s.ByYear,
 		DividendsBySymbol: s.BySymbol,
+		DividendsByMonth:  s.DivsByMonth,
 		Transactions:      txRows(txs),
 	}
 }

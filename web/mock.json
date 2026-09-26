@@ -4577,6 +4577,316 @@
       "net": 0.19000000000000003
     }
   ],
+  "dividends_by_month": [
+    {
+      "label": "2020-01",
+      "dividends_net": 3.08
+    },
+    {
+      "label": "2020-02",
+      "dividends_net": 4.1
+    },
+    {
+      "label": "2020-03",
+      "dividends_net": 8.2
+    },
+    {
+      "label": "2020-04",
+      "dividends_net": 3.59
+    },
+    {
+      "label": "2020-05",
+      "dividends_net": 4.61
+    },
+    {
+      "label": "2020-06",
+      "dividends_net": 8.71
+    },
+    {
+      "label": "2020-07",
+      "dividends_net": 3.08
+    },
+    {
+      "label": "2020-08",
+      "dividends_net": 4.1
+    },
+    {
+      "label": "2020-09",
+      "dividends_net": 8.2
+    },
+    {
+      "label": "2020-10",
+      "dividends_net": 3.59
+    },
+    {
+      "label": "2020-11",
+      "dividends_net": 4.61
+    },
+    {
+      "label": "2020-12",
+      "dividends_net": 9.23
+    },
+    {
+      "label": "2021-01",
+      "dividends_net": 4.2
+    },
+    {
+      "label": "2021-02",
+      "dividends_net": 5.6
+    },
+    {
+      "label": "2021-03",
+      "dividends_net": 11.21
+    },
+    {
+      "label": "2021-04",
+      "dividends_net": 4.9
+    },
+    {
+      "label": "2021-05",
+      "dividends_net": 6.3
+    },
+    {
+      "label": "2021-06",
+      "dividends_net": 11.91
+    },
+    {
+      "label": "2021-07",
+      "dividends_net": 4.2
+    },
+    {
+      "label": "2021-08",
+      "dividends_net": 5.6
+    },
+    {
+      "label": "2021-09",
+      "dividends_net": 11.21
+    },
+    {
+      "label": "2021-10",
+      "dividends_net": 4.9
+    },
+    {
+      "label": "2021-11",
+      "dividends_net": 6.3
+    },
+    {
+      "label": "2021-12",
+      "dividends_net": 12.63
+    },
+    {
+      "label": "2022-01",
+      "dividends_net": 7.04
+    },
+    {
+      "label": "2022-02",
+      "dividends_net": 9.38
+    },
+    {
+      "label": "2022-03",
+      "dividends_net": 18.77
+    },
+    {
+      "label": "2022-04",
+      "dividends_net": 8.21
+    },
+    {
+      "label": "2022-05",
+      "dividends_net": 10.56
+    },
+    {
+      "label": "2022-06",
+      "dividends_net": 19.94
+    },
+    {
+      "label": "2022-07",
+      "dividends_net": 7.04
+    },
+    {
+      "label": "2022-08",
+      "dividends_net": 9.38
+    },
+    {
+      "label": "2022-09",
+      "dividends_net": 18.77
+    },
+    {
+      "label": "2022-10",
+      "dividends_net": 8.21
+    },
+    {
+      "label": "2022-11",
+      "dividends_net": 10.56
+    },
+    {
+      "label": "2022-12",
+      "dividends_net": 21.11
+    },
+    {
+      "label": "2023-01",
+      "dividends_net": 17.01
+    },
+    {
+      "label": "2023-02",
+      "dividends_net": 22.69
+    },
+    {
+      "label": "2023-03",
+      "dividends_net": 45.37
+    },
+    {
+      "label": "2023-04",
+      "dividends_net": 19.85
+    },
+    {
+      "label": "2023-05",
+      "dividends_net": 25.52
+    },
+    {
+      "label": "2023-06",
+      "dividends_net": 48.21
+    },
+    {
+      "label": "2023-07",
+      "dividends_net": 17.01
+    },
+    {
+      "label": "2023-08",
+      "dividends_net": 22.69
+    },
+    {
+      "label": "2023-09",
+      "dividends_net": 45.37
+    },
+    {
+      "label": "2023-10",
+      "dividends_net": 19.85
+    },
+    {
+      "label": "2023-11",
+      "dividends_net": 25.52
+    },
+    {
+      "label": "2023-12",
+      "dividends_net": 51.04
+    },
+    {
+      "label": "2024-01",
+      "dividends_net": 155.43
+    },
+    {
+      "label": "2024-02",
+      "dividends_net": 207.24
+    },
+    {
+      "label": "2024-03",
+      "dividends_net": 414.48
+    },
+    {
+      "label": "2024-04",
+      "dividends_net": 181.33
+    },
+    {
+      "label": "2024-05",
+      "dividends_net": 233.14
+    },
+    {
+      "label": "2024-06",
+      "dividends_net": 440.38
+    },
+    {
+      "label": "2024-07",
+      "dividends_net": 155.43
+    },
+    {
+      "label": "2024-08",
+      "dividends_net": 207.24
+    },
+    {
+      "label": "2024-09",
+      "dividends_net": 414.48
+    },
+    {
+      "label": "2024-10",
+      "dividends_net": 181.33
+    },
+    {
+      "label": "2024-11",
+      "dividends_net": 233.14
+    },
+    {
+      "label": "2024-12",
+      "dividends_net": 466.29
+    },
+    {
+      "label": "2025-01",
+      "dividends_net": 207.51
+    },
+    {
+      "label": "2025-02",
+      "dividends_net": 276.68
+    },
+    {
+      "label": "2025-03",
+      "dividends_net": 553.37
+    },
+    {
+      "label": "2025-04",
+      "dividends_net": 242.1
+    },
+    {
+      "label": "2025-05",
+      "dividends_net": 311.27
+    },
+    {
+      "label": "2025-06",
+      "dividends_net": 587.95
+    },
+    {
+      "label": "2025-07",
+      "dividends_net": 207.51
+    },
+    {
+      "label": "2025-08",
+      "dividends_net": 276.68
+    },
+    {
+      "label": "2025-09",
+      "dividends_net": 553.37
+    },
+    {
+      "label": "2025-10",
+      "dividends_net": 242.1
+    },
+    {
+      "label": "2025-11",
+      "dividends_net": 311.27
+    },
+    {
+      "label": "2025-12",
+      "dividends_net": 622.53
+    },
+    {
+      "label": "2026-01",
+      "dividends_net": 201.52
+    },
+    {
+      "label": "2026-02",
+      "dividends_net": 268.69
+    },
+    {
+      "label": "2026-03",
+      "dividends_net": 537.37
+    },
+    {
+      "label": "2026-04",
+      "dividends_net": 235.1
+    },
+    {
+      "label": "2026-05",
+      "dividends_net": 0.01
+    }
+  ],
   "transactions": [
     {
       "id": "d1",

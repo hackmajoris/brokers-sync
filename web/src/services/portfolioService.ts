@@ -301,6 +301,7 @@ export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
     openPositions: raw.open_positions.map(mapPosition),
     topRPnl,
     topDivs,
+    divsByMonth: (raw.dividends_by_month ?? []).map(m => ({ label: m.label, divs: m.dividends_net })),
     transactions: raw.transactions ?? [],
   }
 }
