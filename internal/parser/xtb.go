@@ -341,9 +341,11 @@ func parseXTBCashRow(r []string, idx map[string]int, account string) (model.Tran
 		tx.Type = model.TxWithdrawal
 	case "Free funds interest", "Dividend":
 		tx.Type = model.TxDividend
-	case "RO tax", "Withholding tax":
+	case "Withholding tax":
 		tx.Type = model.TxTaxWithholding
-	case "Commission", "SEC fee":
+	// "RO tax" is Romanian tax on a sale's gain (its comment names the sold
+	// ticker and sale date), not dividend withholding.
+	case "Commission", "SEC fee", "RO tax":
 		tx.Type = model.TxFee
 	case "Transfer":
 		tx.Type = model.TxForex

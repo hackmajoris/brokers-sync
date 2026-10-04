@@ -46,6 +46,7 @@ func writeXTBFixture(t *testing.T) string {
 			{"Dividend", "Aaa", "AAA.DE", "STOCK", "2026-04-01 10:00:00", "3.22", "5", "AAA.DE USD 0.22/ SHR", "My Trades"},
 			{"Withholding tax", "Aaa", "AAA.DE", "STOCK", "2026-04-01 10:00:00", "-0.32", "6", "AAA.DE USD WHT 10%", "My Trades"},
 			{"Transfer", "", "", "", "2026-04-02 10:00:00", "-1", "7", "Currency conversion, EUR to RON", "My Trades"},
+			{"RO tax", "", "", "", "2026-02-02 11:00:00", "-0.19", "8", "RO tax AAA.DE 2026-02-01 (1.00 RON) ///OMI/1555481617/1.00//", "My Trades"},
 			{"Total", "", "", "", "", "402.9"},
 		},
 		"Open Positions": {
@@ -136,6 +137,9 @@ func TestParseXTBCashRowTypes(t *testing.T) {
 		"xtb|5": model.TxDividend,
 		"xtb|6": model.TxTaxWithholding,
 		"xtb|7": model.TxForex,
+		// Tax on a sale, not on a dividend: as withholding it would push
+		// total dividends negative.
+		"xtb|8": model.TxFee,
 	}
 	for id, typ := range want {
 		if got[id] != typ {
