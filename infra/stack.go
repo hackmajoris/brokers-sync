@@ -40,8 +40,9 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 
 	// ── Secret ────────────────────────────────────────────────────────────────
 	// Random token added by CloudFront as X-Origin-Verify on every request to
-	// API Gateway. The API Gateway resource policy rejects requests without it,
-	// preventing direct access that bypasses CloudFront.
+	// API Gateway. The backend (requireOriginHeader in cmd/server) rejects
+	// requests without it, preventing direct access that bypasses CloudFront.
+	// A REST API resource policy cannot match custom headers, so it can't do this.
 	originSecret := awssecretsmanager.NewSecret(stack, jsii.String("OriginVerifySecret"), &awssecretsmanager.SecretProps{
 		SecretName:  jsii.String("/brokers-sync/cloudfront-origin-verify"),
 		Description: jsii.String("X-Origin-Verify header value shared between CloudFront and API Gateway"),
@@ -88,6 +89,7 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		Description:  jsii.String("brokers-sync Go backend via Lambda Web Adapter"),
 		Environment: &map[string]*string{
 			"WATCHLIST_TABLE": watchlistTable.TableName(),
+			"ORIGIN_VERIFY":   secretValue,
 		},
 		// ReservedConcurrentExecutions is deliberately unset. Lambda requires at
 		// least 50 unreserved concurrent executions to remain account-wide, and
@@ -133,19 +135,6 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		AnyMethod:          jsii.Bool(true),
 	})
 
-	// Usage plan enforces throttle limits independently of stage-level settings.
-	plan := api.AddUsagePlan(jsii.String("UsagePlan"), &awsapigateway.UsagePlanProps{
-		Name: jsii.String("brokers-sync-plan"),
-		Throttle: &awsapigateway.ThrottleSettings{
-			RateLimit:  jsii.Number(10),
-			BurstLimit: jsii.Number(20),
-		},
-	})
-	plan.AddApiStage(&awsapigateway.UsagePlanPerApiStage{
-		Api:   api,
-		Stage: api.DeploymentStage(),
-	})
-
 	// ── S3 bucket for React SPA ───────────────────────────────────────────────
 	spaBucket := awss3.NewBucket(stack, jsii.String("SpaBucket"), &awss3.BucketProps{
 		BlockPublicAccess: awss3.BlockPublicAccess_BLOCK_ALL(),
@@ -179,7 +168,7 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 		OriginPath:     jsii.String("/prod"),
 		ProtocolPolicy: awscloudfront.OriginProtocolPolicy_HTTPS_ONLY,
 		// CloudFront adds this header on every request forwarded to API Gateway.
-		// The API Gateway resource policy allows only requests that carry it.
+		// The backend rejects requests that don't carry it.
 		CustomHeaders: &map[string]*string{
 			"X-Origin-Verify": secretValue,
 		},
@@ -304,7 +293,7 @@ func NewBrokersSyncStack(scope constructs.Construct, id string, props *BrokersSy
 	})
 	awscdk.NewCfnOutput(stack, jsii.String("ApiUrl"), &awscdk.CfnOutputProps{
 		Value:       api.Url(),
-		Description: jsii.String("API Gateway URL (direct access blocked without X-Origin-Verify header)"),
+		Description: jsii.String("API Gateway URL (backend returns 403 without the X-Origin-Verify header)"),
 	})
 
 	return &BrokersSyncStack{Stack: stack, DistributionId: distribution.DistributionId()}

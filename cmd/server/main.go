@@ -57,7 +57,7 @@ func main() {
 	mux.Handle("/", spaHandler(*webDir))
 
 	log.Printf("listening on %s  (data=%s  web=%s)", *addr, *dataDir, *webDir)
-	if err := http.ListenAndServe(*addr, mux); err != nil {
+	if err := http.ListenAndServe(*addr, requireOriginHeader(mux, os.Getenv("ORIGIN_VERIFY"))); err != nil {
 		log.Fatal(err)
 	}
 }
