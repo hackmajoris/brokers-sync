@@ -10,9 +10,11 @@ import { PositionsTab } from './tabs/PositionsTab'
 import { TradesTab } from './tabs/TradesTab'
 import { PnLTab } from './tabs/PnLTab'
 import { DividendsTab } from './tabs/DividendsTab'
-import { WatchlistTab } from './tabs/WatchlistTab'
 import { SettingsView } from './views/SettingsView'
 import { StockLookup } from './components/StockLookup'
+import { SectionLabel } from './components/ui/SectionLabel'
+
+const WATCHLIST_APP_URL = 'https://watchlist.dot-core.com'
 
 const TABS = [
   { id: 'overview', label: 'Overview' },
@@ -214,7 +216,22 @@ export function App() {
       )}
 
       <main style={{ padding: '16px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
-        {activeTab === 'watchlist' && <WatchlistTab accent={accent} />}
+        {activeTab === 'watchlist' && (
+          <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 18 }}>
+            <SectionLabel>Watchlist</SectionLabel>
+            <p style={{ fontSize: 12, color: '#888888', lineHeight: 1.6, margin: 0 }}>
+              The watchlist has moved to its own app. Your list is unchanged: open it there
+              with the same portfolio code.
+            </p>
+            <a
+              href={WATCHLIST_APP_URL}
+              style={{
+                background: accent + '22', border: `1px solid ${accent}55`, borderRadius: 6,
+                padding: '7px 14px', color: accent, fontSize: 12, fontWeight: 600, textDecoration: 'none',
+              }}
+            >Open the watchlist app</a>
+          </div>
+        )}
 
         {activeTab === 'settings' && (
           <SettingsView onImported={d => { setData(d); setNoData(false); setIsDemo(false); setActiveTab('overview') }} noData={noData} />

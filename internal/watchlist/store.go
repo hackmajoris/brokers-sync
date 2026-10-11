@@ -28,6 +28,9 @@ var (
 	ErrNotFound = errors.New("portfolio not found")
 	ErrTooMany  = fmt.Errorf("watchlist limited to %d symbols", MaxSymbols)
 	ErrInvalid  = errors.New("invalid item")
+	// ErrCapReached means the portfolio cap is used up and no new code may be
+	// created until it is raised.
+	ErrCapReached = errors.New("portfolio cap reached")
 
 	symbolRe = regexp.MustCompile(`^[A-Z0-9.\-]+$`)
 )
@@ -76,6 +79,39 @@ func (s *Store) EnsureMeta(ctx context.Context, pk string) error {
 	})
 	if _, ok := errors.AsType[*types.ConditionalCheckFailedException](err); ok {
 		return nil
+	}
+	return err
+}
+
+// The counter shares the table with portfolios. Portfolio keys are code hashes,
+// so this key can never collide with one.
+const (
+	counterPK = "SYSTEM#codes"
+	counterSK = "COUNTER"
+)
+
+// Reserve claims one of max portfolio slots, atomically: concurrent callers can
+// never push the count past max. It counts every code ever created and is never
+// decremented, so expired portfolios do not free their slots. Call it before
+// EnsureMeta; a failed create then over-counts by one, which errs on the safe
+// side of the cap.
+func (s *Store) Reserve(ctx context.Context, max int) error {
+	_, err := s.db.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName: aws.String(s.table),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: counterPK},
+			"SK": &types.AttributeValueMemberS{Value: counterSK},
+		},
+		UpdateExpression:         aws.String("ADD #n :one"),
+		ConditionExpression:      aws.String("attribute_not_exists(#n) OR #n < :max"),
+		ExpressionAttributeNames: map[string]string{"#n": "created"},
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":one": num(1),
+			":max": num(int64(max)),
+		},
+	})
+	if _, ok := errors.AsType[*types.ConditionalCheckFailedException](err); ok {
+		return ErrCapReached
 	}
 	return err
 }

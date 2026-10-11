@@ -7,7 +7,7 @@ AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Accou
 .DEFAULT_GOAL := help
 
 .PHONY: help \
-        dev dev-mock build build-web build-server run \
+        dev dev-mock build build-web build-server run run-watchlist \
         compose-up compose-build compose-up-d compose-logs compose-down \
         cdk-diff cdk-deploy cdk-destroy \
         cdk-bootstrap ecr-setup
@@ -41,14 +41,17 @@ dev-mock: ## Run Vite alone with the in-memory mock /api (no Go server, no real 
 
 build: build-web build-server ## Build web and server
 
-build-web: ## Build the React frontend
-	cd web && npm run build
+build-web: ## Build the React frontends (brokers-sync and standalone watchlist)
+	cd web && npm run build && npm run build:watchlist
 
 build-server: ## Build the Go server binary
 	go build -o bin/server ./cmd/server
 
 run: build ## Build, then run the server locally
 	./bin/server -data data -web web/dist
+
+run-watchlist: build ## Build, then run the standalone watchlist server locally
+	./bin/server -app watchlist -web web/dist-watchlist
 
 ## ==== Docker Compose ====
 
@@ -71,7 +74,7 @@ compose-down: ## Stop and remove containers
 
 cdk-diff: ## Show pending CDK changes for all stacks
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \
-		cdk diff --all $(PROFILE_ARG)
+		cdk diff $(PROFILE_ARG)
 
 cdk-deploy: build-web ## Build web and deploy all CDK stacks
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \

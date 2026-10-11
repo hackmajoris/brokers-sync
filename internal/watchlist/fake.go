@@ -3,6 +3,7 @@ package watchlist
 import (
 	"context"
 	"maps"
+	"strconv"
 	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -54,6 +55,9 @@ func (f *FakeAPI) PutItem(_ context.Context, in *dynamodb.PutItemInput, _ ...fun
 func (f *FakeAPI) UpdateItem(_ context.Context, in *dynamodb.UpdateItemInput, _ ...func(*dynamodb.Options)) (*dynamodb.UpdateItemOutput, error) {
 	pk := in.Key["PK"].(*types.AttributeValueMemberS).Value
 	sk := in.Key["SK"].(*types.AttributeValueMemberS).Value
+	if _, ok := in.ExpressionAttributeValues[":one"]; ok {
+		return f.reserve(pk, sk, in)
+	}
 	cur, ok := f.Items[pk][sk].(*types.AttributeValueMemberM)
 	if !ok {
 		return &dynamodb.UpdateItemOutput{}, nil
@@ -66,6 +70,24 @@ func (f *FakeAPI) UpdateItem(_ context.Context, in *dynamodb.UpdateItemInput, _ 
 			cur.Value["ttl"] = v
 		}
 	}
+	return &dynamodb.UpdateItemOutput{}, nil
+}
+
+// reserve mimics Reserve's conditional ADD: it creates the counter on first use
+// and rejects the increment once the count has reached :max.
+func (f *FakeAPI) reserve(pk, sk string, in *dynamodb.UpdateItemInput) (*dynamodb.UpdateItemOutput, error) {
+	max, _ := strconv.Atoi(in.ExpressionAttributeValues[":max"].(*types.AttributeValueMemberN).Value)
+	n, _ := strconv.Atoi(f.Num(pk, sk, "created"))
+	if n >= max {
+		f.CondFailed = true
+		return nil, &types.ConditionalCheckFailedException{}
+	}
+	if f.Items[pk] == nil {
+		f.Items[pk] = map[string]types.AttributeValue{}
+	}
+	f.Items[pk][sk] = &types.AttributeValueMemberM{Value: map[string]types.AttributeValue{
+		"created": &types.AttributeValueMemberN{Value: strconv.Itoa(n + 1)},
+	}}
 	return &dynamodb.UpdateItemOutput{}, nil
 }
 

@@ -23,6 +23,14 @@ func main() {
 		},
 	})
 
+	watchlist := NewWatchlistStack(app, "WatchlistStack", &awscdk.StackProps{
+		Env: &awscdk.Environment{
+			Account: account,
+			Region:  jsii.String("eu-central-1"),
+		},
+		CrossRegionReferences: jsii.Bool(true),
+	})
+
 	// CloudFront metrics are only published in us-east-1, so the egress alarm
 	// cannot live alongside the rest of the stack.
 	NewCostGuardStack(app, "BrokersSyncCostGuardStack", &CostGuardStackProps{
@@ -33,7 +41,8 @@ func main() {
 			},
 			CrossRegionReferences: jsii.Bool(true),
 		},
-		DistributionID: main.DistributionId,
+		DistributionID:          main.DistributionId,
+		WatchlistDistributionID: watchlist.DistributionId,
 	})
 
 	app.Synth(nil)

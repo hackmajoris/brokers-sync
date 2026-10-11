@@ -105,6 +105,8 @@ async function watchlistFetch(path: string, init: RequestInit = {}): Promise<Res
 
 export async function createCode(): Promise<string> {
   const res = await fetch('/api/watchlist/new', { method: 'POST' })
+  // 503 is the server's portfolio cap, not an outage.
+  if (res.status === 503) throw new Error('New lists are closed for now. If you already have a code, paste it below.')
   if (!res.ok) throw new Error(`Could not create a code (${res.status})`)
   const ct = res.headers.get('content-type') ?? ''
   if (!ct.includes('application/json')) throw new Error('Watchlist unavailable')

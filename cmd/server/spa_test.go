@@ -17,7 +17,7 @@ func TestSPAHandlerDoesNotSwallowAPIRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := spaHandler(dir)
+	h := spaHandler(dir, "index.html")
 	for _, path := range []string{"/api/watchlist", "/api/watchlist/new", "/api/nope"} {
 		rec := httptest.NewRecorder()
 		h.ServeHTTP(rec, httptest.NewRequest(http.MethodGet, path, nil))
@@ -45,7 +45,7 @@ func TestSPAHandlerServesClientRoutes(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	h := spaHandler(dir)
+	h := spaHandler(dir, "index.html")
 	tests := []struct {
 		name string
 		path string

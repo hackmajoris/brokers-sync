@@ -4,7 +4,9 @@ import fs from 'fs'
 import path from 'path'
 import { mockApi } from './mockApi'
 
-export default defineConfig({
+// `vite build --mode watchlist` builds the standalone watchlist app into its
+// own dist so its S3 bucket never holds the portfolio bundle.
+export default defineConfig(({ mode }) => ({
   define: {
     __BUILD_DATE__: JSON.stringify(new Date().toISOString()),
   },
@@ -36,4 +38,7 @@ export default defineConfig({
       },
     },
   },
-})
+  build: mode === 'watchlist'
+    ? { outDir: 'dist-watchlist', rollupOptions: { input: path.resolve(__dirname, 'watchlist.html') } }
+    : undefined,
+}))

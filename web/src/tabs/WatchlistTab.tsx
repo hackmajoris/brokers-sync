@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useIsMobile } from '../lib/useIsMobile'
-import { searchSymbols, type TickerSearchResult } from '../services/portfolioService'
+import { fetchTicker, searchSymbols, type TickerSearchResult } from '../services/portfolioService'
 import {
   createCode,
   listWatchlist,
@@ -15,6 +15,7 @@ import {
   onWatchlistChanged,
   type WatchlistItem,
 } from '../services/watchlistService'
+import { demoItems } from '../services/watchlistDemo'
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
@@ -37,6 +38,12 @@ interface Props {
 }
 
 const MAX_NOTE = 500
+
+const DEMO_STEPS = [
+  { title: 'Add companies', body: 'Search any ticker you are watching but do not own yet.' },
+  { title: 'Set a buy target', body: 'See how far the price is from it, next to health, valuation and analyst ratings.' },
+  { title: 'Keep your code', body: 'It is your only key: no account, no email. Anyone holding it can read and edit the list, so treat it like a password.' },
+]
 
 type SortKey = 'symbol' | 'note' | 'target' | 'price' | BandMetric
 type SortDir = 'asc' | 'desc'
@@ -145,6 +152,10 @@ export function WatchlistTab({ accent }: Props) {
   // silently left the chips with nothing to compare; it is now its own control.
   const [tf, setTf] = useState<BandMetric>('today')
   const stacked = mobile && !allColumns
+  // Without a code the tab runs on a sample list. Demo edits stay in component
+  // state and never reach /api/watchlist: there is no list to write to, and a
+  // visitor trying the UI must not need a code first.
+  const demo = !code
 
   async function refresh(): Promise<WatchlistItem[]> {
     setLoading(true)
@@ -171,6 +182,7 @@ export function WatchlistTab({ accent }: Props) {
 
   useEffect(() => {
     if (code) void refresh()
+    else setItems(demoItems())
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [code])
 
@@ -217,6 +229,14 @@ export function WatchlistTab({ accent }: Props) {
     if (items.some(i => i.symbol === symbol)) return
     setQuery('')
     setResults([])
+    if (demo) {
+      // A failed lookup still adds the row, as the live list does for a symbol
+      // with no upstream data.
+      const indicators = await fetchTicker(symbol).catch(() => undefined)
+      const price = indicators?.currentPrice
+      setItems(prev => [...prev, { symbol, note: '', targetPrice: price != null ? defaultTarget(price) : 0, pinned: false, addedAt: Date.now(), indicators }])
+      return
+    }
     try {
       await upsertWatchlist({ symbol })
       const fetched = await refresh()
@@ -237,6 +257,10 @@ export function WatchlistTab({ accent }: Props) {
   // expensive for a keystroke-level edit. Adding or removing a symbol does
   // refresh, since new indicators are genuinely needed.
   async function handleSave(item: WatchlistItem, patch: Partial<WatchlistItem>) {
+    if (demo) {
+      setItems(prev => prev.map(i => (i.symbol === item.symbol ? { ...i, ...patch } : i)))
+      return
+    }
     try {
       await upsertWatchlist({ symbol: item.symbol, note: item.note, targetPrice: item.targetPrice, pinned: item.pinned, ...patch })
       setItems(prev => prev.map(i => (i.symbol === item.symbol ? { ...i, ...patch } : i)))
@@ -246,6 +270,10 @@ export function WatchlistTab({ accent }: Props) {
   }
 
   async function handleRemove(symbol: string) {
+    if (demo) {
+      setItems(prev => prev.filter(i => i.symbol !== symbol))
+      return
+    }
     try {
       await removeWatchlist(symbol)
       await refresh()
@@ -315,35 +343,6 @@ export function WatchlistTab({ accent }: Props) {
     setFreshCode(null)
   }
 
-  if (!code) {
-    return (
-      <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 18 }}>
-        <SectionLabel>Watchlist</SectionLabel>
-        <p style={{ fontSize: 12, color: '#888888', lineHeight: 1.6, margin: 0 }}>
-          Track companies you do not own yet. There are no accounts — a portfolio code is
-          the only thing that identifies your list, and anyone holding it can read and
-          edit that list.
-        </p>
-        {error && <ErrorLine text={error} />}
-        <button onClick={handleCreate} style={primaryBtn(accent)}>
-          Create a portfolio code
-        </button>
-        <div style={{ display: 'flex', gap: 8, width: '100%' }}>
-          <input
-            value={entryCode}
-            onChange={e => setEntryCode(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleUseExisting()}
-            placeholder="Already have one? Paste it here"
-            style={{ ...inputStyle, flex: 1, fontSize: mobile ? 16 : 12 }}
-          />
-          <button onClick={handleUseExisting} style={secondaryBtn}>
-            Use
-          </button>
-        </div>
-      </div>
-    )
-  }
-
   // With a column sorted, that sort is the whole order. With no column sorted,
   // pinned items lead and the rest fall back to symbol order.
   const ordered = sortKey
@@ -368,6 +367,46 @@ export function WatchlistTab({ accent }: Props) {
 
   return (
     <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 12 : 14 }}>
+      {demo && (
+        <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '0d', borderRadius: 8, padding: mobile ? 12 : 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', background: '#f59e0b22', border: '1px solid #f59e0b55', color: '#f59e0b', borderRadius: 4, padding: '2px 7px' }}>DEMO</span>
+            <span style={{ fontSize: 12, color: '#c0c0c0' }}>
+              A sample list with illustrative figures. Try anything: nothing here is saved.
+            </span>
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: mobile ? 10 : 16 }}>
+            {DEMO_STEPS.map((step, n) => (
+              <div key={step.title} style={{ display: 'flex', gap: 10 }}>
+                <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 10, background: accent + '22', color: accent, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n + 1}</span>
+                <div style={{ fontSize: 12, lineHeight: 1.5 }}>
+                  <div style={{ fontWeight: 600, color: '#e8e8e8' }}>{step.title}</div>
+                  <div style={{ color: '#8b8fa3' }}>{step.body}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+          {error && <ErrorLine text={error} />}
+          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+            <button onClick={handleCreate} style={primaryBtn(accent)}>
+              Start my own list
+            </button>
+            <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 220 }}>
+              <input
+                value={entryCode}
+                onChange={e => setEntryCode(e.target.value)}
+                onKeyDown={e => e.key === 'Enter' && handleUseExisting()}
+                placeholder="Already have a code? Paste it here"
+                style={{ ...inputStyle, flex: 1, fontSize: mobile ? 16 : 12 }}
+              />
+              <button onClick={handleUseExisting} style={secondaryBtn}>
+                Use
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {freshCode && (
         <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
@@ -744,14 +783,16 @@ export function WatchlistTab({ accent }: Props) {
         </>
       )}
 
-      <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161f31', paddingTop: 12 }}>
-        <span style={{ fontSize: 11, color: '#8b8fa3' }}>
-          {items.length} tracked. Your code is stored in this browser only.
-        </span>
-        <button onClick={handleForget} style={secondaryBtn}>
-          Forget code on this device
-        </button>
-      </div>
+      {!demo && (
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161f31', paddingTop: 12 }}>
+          <span style={{ fontSize: 11, color: '#8b8fa3' }}>
+            {items.length} tracked. Your code is stored in this browser only.
+          </span>
+          <button onClick={handleForget} style={secondaryBtn}>
+            Forget code on this device
+          </button>
+        </div>
+      )}
     </div>
   )
 }

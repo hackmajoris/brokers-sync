@@ -4,8 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"io"
 	"log"
 	"net/http"
+	"os"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/dynamodb"
@@ -27,11 +30,15 @@ const maxWatchlistBody = 8 << 10
 
 type watchlistHandler struct {
 	store *watchlist.Store
+	// maxCodes caps how many portfolio codes can ever be created.
+	maxCodes int
+	// metrics receives one EMF line per created code; nil means stdout.
+	metrics io.Writer
 }
 
 // newWatchlistHandler builds the handler from the AWS default config. It returns
 // nil when table is empty so local runs work without AWS credentials.
-func newWatchlistHandler(ctx context.Context, table string) *watchlistHandler {
+func newWatchlistHandler(ctx context.Context, table string, maxCodes int) *watchlistHandler {
 	if table == "" {
 		return nil
 	}
@@ -40,13 +47,18 @@ func newWatchlistHandler(ctx context.Context, table string) *watchlistHandler {
 		log.Printf("watchlist disabled: %v", err)
 		return nil
 	}
-	return &watchlistHandler{store: watchlist.NewStore(dynamodb.NewFromConfig(cfg), table)}
+	return &watchlistHandler{store: watchlist.NewStore(dynamodb.NewFromConfig(cfg), table), maxCodes: maxCodes}
 }
 
-// register wires the watchlist routes into mux.
+// register wires the routes that read and write an existing portfolio.
 func (h *watchlistHandler) register(mux *http.ServeMux) {
-	mux.HandleFunc("/api/watchlist/new", h.handleNew)
 	mux.HandleFunc("/api/watchlist", h.handle)
+}
+
+// registerCreate wires code creation. Only the watchlist app registers it, so
+// there is a single public door that mints codes and counts against the cap.
+func (h *watchlistHandler) registerCreate(mux *http.ServeMux) {
+	mux.HandleFunc("/api/watchlist/new", h.handleNew)
 }
 
 // handleNew generates a portfolio code. This is the only watchlist route that
@@ -54,6 +66,14 @@ func (h *watchlistHandler) register(mux *http.ServeMux) {
 func (h *watchlistHandler) handleNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	if err := h.store.Reserve(r.Context(), h.maxCodes); err != nil {
+		if errors.Is(err, watchlist.ErrCapReached) {
+			http.Error(w, "new lists are closed for now", http.StatusServiceUnavailable)
+			return
+		}
+		http.Error(w, "could not create portfolio", http.StatusBadGateway)
 		return
 	}
 	code, err := watchlist.NewCode()
@@ -72,6 +92,11 @@ func (h *watchlistHandler) handleNew(w http.ResponseWriter, r *http.Request) {
 	}
 	// Without this, Go sniffs the body and labels it text/plain; the client
 	// rejects the response as non-JSON even though the code was created.
+	out := h.metrics
+	if out == nil {
+		out = os.Stdout
+	}
+	emitCodeCreated(out, time.Now())
 	w.Header().Set("Content-Type", "application/json")
 	_ = json.NewEncoder(w).Encode(map[string]string{"code": code})
 }

@@ -335,9 +335,9 @@ export function mockApi(): Plugin | false {
   if (!process.env.MOCK_API) return false
   return {
     name: 'mock-watchlist-api',
-    // Without a stored code the Watchlist tab shows its create-a-code gate and
-    // no mock data. Seed one in the browser so the tab lands straight on the
-    // seeded list; the gate is still reachable via "Forget code on this device".
+    // Without a stored code the Watchlist tab shows its built-in demo list, not
+    // the mock data. Seed one in the browser so the tab lands straight on the
+    // seeded list; the demo is still reachable via "Forget code on this device".
     transformIndexHtml(html) {
       return html.replace(
         '</head>',

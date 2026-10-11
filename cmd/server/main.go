@@ -14,6 +14,7 @@ import (
 	"path/filepath"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -29,9 +30,69 @@ func main() {
 	addr := flag.String("addr", ":8080", "HTTP listen address")
 	dataDir := flag.String("data", "data", "Directory containing broker CSV/XLSX files and result.json")
 	webDir := flag.String("web", "web/dist", "Directory with built web assets")
+	app := flag.String("app", appBrokersSync, "Which app to serve: brokers-sync or watchlist")
 	flag.Parse()
 
+	if *app != appBrokersSync && *app != appWatchlist {
+		log.Fatalf("unknown -app %q: want %s or %s", *app, appBrokersSync, appWatchlist)
+	}
+
+	maxCodes, err := maxCodesFromEnv(os.Getenv("MAX_CODES"))
+	if err != nil {
+		log.Fatal(err)
+	}
+	wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE"), maxCodes)
+	mux := newMux(*app, *dataDir, *webDir, wl)
+
+	log.Printf("listening on %s  (app=%s  data=%s  web=%s)", *addr, *app, *dataDir, *webDir)
+	if err := http.ListenAndServe(*addr, requireOriginHeader(mux, os.Getenv("ORIGIN_VERIFY"))); err != nil {
+		log.Fatal(err)
+	}
+}
+
+// defaultMaxCodes is the portfolio cap when MAX_CODES is unset.
+const defaultMaxCodes = 1000
+
+// maxCodesFromEnv parses MAX_CODES. A malformed value stops the server rather
+// than silently falling back, since a typo there would quietly move the cap.
+func maxCodesFromEnv(v string) (int, error) {
+	if v == "" {
+		return defaultMaxCodes, nil
+	}
+	n, err := strconv.Atoi(v)
+	if err != nil || n < 1 {
+		return 0, fmt.Errorf("invalid MAX_CODES %q: want a positive integer", v)
+	}
+	return n, nil
+}
+
+const (
+	appBrokersSync = "brokers-sync"
+	appWatchlist   = "watchlist"
+)
+
+// newMux registers the routes for app. The watchlist app gets the watchlist
+// and market-data routes only: it never parses broker files or serves a
+// portfolio, so those routes must not exist on its Lambda.
+func newMux(app, dataDir, webDir string, wl *watchlistHandler) *http.ServeMux {
 	mux := http.NewServeMux()
+
+	mux.HandleFunc("/api/ticker/", handleTicker)
+	mux.HandleFunc("/api/search", handleSearch)
+	mux.HandleFunc("/api/history/", handleHistory)
+	mux.HandleFunc("/api/news/", handleNews)
+
+	if wl != nil {
+		wl.register(mux)
+	}
+
+	if app == appWatchlist {
+		if wl != nil {
+			wl.registerCreate(mux)
+		}
+		mux.Handle("/", spaHandler(webDir, "watchlist.html"))
+		return mux
+	}
 
 	mux.HandleFunc("/api/upload/zip", func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
@@ -41,31 +102,18 @@ func main() {
 		handleUpload(w, r)
 	})
 
-	mux.HandleFunc("/api/ticker/", handleTicker)
-	mux.HandleFunc("/api/search", handleSearch)
-	mux.HandleFunc("/api/history/", handleHistory)
-	mux.HandleFunc("/api/news/", handleNews)
-
-	if wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE")); wl != nil {
-		wl.register(mux)
-	}
-
 	mux.HandleFunc("/data/result.json", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, filepath.Join(*dataDir, "result.json"))
+		http.ServeFile(w, r, filepath.Join(dataDir, "result.json"))
 	})
 
-	mux.Handle("/", spaHandler(*webDir))
-
-	log.Printf("listening on %s  (data=%s  web=%s)", *addr, *dataDir, *webDir)
-	if err := http.ListenAndServe(*addr, requireOriginHeader(mux, os.Getenv("ORIGIN_VERIFY"))); err != nil {
-		log.Fatal(err)
-	}
+	mux.Handle("/", spaHandler(webDir, "index.html"))
+	return mux
 }
 
 // spaHandler serves built assets, falling back to index.html for client-side
 // routes such as /watchlist. CloudFront already does this in production by
 // mapping 404 to /index.html; this keeps local runs consistent.
-func spaHandler(webDir string) http.Handler {
+func spaHandler(webDir, index string) http.Handler {
 	files := http.FileServer(http.Dir(webDir))
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// An unregistered API route must 404, not silently return the SPA. A
@@ -79,7 +127,7 @@ func spaHandler(webDir string) http.Handler {
 			files.ServeHTTP(w, r)
 			return
 		}
-		http.ServeFile(w, r, filepath.Join(webDir, "index.html"))
+		http.ServeFile(w, r, filepath.Join(webDir, index))
 	})
 }
 

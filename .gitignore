@@ -2,6 +2,7 @@ data/*
 /dedup.log.csv
 web/node_modules
 web/dist
+web/dist-watchlist
 /server
 /tmp
 infra/cdk.out

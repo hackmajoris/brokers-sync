@@ -25,7 +25,8 @@ import (
 
 type CostGuardStackProps struct {
 	awscdk.StackProps
-	DistributionID *string
+	DistributionID          *string
+	WatchlistDistributionID *string
 }
 
 func NewCostGuardStack(scope constructs.Construct, id string, props *CostGuardStackProps) awscdk.Stack {
@@ -53,49 +54,10 @@ func NewCostGuardStack(scope constructs.Construct, id string, props *CostGuardSt
 		Resources:  &[]*string{topic.TopicArn()},
 	}))
 
-	// ── Kill switch ───────────────────────────────────────────────────────────
-	// Inline Node keeps this to one file; the runtime already bundles AWS SDK v3,
-	// so no bundler is needed in an otherwise Go-only CDK app.
-	killSwitch := awslambda.NewFunction(stack, jsii.String("DisableDistributionFn"), &awslambda.FunctionProps{
-		Runtime:     awslambda.Runtime_NODEJS_22_X(),
-		Handler:     jsii.String("index.handler"),
-		Timeout:     awscdk.Duration_Seconds(jsii.Number(30)),
-		Description: jsii.String("Disables the CloudFront distribution when egress spikes"),
-		Environment: &map[string]*string{
-			"DISTRIBUTION_ID": props.DistributionID,
-		},
-		Code: awslambda.Code_FromInline(jsii.String(killSwitchCode)),
-	})
-	killSwitch.AddToRolePolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
-		Actions: jsii.Strings("cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution"),
-		Resources: &[]*string{
-			jsii.String(fmt.Sprintf("arn:aws:cloudfront::%s:distribution/%s", *stack.Account(), *props.DistributionID)),
-		},
-	}))
-
-	// Normal use is well under 1 GB per month, so this threshold sits orders of
-	// magnitude above baseline: a trigger means abuse, not a busy day.
-	alarm := awscloudwatch.NewAlarm(stack, jsii.String("EgressAlarm"), &awscloudwatch.AlarmProps{
-		AlarmDescription: jsii.String("CloudFront egress spike — disables the distribution"),
-		Metric: awscloudwatch.NewMetric(&awscloudwatch.MetricProps{
-			Namespace:  jsii.String("AWS/CloudFront"),
-			MetricName: jsii.String("BytesDownloaded"),
-			Statistic:  jsii.String("Sum"),
-			Period:     awscdk.Duration_Minutes(jsii.Number(5)),
-			DimensionsMap: &map[string]*string{
-				"DistributionId": props.DistributionID,
-				"Region":         jsii.String("Global"),
-			},
-		}),
-		Threshold:          jsii.Number(alarmGB * 1024 * 1024 * 1024),
-		EvaluationPeriods:  jsii.Number(1),
-		ComparisonOperator: awscloudwatch.ComparisonOperator_GREATER_THAN_THRESHOLD,
-		TreatMissingData:   awscloudwatch.TreatMissingData_NOT_BREACHING,
-	})
-	alarm.AddAlarmAction(
-		awscloudwatchactions.NewSnsAction(topic),
-		awscloudwatchactions.NewLambdaAction(killSwitch, nil),
-	)
+	// The main distribution keeps empty-prefixed construct IDs so its existing
+	// alarm and kill switch are not replaced.
+	guardDistribution(stack, "", props.DistributionID, topic, alarmGB)
+	guardDistribution(stack, "Watchlist", props.WatchlistDistributionID, topic, alarmGB)
 
 	// ── Budget ────────────────────────────────────────────────────────────────
 	// Backup only: billing data lags 8-24h, so this catches a slow bleed, not a
@@ -122,6 +84,54 @@ func NewCostGuardStack(scope constructs.Construct, id string, props *CostGuardSt
 	})
 
 	return stack
+}
+
+// guardDistribution disables distributionID when its egress spikes. Every
+// distribution needs one: CloudFront has no spend cap of its own.
+func guardDistribution(stack awscdk.Stack, prefix string, distributionID *string, topic awssns.ITopic, alarmGB float64) {
+	// ── Kill switch ───────────────────────────────────────────────────────────
+	// Inline Node keeps this to one file; the runtime already bundles AWS SDK v3,
+	// so no bundler is needed in an otherwise Go-only CDK app.
+	killSwitch := awslambda.NewFunction(stack, jsii.String(prefix+"DisableDistributionFn"), &awslambda.FunctionProps{
+		Runtime:     awslambda.Runtime_NODEJS_22_X(),
+		Handler:     jsii.String("index.handler"),
+		Timeout:     awscdk.Duration_Seconds(jsii.Number(30)),
+		Description: jsii.String("Disables the CloudFront distribution when egress spikes"),
+		Environment: &map[string]*string{
+			"DISTRIBUTION_ID": distributionID,
+		},
+		Code: awslambda.Code_FromInline(jsii.String(killSwitchCode)),
+	})
+	killSwitch.AddToRolePolicy(awsiam.NewPolicyStatement(&awsiam.PolicyStatementProps{
+		Actions: jsii.Strings("cloudfront:GetDistributionConfig", "cloudfront:UpdateDistribution"),
+		Resources: &[]*string{
+			jsii.String(fmt.Sprintf("arn:aws:cloudfront::%s:distribution/%s", *stack.Account(), *distributionID)),
+		},
+	}))
+
+	// Normal use is well under 1 GB per month, so this threshold sits orders of
+	// magnitude above baseline: a trigger means abuse, not a busy day.
+	alarm := awscloudwatch.NewAlarm(stack, jsii.String(prefix+"EgressAlarm"), &awscloudwatch.AlarmProps{
+		AlarmDescription: jsii.String("CloudFront egress spike — disables the distribution"),
+		Metric: awscloudwatch.NewMetric(&awscloudwatch.MetricProps{
+			Namespace:  jsii.String("AWS/CloudFront"),
+			MetricName: jsii.String("BytesDownloaded"),
+			Statistic:  jsii.String("Sum"),
+			Period:     awscdk.Duration_Minutes(jsii.Number(5)),
+			DimensionsMap: &map[string]*string{
+				"DistributionId": distributionID,
+				"Region":         jsii.String("Global"),
+			},
+		}),
+		Threshold:          jsii.Number(alarmGB * 1024 * 1024 * 1024),
+		EvaluationPeriods:  jsii.Number(1),
+		ComparisonOperator: awscloudwatch.ComparisonOperator_GREATER_THAN_THRESHOLD,
+		TreatMissingData:   awscloudwatch.TreatMissingData_NOT_BREACHING,
+	})
+	alarm.AddAlarmAction(
+		awscloudwatchactions.NewSnsAction(topic),
+		awscloudwatchactions.NewLambdaAction(killSwitch, nil),
+	)
 }
 
 func budgetNotification(kind string, threshold float64, topicArn *string) *awsbudgets.CfnBudget_NotificationWithSubscribersProperty {

@@ -171,3 +171,40 @@ func TestDelete(t *testing.T) {
 		t.Errorf("got %d items after delete, want 0", len(items))
 	}
 }
+
+// The cap is the ceiling on how many portfolios the public endpoint can mint.
+// Exactly max reservations must succeed and the next must be refused, or the
+// table becomes unbounded free storage again.
+func TestReserveStopsAtCap(t *testing.T) {
+	s, db := newStore()
+	ctx := context.Background()
+	const max = 3
+
+	for i := 1; i <= max; i++ {
+		if err := s.Reserve(ctx, max); err != nil {
+			t.Fatalf("reservation %d of %d: %v", i, max, err)
+		}
+	}
+	if err := s.Reserve(ctx, max); !errors.Is(err, ErrCapReached) {
+		t.Fatalf("reservation past the cap: got %v, want ErrCapReached", err)
+	}
+	if got := db.Num(counterPK, counterSK, "created"); got != strconv.Itoa(max) {
+		t.Errorf("counter = %q after a refused reservation, want %d", got, max)
+	}
+}
+
+// Raising the cap must reopen creation without resetting the count, so a cap
+// can be lifted with a config change alone.
+func TestReserveResumesWhenCapRaised(t *testing.T) {
+	s, _ := newStore()
+	ctx := context.Background()
+	if err := s.Reserve(ctx, 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := s.Reserve(ctx, 1); !errors.Is(err, ErrCapReached) {
+		t.Fatalf("at cap: got %v, want ErrCapReached", err)
+	}
+	if err := s.Reserve(ctx, 2); err != nil {
+		t.Fatalf("after raising the cap: %v", err)
+	}
+}
