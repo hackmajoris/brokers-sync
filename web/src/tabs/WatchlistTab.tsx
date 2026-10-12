@@ -16,6 +16,7 @@ import {
   type WatchlistItem,
 } from '../services/watchlistService'
 import { demoItems } from '../services/watchlistDemo'
+import { getTurnstileToken } from '../services/turnstile'
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
@@ -134,6 +135,9 @@ export function WatchlistTab({ accent }: Props) {
   // symbol is selected.
   const [picking, setPicking] = useState(true)
   const searchTimer = useRef<number | undefined>(undefined)
+  // Cloudflare's widget renders here, and only shows when it needs a click.
+  const turnstileBox = useRef<HTMLDivElement>(null)
+  const [creating, setCreating] = useState(false)
   const mobile = useIsMobile()
   // On a phone the stacked list is the default view. "All columns" swaps in the
   // full table, which the user then pans sideways.
@@ -206,14 +210,19 @@ export function WatchlistTab({ accent }: Props) {
   }, [query])
 
   async function handleCreate() {
+    if (creating || !turnstileBox.current) return
     setError(null)
+    setCreating(true)
     try {
-      const created = await createCode()
+      const token = await getTurnstileToken(turnstileBox.current)
+      const created = await createCode(token)
       saveCode(created)
       setFreshCode(created)
       setCode(created)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
+    } finally {
+      setCreating(false)
     }
   }
 
@@ -388,8 +397,8 @@ export function WatchlistTab({ accent }: Props) {
           </div>
           {error && <ErrorLine text={error} />}
           <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: 8, alignItems: mobile ? 'stretch' : 'center' }}>
-            <button onClick={handleCreate} style={primaryBtn(accent)}>
-              Start my own list
+            <button onClick={handleCreate} disabled={creating} style={{ ...primaryBtn(accent), opacity: creating ? 0.6 : 1, cursor: creating ? 'default' : 'pointer' }}>
+              {creating ? 'Verifying…' : 'Start my own list'}
             </button>
             <input
               value={entryCode}
@@ -404,6 +413,7 @@ export function WatchlistTab({ accent }: Props) {
               Use code
             </button>
           </div>
+          <div ref={turnstileBox} style={{ display: 'flex', justifyContent: 'center' }} />
         </div>
       )}
 

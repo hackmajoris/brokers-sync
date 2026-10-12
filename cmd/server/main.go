@@ -42,6 +42,13 @@ func main() {
 		log.Fatal(err)
 	}
 	wl := newWatchlistHandler(context.Background(), os.Getenv("WATCHLIST_TABLE"), maxCodes)
+	if *app == appWatchlist && wl != nil {
+		secret := os.Getenv("TURNSTILE_SECRET")
+		if secret == "" {
+			log.Fatal("TURNSTILE_SECRET is required for the watchlist app: code creation must not run without a bot check")
+		}
+		wl.human = newTurnstileVerifier(secret, os.Getenv("TURNSTILE_HOSTNAME"))
+	}
 	mux := newMux(*app, *dataDir, *webDir, wl)
 
 	log.Printf("listening on %s  (app=%s  data=%s  web=%s)", *addr, *app, *dataDir, *webDir)

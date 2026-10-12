@@ -39,7 +39,7 @@ func TestCreateRefusedAtCap(t *testing.T) {
 // codes: the watchlist app is the single place creation is counted and guarded.
 func TestOnlyWatchlistAppCreatesCodes(t *testing.T) {
 	for app, want := range map[string]int{appBrokersSync: http.StatusNotFound, appWatchlist: http.StatusOK} {
-		wl := &watchlistHandler{store: watchlist.NewStore(watchlist.NewFakeAPI(), "test-table"), maxCodes: defaultMaxCodes}
+		wl := &watchlistHandler{store: watchlist.NewStore(watchlist.NewFakeAPI(), "test-table"), maxCodes: defaultMaxCodes, human: fakeHuman{}}
 		dir := t.TempDir()
 		mux := newMux(app, dir, dir, wl)
 
@@ -78,7 +78,7 @@ func TestMaxCodesFromEnv(t *testing.T) {
 // and every real create must, or the alarm under- or over-reports an attack.
 func TestCreateEmitsOneMetricPerCode(t *testing.T) {
 	var buf bytes.Buffer
-	h := &watchlistHandler{store: watchlist.NewStore(watchlist.NewFakeAPI(), "test-table"), maxCodes: 2, metrics: &buf}
+	h := &watchlistHandler{store: watchlist.NewStore(watchlist.NewFakeAPI(), "test-table"), maxCodes: 2, metrics: &buf, human: fakeHuman{}}
 	mux := http.NewServeMux()
 	h.registerCreate(mux)
 

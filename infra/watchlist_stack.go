@@ -18,6 +18,7 @@ import (
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssecretsmanager"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssns"
 	"github.com/aws/aws-cdk-go/awscdk/v2/awssnssubscriptions"
+	"github.com/aws/aws-cdk-go/awscdk/v2/awsssm"
 	"github.com/aws/constructs-go/constructs/v10"
 	"github.com/aws/jsii-runtime-go"
 )
@@ -48,6 +49,17 @@ func NewWatchlistStack(scope constructs.Construct, id string, props *awscdk.Stac
 	})
 	secretValue := originSecret.SecretValueFromJson(jsii.String("v")).UnsafeUnwrap()
 
+	// Cloudflare Turnstile secret, created by hand as an SSM String parameter
+	// (the value comes from the Cloudflare dashboard, so CDK cannot generate
+	// it). SSM rather than Secrets Manager: standard parameters are free and
+	// nothing here needs rotation. It must be String, not SecureString:
+	// CloudFormation cannot resolve SecureString into Lambda environment
+	// variables. Read at deploy time, so the function needs no SSM permission;
+	// after changing the value, redeploy. Deploys fail until it exists, and the
+	// server refuses to start without it: code creation never runs unguarded.
+	turnstileSecret := awsssm.StringParameter_ValueForStringParameter(stack,
+		jsii.String("/brokers-sync-watchlist/turnstile-secret"), nil)
+
 	// The table is shared with brokers-sync so a portfolio code works in both
 	// apps. Imported by name rather than passed across stacks: a cross-stack
 	// export would block any future change to the table in BrokersSyncStack.
@@ -71,7 +83,9 @@ func NewWatchlistStack(scope constructs.Construct, id string, props *awscdk.Stac
 			"ORIGIN_VERIFY":   secretValue,
 			// Hard cap on portfolio codes ever created. Raise it here and
 			// redeploy; the counter in the table is never reset.
-			"MAX_CODES": jsii.String("1000"),
+			"MAX_CODES":          jsii.String("1000"),
+			"TURNSTILE_SECRET":   turnstileSecret,
+			"TURNSTILE_HOSTNAME": jsii.String("watchlist.dot-core.com"),
 		},
 	})
 	watchlistTable.GrantReadWriteData(lambdaFn)

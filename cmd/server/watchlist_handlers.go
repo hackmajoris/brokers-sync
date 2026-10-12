@@ -34,6 +34,8 @@ type watchlistHandler struct {
 	maxCodes int
 	// metrics receives one EMF line per created code; nil means stdout.
 	metrics io.Writer
+	// human gates code creation behind a bot check. Required by registerCreate.
+	human humanVerifier
 }
 
 // newWatchlistHandler builds the handler from the AWS default config. It returns
@@ -58,6 +60,9 @@ func (h *watchlistHandler) register(mux *http.ServeMux) {
 // registerCreate wires code creation. Only the watchlist app registers it, so
 // there is a single public door that mints codes and counts against the cap.
 func (h *watchlistHandler) registerCreate(mux *http.ServeMux) {
+	if h.human == nil {
+		panic("watchlist: code creation registered without a bot check")
+	}
 	mux.HandleFunc("/api/watchlist/new", h.handleNew)
 }
 
@@ -66,6 +71,18 @@ func (h *watchlistHandler) registerCreate(mux *http.ServeMux) {
 func (h *watchlistHandler) handleNew(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodPost {
 		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+	// The bot check runs before Reserve so a failed check never uses a slot.
+	if err := h.human.Verify(r.Context(), r.Header.Get("X-Turnstile-Token")); err != nil {
+		if errors.Is(err, errNotHuman) {
+			http.Error(w, "verification failed", http.StatusForbidden)
+			return
+		}
+		// Fail closed: letting creation through while the check is down would
+		// open the cap to bots for the length of the outage.
+		log.Printf("turnstile: %v", err)
+		http.Error(w, "verification unavailable", http.StatusBadGateway)
 		return
 	}
 	if err := h.store.Reserve(r.Context(), h.maxCodes); err != nil {

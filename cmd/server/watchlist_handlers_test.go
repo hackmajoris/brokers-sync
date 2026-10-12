@@ -17,7 +17,7 @@ func newTestServer() (*httptest.Server, *watchlist.FakeAPI) {
 
 func newCappedTestServer(maxCodes int) (*httptest.Server, *watchlist.FakeAPI) {
 	db := watchlist.NewFakeAPI()
-	h := &watchlistHandler{store: watchlist.NewStore(db, "test-table"), maxCodes: maxCodes, metrics: io.Discard}
+	h := &watchlistHandler{store: watchlist.NewStore(db, "test-table"), maxCodes: maxCodes, metrics: io.Discard, human: fakeHuman{}}
 	mux := http.NewServeMux()
 	h.register(mux)
 	h.registerCreate(mux)

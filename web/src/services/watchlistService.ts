@@ -103,10 +103,11 @@ async function watchlistFetch(path: string, init: RequestInit = {}): Promise<Res
   return res
 }
 
-export async function createCode(): Promise<string> {
-  const res = await fetch('/api/watchlist/new', { method: 'POST' })
+export async function createCode(turnstileToken: string): Promise<string> {
+  const res = await fetch('/api/watchlist/new', { method: 'POST', headers: { 'X-Turnstile-Token': turnstileToken } })
   // 503 is the server's portfolio cap, not an outage.
   if (res.status === 503) throw new Error('New lists are closed for now. If you already have a code, paste it below.')
+  if (res.status === 403) throw new Error("Couldn't verify you're human. Please try again.")
   if (!res.ok) throw new Error(`Could not create a code (${res.status})`)
   const ct = res.headers.get('content-type') ?? ''
   if (!ct.includes('application/json')) throw new Error('Watchlist unavailable')
