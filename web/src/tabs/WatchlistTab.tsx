@@ -387,22 +387,22 @@ export function WatchlistTab({ accent }: Props) {
             ))}
           </div>
           {error && <ErrorLine text={error} />}
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+          <div style={{ display: 'flex', flexDirection: mobile ? 'column' : 'row', gap: 8, alignItems: mobile ? 'stretch' : 'center' }}>
             <button onClick={handleCreate} style={primaryBtn(accent)}>
               Start my own list
             </button>
-            <div style={{ display: 'flex', gap: 8, flex: 1, minWidth: 220 }}>
-              <input
-                value={entryCode}
-                onChange={e => setEntryCode(e.target.value)}
-                onKeyDown={e => e.key === 'Enter' && handleUseExisting()}
-                placeholder="Already have a code? Paste it here"
-                style={{ ...inputStyle, flex: 1, fontSize: mobile ? 16 : 12 }}
-              />
-              <button onClick={handleUseExisting} style={secondaryBtn}>
-                Use
-              </button>
-            </div>
+            <input
+              value={entryCode}
+              onChange={e => setEntryCode(e.target.value)}
+              onKeyDown={e => e.key === 'Enter' && handleUseExisting()}
+              placeholder="Already have a code? Paste it here"
+              // minWidth 0 lets the input shrink below its intrinsic width;
+              // Safari's default is wide enough to push the page sideways.
+              style={{ ...inputStyle, flex: mobile ? undefined : 1, minWidth: 0, fontSize: mobile ? 16 : 12 }}
+            />
+            <button onClick={handleUseExisting} style={secondaryBtn}>
+              Use code
+            </button>
           </div>
         </div>
       )}
