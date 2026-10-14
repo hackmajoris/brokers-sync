@@ -30,6 +30,14 @@ export function WatchlistApp() {
         <div style={{ maxWidth: 1300, margin: '0 auto', display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '8px 24px' }}>
           <span>Market data from Yahoo Finance, may be delayed. Not investment advice.</span>
           <span style={{ display: 'flex', flexWrap: 'wrap', gap: '4px 14px' }}>
+            <span>
+              Open source on{' '}
+              <a href="https://github.com/hackmajoris/brokers-sync" target="_blank" rel="noopener noreferrer" style={footerLink}>GitHub</a>
+            </span>
+            <span>
+              Improvement ideas?{' '}
+              <a href="mailto:contact@dot-core.com" style={footerLink}>contact@dot-core.com</a>
+            </span>
             <span style={{ color: 'var(--text-build)' }}>build {buildDate}</span>
           </span>
         </div>
@@ -39,3 +47,5 @@ export function WatchlistApp() {
     </div>
   )
 }
+
+const footerLink: React.CSSProperties = { color: 'var(--text-2)', textDecoration: 'underline', textUnderlineOffset: 2 }
