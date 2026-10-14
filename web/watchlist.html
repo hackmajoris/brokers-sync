@@ -6,9 +6,19 @@
     <title>Watchlist</title>
     <link rel="icon" type="image/svg+xml" href="/src/assets/watchlist-icon.svg" />
     <link
-      href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&family=DM+Mono:wght@400;500&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap"
       rel="stylesheet"
     />
+    <style>
+      /* SF Pro on Apple devices, Inter everywhere else. */
+      html:root { --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif; }
+    </style>
+    <script>
+      // Applies the stored theme before first paint. Keep in sync with src/lib/theme.ts.
+      try {
+        document.documentElement.dataset.theme = localStorage.getItem('bs.theme') === 'light' ? 'light' : 'dark'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

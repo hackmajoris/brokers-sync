@@ -14,14 +14,14 @@ export function RangeGauge({ low, high, current, width = 90 }: RangeGaugeProps) 
       title={`Low ${fmtCurrency(low)} · Current ${fmtCurrency(current)} · High ${fmtCurrency(high)}`}
       style={{ display: 'flex', alignItems: 'center', gap: 5 }}
     >
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#888888' }}>L</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)' }}>L</span>
       <div style={{ position: 'relative', width, height: 10, borderRadius: 999 }}>
         <div
           style={{
             position: 'absolute',
             inset: 0,
             borderRadius: 999,
-            background: 'linear-gradient(90deg, #5eead4, #fde68a, #fb923c, #f87171)',
+            background: 'var(--gauge)',
           }}
         />
         <div
@@ -31,13 +31,13 @@ export function RangeGauge({ low, high, current, width = 90 }: RangeGaugeProps) 
             top: -3,
             width: 3,
             height: 16,
-            background: '#f5f5f5',
+            background: 'var(--marker)',
             borderRadius: 1,
             transform: 'translateX(-50%)',
           }}
         />
       </div>
-      <span style={{ fontSize: 10, fontWeight: 700, color: '#888888' }}>H</span>
+      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--text-faint)' }}>H</span>
     </div>
   )
 }

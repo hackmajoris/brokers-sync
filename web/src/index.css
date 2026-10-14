@@ -4,14 +4,139 @@
   padding: 0;
 }
 
+/* ── Theme tokens ────────────────────────────────────────────────────────────
+   :root holds the dark values, which are the original colours, so a page that
+   never sets data-theme (the portfolio app) is unchanged. The watchlist sets
+   data-theme="light" on <html> to swap them.
+*/
+:root {
+  --font-sans: 'DM Sans', 'Helvetica Neue', sans-serif;
+  --bg: #000000;
+  --text: #ffffff;
+  --surface: #0a0a0a;
+  --surface-raised: #0d0d0d;
+  --panel: #090f1c;
+  --panel-head: #0f172a;
+  --card: #111827;
+  --cell: #1e293b;
+  --hover: #181818;
+  --row-hover: #141c2c;
+  --selected: #16203a;
+  --pin-sticky: #151209;
+  --pin-tint: #d9a4410f;
+  --tooltip: #161616;
+  --modal: #141420;
+  --chip-active: #2a2a2a;
+  --line: #161f31;
+  --border: #1f1f1f;
+  --border-btn: #262626;
+  --border-pop: #232323;
+  --border-2: #2a2a2a;
+  --text-strong: #f0f0f0;
+  --text-title: #e8e8e8;
+  --text-value: #e0e0e0;
+  --text-mc: #e2e8f0;
+  --text-input: #d0d0d0;
+  --text-2: #c0c0c0;
+  --text-num: #cbd5e1;
+  --text-soft: #94a3b8;
+  --text-3: #8b8fa3;
+  --text-dim: #999999;
+  --text-faint: #888888;
+  --icon: #777777;
+  --text-subtle: #666666;
+  --mc-mut: #64748b;
+  --mc-dim: #475569;
+  --text-ghost: #5c6070;
+  --text-build: #3a3a3a;
+  --marker: #f5f5f5;
+  --accent: #818cf8;
+  --accent-tint-head: #818cf81c;
+  --accent-tint-cell: #818cf80f;
+  --indigo: #6366f1;
+  --indigo-text: #a5a6f6;
+  --pos: #34d399;
+  --pos-2: #86efac;
+  --neg: #f87171;
+  --error: #e06c6c;
+  --warn: #f59e0b;
+  --amber: #fbbf24;
+  --orange: #fb923c;
+  --blue: #60a5fa;
+  --purple: #a78bfa;
+  --pin: #d9a441;
+  --gauge: linear-gradient(90deg, #5eead4, #fde68a, #fb923c, #f87171);
+  --shadow-pop: 0 12px 28px rgba(0,0,0,.55);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg: #FFFFFF;
+  --text: #1D1D1F;
+  --surface: #FFFFFF;
+  --surface-raised: #FFFFFF;
+  --panel: #FFFFFF;
+  --panel-head: #FAFAFC;
+  --card: #FFFFFF;
+  --cell: #F2F2F7;
+  --hover: #F5F5F7;
+  --row-hover: #F2F7FE;
+  --selected: #E8F2FF;
+  --pin-sticky: #FFF6E0;
+  --pin-tint: #FFFBF0;
+  --tooltip: #FFFFFF;
+  --modal: #FFFFFF;
+  --chip-active: #FFFFFF;
+  --line: #E5E5EA;
+  --border: #D2D2D7;
+  --border-btn: #D2D2D7;
+  --border-pop: #E5E5EA;
+  --border-2: #E5E5EA;
+  --text-strong: #1D1D1F;
+  --text-title: #1D1D1F;
+  --text-value: #1D1D1F;
+  --text-mc: #1D1D1F;
+  --text-input: #1D1D1F;
+  --text-2: #424245;
+  --text-num: #424245;
+  --text-soft: #515154;
+  --text-3: #6E6E73;
+  --text-dim: #6E6E73;
+  --text-faint: #6E6E73;
+  --icon: #86868B;
+  --text-subtle: #6E6E73;
+  --mc-mut: #6E6E73;
+  --mc-dim: #86868B;
+  --text-ghost: #AEAEB2;
+  --text-build: #AEAEB2;
+  --marker: #1D1D1F;
+  --accent: #0071E3;
+  --accent-tint-head: #E8F2FF;
+  --accent-tint-cell: #F5F9FF;
+  --indigo: #0071E3;
+  --indigo-text: #0066CC;
+  --pos: #248A3D;
+  --pos-2: #34A853;
+  --neg: #D70015;
+  --error: #D70015;
+  --warn: #C93400;
+  --amber: #A05A00;
+  --orange: #C93400;
+  --blue: #0071E3;
+  --purple: #8944AB;
+  --pin: #FF9500;
+  --gauge: linear-gradient(90deg, #34C759, #FFCC00, #FF9500, #FF3B30);
+  --shadow-pop: 0 12px 32px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+}
+
 html, body, #root {
   min-height: 100%;
-  background: #000000;
-  color: #ffffff;
+  background: var(--bg);
+  color: var(--text);
 }
 
 body {
-  font-family: 'DM Sans', 'Helvetica Neue', sans-serif;
+  font-family: var(--font-sans);
   font-size: 14px;
   -webkit-font-smoothing: antialiased;
 }
@@ -89,7 +214,7 @@ nav::-webkit-scrollbar {
   animation: fadeIn .18s ease;
 }
 .chart-modal {
-  background: #141420; border: 1px solid #2a2a2a;
+  background: var(--modal); border: 1px solid var(--border-2);
   border-radius: 20px; width: 88vw; max-width: 1200px;
   height: 76vh; max-height: 760px;
   display: flex; flex-direction: column;
@@ -100,11 +225,11 @@ nav::-webkit-scrollbar {
 .chart-modal-header {
   display: flex; align-items: center; justify-content: space-between;
   padding: 22px 28px 16px; flex-shrink: 0;
-  border-bottom: 1px solid #161f31;
+  border-bottom: 1px solid var(--line);
 }
 .chart-modal-meta { display: flex; flex-direction: column; gap: 4px; }
-.chart-modal-label { font-size: 11px; font-weight: 600; color: #8b8fa3; text-transform: uppercase; letter-spacing: 0.8px; }
-.chart-modal-value { font-size: 36px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -1px; line-height: 1; color: #fb923c; }
+.chart-modal-label { font-size: 11px; font-weight: 600; color: var(--text-3); text-transform: uppercase; letter-spacing: 0.8px; }
+.chart-modal-value { font-size: 36px; font-weight: 700; font-family: 'DM Mono', monospace; letter-spacing: -1px; line-height: 1; color: var(--orange); }
 .chart-modal-actions { display: flex; align-items: center; gap: 8px; }
 .chart-modal-body { flex: 1; padding: 24px 28px 28px; min-height: 0; position: relative; overflow-y: auto; overscroll-behavior: contain; }
 .chart-modal-body canvas {
@@ -112,22 +237,22 @@ nav::-webkit-scrollbar {
   width: calc(100% - 56px) !important; height: calc(100% - 52px) !important;
 }
 
-.chart-type-toggle { display: flex; gap: 2px; background: #161f31; border-radius: 6px; padding: 2px; }
+.chart-type-toggle { display: flex; gap: 2px; background: var(--line); border-radius: 6px; padding: 2px; }
 .chart-type-btn {
   padding: 3px 10px; border-radius: 4px; font-size: 10px; font-weight: 600;
-  cursor: pointer; border: none; background: transparent; color: #8b8fa3;
-  font-family: 'DM Sans', sans-serif; transition: all .15s;
+  cursor: pointer; border: none; background: transparent; color: var(--text-3);
+  font-family: var(--font-sans); transition: all .15s;
 }
-.chart-type-btn.active { background: #2a2a2a; color: #fb923c; }
-.chart-type-btn:hover:not(.active) { color: #c0c0c0; }
+.chart-type-btn.active { background: var(--chip-active); color: var(--orange); }
+.chart-type-btn:hover:not(.active) { color: var(--text-2); }
 
 .modal-close {
   width: 32px; height: 32px; border-radius: 50%;
-  background: #161f31; border: none; cursor: pointer;
-  color: #888; font-size: 14px; display: flex; align-items: center; justify-content: center;
+  background: var(--line); border: none; cursor: pointer;
+  color: var(--text-faint); font-size: 14px; display: flex; align-items: center; justify-content: center;
   transition: background .15s, color .15s;
 }
-.modal-close:hover { background: #2a2a2a; color: #fff; }
+.modal-close:hover { background: var(--chip-active); color: var(--text); }
 
 /* ── 900 px breakpoint ───────────────────────────────────────────────────────*/
 @media (max-width: 900px) {

@@ -33,6 +33,7 @@ import {
 } from '../components/InsightsBand'
 import { fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import type { Position } from '../types/portfolio'
+import { alpha, themed } from '../lib/theme'
 
 interface Props {
   accent: string
@@ -377,20 +378,20 @@ export function WatchlistTab({ accent }: Props) {
   return (
     <div style={{ maxWidth: items.length > 0 ? 1300 : 820, margin: '0 auto', width: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: mobile ? 12 : 14 }}>
       {demo && (
-        <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '0d', borderRadius: 8, padding: mobile ? 12 : 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
+        <div style={{ width: '100%', border: `1px solid ${alpha(accent, '55')}`, background: alpha(accent, '0d'), borderRadius: 8, padding: mobile ? 12 : 16, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', background: '#f59e0b22', border: '1px solid #f59e0b55', color: '#f59e0b', borderRadius: 4, padding: '2px 7px' }}>DEMO</span>
-            <span style={{ fontSize: 12, color: '#c0c0c0' }}>
+            <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', background: alpha('var(--warn)', '22'), border: `1px solid ${alpha('var(--warn)', '55')}`, color: 'var(--warn)', borderRadius: 4, padding: '2px 7px' }}>DEMO</span>
+            <span style={{ fontSize: 12, color: 'var(--text-2)' }}>
               A sample list with illustrative figures. Try anything: nothing here is saved.
             </span>
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: mobile ? '1fr' : 'repeat(3, 1fr)', gap: mobile ? 10 : 16 }}>
             {DEMO_STEPS.map((step, n) => (
               <div key={step.title} style={{ display: 'flex', gap: 10 }}>
-                <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 10, background: accent + '22', color: accent, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n + 1}</span>
+                <span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 10, background: alpha(accent, '22'), color: accent, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>{n + 1}</span>
                 <div style={{ fontSize: 12, lineHeight: 1.5 }}>
-                  <div style={{ fontWeight: 600, color: '#e8e8e8' }}>{step.title}</div>
-                  <div style={{ color: '#8b8fa3' }}>{step.body}</div>
+                  <div style={{ fontWeight: 600, color: 'var(--text-title)' }}>{step.title}</div>
+                  <div style={{ color: 'var(--text-3)' }}>{step.body}</div>
                 </div>
               </div>
             ))}
@@ -418,12 +419,12 @@ export function WatchlistTab({ accent }: Props) {
       )}
 
       {freshCode && (
-        <div style={{ width: '100%', border: `1px solid ${accent}55`, background: accent + '11', borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
+        <div style={{ width: '100%', border: `1px solid ${alpha(accent, '55')}`, background: alpha(accent, '11'), borderRadius: 8, padding: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 10 }}>
           <span style={{ fontSize: 10, fontWeight: 600, color: accent, textTransform: 'uppercase', letterSpacing: '0.06em' }}>
             Save this code now
           </span>
-          <code style={{ fontSize: 18, letterSpacing: '0.08em', color: '#e8e8e8' }}>{freshCode}</code>
-          <span style={{ fontSize: 11, color: '#999999', lineHeight: 1.6 }}>
+          <code style={{ fontSize: 18, letterSpacing: '0.08em', color: 'var(--text-title)' }}>{freshCode}</code>
+          <span style={{ fontSize: 11, color: 'var(--text-dim)', lineHeight: 1.6 }}>
             This is the only way back to your watchlist. It cannot be recovered or reset —
             if you lose it, the list is gone. It is shown once and will not be displayed again.
           </span>
@@ -448,7 +449,7 @@ export function WatchlistTab({ accent }: Props) {
       <div style={{ position: 'relative', flex: 1 }}>
         <span
           aria-hidden
-          style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: searchFocused ? accent : '#8b8fa3', fontSize: 15, pointerEvents: 'none', transition: 'color .15s' }}
+          style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: searchFocused ? accent : 'var(--text-3)', fontSize: 15, pointerEvents: 'none', transition: 'color .15s' }}
         >
           ⌕
         </span>
@@ -466,9 +467,9 @@ export function WatchlistTab({ accent }: Props) {
             fontSize: mobile ? 16 : 14,
             padding: mobile ? '10px 36px' : '9px 34px',
             borderRadius: 10,
-            borderColor: searchFocused ? accent + '66' : '#1f1f1f',
-            background: searchFocused ? '#0d0d0d' : '#0a0a0a',
-            boxShadow: searchFocused ? `0 0 0 3px ${accent}1a` : 'none',
+            borderColor: searchFocused ? alpha(accent, '66') : 'var(--border)',
+            background: searchFocused ? 'var(--surface-raised)' : 'var(--surface)',
+            boxShadow: searchFocused ? `0 0 0 3px ${alpha(accent, '1a')}` : 'none',
             transition: 'border-color .15s, box-shadow .15s, background .15s',
           }}
         />
@@ -484,7 +485,7 @@ export function WatchlistTab({ accent }: Props) {
             style={{
               position: 'absolute', right: 8, top: '50%', transform: 'translateY(-50%)',
               width: mobile ? 34 : 26, height: mobile ? 34 : 26, borderRadius: 6,
-              background: 'transparent', border: 'none', color: '#666666',
+              background: 'transparent', border: 'none', color: 'var(--text-subtle)',
               fontSize: 14, lineHeight: 1, cursor: 'pointer',
             }}
           >
@@ -492,7 +493,7 @@ export function WatchlistTab({ accent }: Props) {
           </button>
         )}
         {results.length > 0 && (
-          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: '#0d0d0d', border: '1px solid #232323', borderRadius: 10, marginTop: 6, maxHeight: 300, overflowY: 'auto', boxShadow: '0 12px 28px rgba(0,0,0,.55)', padding: 4 }}>
+          <div style={{ position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 20, background: 'var(--surface-raised)', border: '1px solid var(--border-pop)', borderRadius: 10, marginTop: 6, maxHeight: 300, overflowY: 'auto', boxShadow: '0 12px 28px rgba(0,0,0,.55)', padding: 4 }}>
             {results.map(r => {
               const tracked = items.some(i => i.symbol === r.symbol)
               return (
@@ -503,7 +504,7 @@ export function WatchlistTab({ accent }: Props) {
                 <div
                   key={r.symbol}
                   style={{ display: 'flex', alignItems: 'center', gap: 4, borderRadius: 7 }}
-                  onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
+                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
                   onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                 >
                   <button
@@ -515,12 +516,12 @@ export function WatchlistTab({ accent }: Props) {
                     style={{
                       display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12,
                       flex: 1, minWidth: 0, padding: mobile ? '12px 10px' : '9px 10px', borderRadius: 7,
-                      background: 'transparent', border: 'none', color: '#d0d0d0',
+                      background: 'transparent', border: 'none', color: 'var(--text-input)',
                       fontSize: 13, cursor: 'pointer', textAlign: 'left',
                     }}
                   >
                     <span style={{ fontWeight: 600, color: accent, whiteSpace: 'nowrap' }}>{r.symbol}</span>
-                    <span style={{ color: '#777777', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    <span style={{ color: 'var(--icon)', fontSize: 12, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                   </button>
                   <button
                     onClick={() => handleAdd(r.symbol)}
@@ -534,8 +535,8 @@ export function WatchlistTab({ accent }: Props) {
                       marginRight: 4,
                       borderRadius: 7,
                       background: 'transparent',
-                      border: `1px solid ${tracked ? 'transparent' : '#262626'}`,
-                      color: tracked ? '#34d399' : accent,
+                      border: `1px solid ${tracked ? 'transparent' : 'var(--border-btn)'}`,
+                      color: tracked ? 'var(--pos)' : accent,
                       fontSize: 14,
                       lineHeight: 1,
                       cursor: tracked ? 'default' : 'pointer',
@@ -564,8 +565,8 @@ export function WatchlistTab({ accent }: Props) {
               padding: 0,
               fontSize: 15,
               lineHeight: 1,
-              borderColor: menuOpen ? accent + '66' : '#262626',
-              color: menuOpen ? accent : '#8b8fa3',
+              borderColor: menuOpen ? alpha(accent, '66') : 'var(--border-btn)',
+              color: menuOpen ? accent : 'var(--text-3)',
             }}
           >
             ⋯
@@ -581,8 +582,8 @@ export function WatchlistTab({ accent }: Props) {
                   marginTop: 6,
                   zIndex: 20,
                   minWidth: 170,
-                  background: '#0d0d0d',
-                  border: '1px solid #232323',
+                  background: 'var(--surface-raised)',
+                  border: '1px solid var(--border-pop)',
                   borderRadius: 10,
                   boxShadow: '0 12px 28px rgba(0,0,0,.55)',
                   padding: 4,
@@ -622,7 +623,7 @@ export function WatchlistTab({ accent }: Props) {
               <button onClick={exitCompare} style={secondaryBtn}>
                 Clear
               </button>
-              <span style={{ fontSize: 11, color: '#8b8fa3' }}>
+              <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
                 {stacked ? 'Tap a row to add or drop it.' : 'Click a row to add or drop it from the comparison.'}
               </span>
             </>
@@ -631,9 +632,9 @@ export function WatchlistTab({ accent }: Props) {
       )}
 
       {loading && items.length === 0 ? (
-        <span style={{ fontSize: 12, color: '#666666' }}>Loading…</span>
+        <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Loading…</span>
       ) : items.length === 0 ? (
-        <span style={{ fontSize: 12, color: '#666666' }}>Nothing tracked yet.</span>
+        <span style={{ fontSize: 12, color: 'var(--text-subtle)' }}>Nothing tracked yet.</span>
       ) : stacked ? (
         <>
           <InsightsBand
@@ -650,7 +651,7 @@ export function WatchlistTab({ accent }: Props) {
           <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <SectionLabel>Key Stats</SectionLabel>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 9.5, color: '#475569' }}>{filteredRows.length} rows · swipe →</span>
+              <span style={{ fontSize: 9.5, color: 'var(--mc-dim)' }}>{filteredRows.length} rows · swipe →</span>
               <ColumnModeToggle all={false} accent={accent} onToggle={() => setAllColumns(true)} />
             </div>
           </div>
@@ -663,8 +664,8 @@ export function WatchlistTab({ accent }: Props) {
               // second scroll region competing with the one under the thumb.
               overflowX: 'auto',
               overflowY: 'hidden',
-              background: '#090f1c',
-              border: '1px solid #161f31',
+              background: 'var(--panel)',
+              border: '1px solid var(--line)',
               borderRadius: 12,
               WebkitOverflowScrolling: 'touch',
             }}
@@ -684,7 +685,7 @@ export function WatchlistTab({ accent }: Props) {
                 />
               ))}
               {filteredRows.length === 0 && (
-                <div style={{ padding: '28px 14px', textAlign: 'center', color: '#475569', fontSize: 12 }}>No symbols match.</div>
+                <div style={{ padding: '28px 14px', textAlign: 'center', color: 'var(--mc-dim)', fontSize: 12 }}>No symbols match.</div>
               )}
             </div>
           </div>
@@ -722,7 +723,7 @@ export function WatchlistTab({ accent }: Props) {
           <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
             <SectionLabel>All Columns</SectionLabel>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <span style={{ fontSize: 9.5, color: '#475569' }}>{filteredRows.length} rows · swipe →</span>
+              <span style={{ fontSize: 9.5, color: 'var(--mc-dim)' }}>{filteredRows.length} rows · swipe →</span>
               <ColumnModeToggle all accent={accent} onToggle={() => setAllColumns(false)} />
             </div>
           </div>
@@ -731,10 +732,10 @@ export function WatchlistTab({ accent }: Props) {
             scroll, same as the positions table and the phone matrix. A second
             scroll region inside the page meant the wheel did different things
             depending on where the pointer happened to be. */}
-        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: '#090f1c', border: '1px solid #161f31', borderRadius: 12 }}>
+        <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch', background: 'var(--panel)', border: '1px solid var(--line)', borderRadius: 12 }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12, textAlign: 'left' }}>
           <thead>
-            <tr style={{ color: '#666666', textAlign: 'left', background: '#090f1c' }}>
+            <tr style={{ color: 'var(--text-subtle)', textAlign: 'left', background: 'var(--panel)' }}>
               {COLUMNS.map(col => (
                 <th
                   key={col.key}
@@ -745,7 +746,7 @@ export function WatchlistTab({ accent }: Props) {
                     whiteSpace: 'nowrap',
                     cursor: 'pointer',
                     userSelect: 'none',
-                    color: sortKey === col.key ? '#c0c0c0' : '#666666',
+                    color: sortKey === col.key ? 'var(--text-2)' : 'var(--text-subtle)',
                     // Sticky lives on the cells, not the row: with
                     // border-collapse a sticky <tr> is ignored. The symbol
                     // header is sticky on both axes and has to outrank both the
@@ -753,8 +754,8 @@ export function WatchlistTab({ accent }: Props) {
                     position: 'sticky',
                     top: 0,
                     zIndex: 3,
-                    background: '#090f1c',
-                    ...(col.key === 'symbol' ? { ...stickyCol('#090f1c', 4), top: 0 } : {}),
+                    background: 'var(--panel)',
+                    ...(col.key === 'symbol' ? { ...stickyCol('var(--panel)', 4), top: 0 } : {}),
                   }}
                 >
                   <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: col.align === 'left' ? 'row' : 'row-reverse' }}>
@@ -764,7 +765,7 @@ export function WatchlistTab({ accent }: Props) {
                   </span>
                 </th>
               ))}
-              <th style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: '#090f1c' }} />
+              <th style={{ ...th, position: 'sticky', top: 0, zIndex: 3, background: 'var(--panel)' }} />
             </tr>
           </thead>
           <tbody>
@@ -782,7 +783,7 @@ export function WatchlistTab({ accent }: Props) {
             ))}
             {filteredRows.length === 0 && (
               <tr>
-                <td colSpan={COLUMNS.length + 1} style={{ ...td, padding: '28px 14px', textAlign: 'center', color: '#475569' }}>
+                <td colSpan={COLUMNS.length + 1} style={{ ...td, padding: '28px 14px', textAlign: 'center', color: 'var(--mc-dim)' }}>
                   No symbols match.
                 </td>
               </tr>
@@ -794,8 +795,8 @@ export function WatchlistTab({ accent }: Props) {
       )}
 
       {!demo && (
-        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid #161f31', paddingTop: 12 }}>
-          <span style={{ fontSize: 11, color: '#8b8fa3' }}>
+        <div style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, borderTop: '1px solid var(--line)', paddingTop: 12 }}>
+          <span style={{ fontSize: 11, color: 'var(--text-3)' }}>
             {items.length} tracked. Your code is stored in this browser only.
           </span>
           <button onClick={handleForget} style={secondaryBtn}>
@@ -844,8 +845,8 @@ function Row({
   // selection owns the accent wash and wins the background when both apply.
   // The first cell is sticky, so its background has to stay opaque or the
   // scrolled columns show through it.
-  const restBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
-  const stickyBg = selected ? '#16203a' : item.pinned ? PIN_STICKY : '#090f1c'
+  const restBg = selected ? alpha(accent, '0d') : item.pinned ? PIN_TINT : 'transparent'
+  const stickyBg = selected ? 'var(--selected)' : item.pinned ? PIN_STICKY : 'var(--panel)'
   // The edge is an inset shadow rather than a border: border-collapse hands
   // collapsed borders to the table to paint, so a border here scrolls out of
   // view with the table instead of staying with the sticky cell.
@@ -858,10 +859,10 @@ function Row({
     // not also open the popup.
     <tr
       onClick={() => (onSelect ? onSelect(item.symbol) : openStockLookup(item.symbol))}
-      style={{ borderTop: '1px solid #161f31', cursor: 'pointer', background: restBg }}
+      style={{ borderTop: '1px solid var(--line)', cursor: 'pointer', background: restBg }}
       onMouseEnter={e => {
-        e.currentTarget.style.background = accent + '11'
-        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = '#141c2c'
+        e.currentTarget.style.background = alpha(accent, '11')
+        ;(e.currentTarget.firstElementChild as HTMLElement).style.background = 'var(--row-hover)'
       }}
       onMouseLeave={e => {
         e.currentTarget.style.background = restBg
@@ -888,7 +889,7 @@ function Row({
               fontSize: touch ? 16 : 12,
               width: 90,
               textAlign: 'right',
-              ...(hit ? { color: '#34d399', borderColor: '#34d39955', background: '#34d39914', fontWeight: 600 } : {}),
+              ...(hit ? { color: 'var(--pos)', borderColor: alpha('var(--pos)', '55'), background: alpha('var(--pos)', '14'), fontWeight: 600 } : {}),
             }}
           />
           <button
@@ -898,13 +899,13 @@ function Row({
             aria-label={`Reset ${item.symbol} target to 20% below the current price`}
             style={{
               background: 'transparent',
-              border: '1px solid #262626',
+              border: '1px solid var(--border-btn)',
               borderRadius: 6,
               width: 24,
               height: 24,
               lineHeight: 1,
               padding: 0,
-              color: '#777777',
+              color: 'var(--icon)',
               fontSize: 12,
               cursor: p?.currentPrice == null ? 'default' : 'pointer',
               opacity: p?.currentPrice == null ? 0.4 : 1,
@@ -912,11 +913,11 @@ function Row({
             onMouseEnter={e => {
               if (p?.currentPrice == null) return
               e.currentTarget.style.color = accent
-              e.currentTarget.style.borderColor = accent + '55'
+              e.currentTarget.style.borderColor = alpha(accent, '55')
             }}
             onMouseLeave={e => {
-              e.currentTarget.style.color = '#777777'
-              e.currentTarget.style.borderColor = '#262626'
+              e.currentTarget.style.color = 'var(--icon)'
+              e.currentTarget.style.borderColor = 'var(--border-btn)'
             }}
           >
             ↻
@@ -931,7 +932,7 @@ function Row({
           fontWeight: 600,
           fontFamily: "'DM Mono', monospace",
           whiteSpace: 'nowrap',
-          color: gap == null ? '#8b8fa3' : clr(gap),
+          color: gap == null ? 'var(--text-3)' : themed(clr(gap)),
         }}
       >
         {gap == null ? '—' : fmtPct(gap)}
@@ -959,13 +960,13 @@ function Row({
           aria-pressed={item.pinned}
           style={{
             background: 'transparent',
-            border: `1px solid ${item.pinned ? PIN_EDGE + '55' : '#262626'}`,
+            border: `1px solid ${item.pinned ? alpha(PIN_EDGE, '55') : 'var(--border-btn)'}`,
             borderRadius: 6,
             width: tap,
             height: tap,
             lineHeight: 1,
             padding: 0,
-            color: item.pinned ? PIN_EDGE : '#777777',
+            color: item.pinned ? PIN_EDGE : 'var(--icon)',
             fontSize: 13,
             cursor: 'pointer',
           }}
@@ -978,23 +979,23 @@ function Row({
           aria-label={`Remove ${item.symbol}`}
           style={{
             background: 'transparent',
-            border: '1px solid #262626',
+            border: '1px solid var(--border-btn)',
             borderRadius: 6,
             width: tap,
             height: tap,
             lineHeight: 1,
             padding: 0,
-            color: '#777777',
+            color: 'var(--icon)',
             fontSize: 14,
             cursor: 'pointer',
           }}
           onMouseEnter={e => {
-            e.currentTarget.style.color = '#e06c6c'
-            e.currentTarget.style.borderColor = '#e06c6c55'
+            e.currentTarget.style.color = 'var(--error)'
+            e.currentTarget.style.borderColor = alpha('var(--error)', '55')
           }}
           onMouseLeave={e => {
-            e.currentTarget.style.color = '#777777'
-            e.currentTarget.style.borderColor = '#262626'
+            e.currentTarget.style.color = 'var(--icon)'
+            e.currentTarget.style.borderColor = 'var(--border-btn)'
           }}
         >
           ×
@@ -1012,7 +1013,7 @@ function IndicatorGroup({ p, keys }: { p?: Position; keys: IndicatorKey[] }) {
   return (
     <>
       {keys.map(key => (
-        <td key={key} style={{ ...td, textAlign: 'right', color: '#8b8fa3' }}>
+        <td key={key} style={{ ...td, textAlign: 'right', color: 'var(--text-3)' }}>
           —
         </td>
       ))}
@@ -1053,13 +1054,13 @@ function MatrixCell({ item, kind, colKey }: { item: WatchlistItem; kind: MobileK
   if (v == null) return <span style={{ fontSize: 11, color: MC.dim, fontFamily: "'DM Mono', monospace" }}>—</span>
   if (kind === 'pct')
     return (
-      <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", color: clr(v), letterSpacing: '-0.04em' }}>
+      <span style={{ fontSize: 11, fontWeight: 600, fontFamily: "'DM Mono', monospace", color: themed(clr(v)), letterSpacing: '-0.04em' }}>
         {compactPct(v)}
       </span>
     )
   if (kind === 'cap')
-    return <span style={{ fontSize: 10.5, fontFamily: "'DM Mono', monospace", color: '#94a3b8' }}>{fmtKMBT(v)}</span>
-  return <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: '#cbd5e1', letterSpacing: '-0.03em' }}>{v.toFixed(1)}</span>
+    return <span style={{ fontSize: 10.5, fontFamily: "'DM Mono', monospace", color: 'var(--text-soft)' }}>{fmtKMBT(v)}</span>
+  return <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text-num)', letterSpacing: '-0.03em' }}>{v.toFixed(1)}</span>
 }
 
 // Sorting lives entirely on the headers: tap a column to sort by it, tap the
@@ -1076,8 +1077,8 @@ function MatrixHead({
   onFlip: () => void
 }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'stretch', height: 28, background: '#0f172a', borderBottom: `1px solid ${MC.line}`, position: 'sticky', top: 0, zIndex: 3 }}>
-      <div style={{ position: 'sticky', left: 0, zIndex: 2, width: PIN_W, flexShrink: 0, background: '#0f172a', borderRight: `1px solid ${MC.line}`, display: 'flex', alignItems: 'center', padding: '0 8px 0 10px' }}>
+    <div style={{ display: 'flex', alignItems: 'stretch', height: 28, background: 'var(--panel-head)', borderBottom: `1px solid ${MC.line}`, position: 'sticky', top: 0, zIndex: 3 }}>
+      <div style={{ position: 'sticky', left: 0, zIndex: 2, width: PIN_W, flexShrink: 0, background: 'var(--panel-head)', borderRight: `1px solid ${MC.line}`, display: 'flex', alignItems: 'center', padding: '0 8px 0 10px' }}>
         <span style={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: MC.dim }}>Symbol</span>
       </div>
       {MOBILE_COLS.map((c, i) => (
@@ -1096,7 +1097,7 @@ function MatrixHead({
             borderLeft: MOBILE_COLS[i - 1] && MOBILE_COLS[i - 1].group !== c.group ? `1px solid ${MC.line}` : 'none',
           }}
         >
-          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: c.key === sortKey ? '#818cf8' : MC.dim }}>
+          <span style={{ fontSize: 9.5, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: c.key === sortKey ? 'var(--accent)' : MC.dim }}>
             {c.label}
             {c.key === sortKey && <span style={{ fontSize: 7, marginLeft: 2 }}>{sortDir === 'asc' ? '▲' : '▼'}</span>}
           </span>
@@ -1106,8 +1107,8 @@ function MatrixHead({
   )
 }
 
-const ACCENT_TINT_HEAD = '#818cf81c'
-const ACCENT_TINT_CELL = '#818cf80f'
+const ACCENT_TINT_HEAD = 'var(--accent-tint-head)'
+const ACCENT_TINT_CELL = 'var(--accent-tint-cell)'
 
 // One matrix row. The pinned cell has to stay opaque for the same reason the
 // desktop table's does: the scrolled columns pass underneath it.
@@ -1130,8 +1131,8 @@ function MatrixRow({
 }) {
   const p = item.indicators
   const edge = item.pinned ? PIN_EDGE : selected ? accent : null
-  const rowBg = selected ? accent + '0d' : item.pinned ? PIN_TINT : 'transparent'
-  const pinBg = selected ? '#16203a' : item.pinned ? PIN_STICKY : '#090f1c'
+  const rowBg = selected ? alpha(accent, '0d') : item.pinned ? PIN_TINT : 'transparent'
+  const pinBg = selected ? 'var(--selected)' : item.pinned ? PIN_STICKY : 'var(--panel)'
 
   // A long press opens the action sheet. The press also fires a click when the
   // finger lifts, which would open the lookup modal on top of the sheet, so the
@@ -1203,7 +1204,7 @@ function MatrixRow({
           </span>
           {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 8, flexShrink: 0 }}>★</span>}
         </div>
-        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: '#94a3b8', letterSpacing: '-0.03em' }}>
+        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text-soft)', letterSpacing: '-0.03em' }}>
           {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
         </span>
       </div>
@@ -1243,12 +1244,12 @@ function ColumnModeToggle({ all, accent, onToggle }: { all: boolean; accent: str
         gap: 4,
         padding: '4px 9px',
         borderRadius: 999,
-        background: all ? accent + '1f' : 'transparent',
-        border: `1px solid ${all ? accent + '55' : MC.line}`,
+        background: all ? alpha(accent, '1f') : 'transparent',
+        border: `1px solid ${all ? alpha(accent, '55') : MC.line}`,
         color: all ? accent : MC.mut,
         fontSize: 10,
         fontWeight: 700,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'var(--font-sans)',
         cursor: 'pointer',
         whiteSpace: 'nowrap',
       }}
@@ -1284,14 +1285,14 @@ function MenuItem({
         borderRadius: 7,
         border: 'none',
         background: 'transparent',
-        color: active ? accent : '#d0d0d0',
+        color: active ? accent : 'var(--text-input)',
         fontSize: 12,
         fontWeight: active ? 600 : 500,
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'var(--font-sans)',
         cursor: 'pointer',
         textAlign: 'left',
       }}
-      onMouseEnter={e => (e.currentTarget.style.background = '#181818')}
+      onMouseEnter={e => (e.currentTarget.style.background = 'var(--hover)')}
       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
     >
       {label}
@@ -1321,8 +1322,8 @@ function ActionSheet({
     padding: '15px 16px',
     background: 'transparent',
     border: 'none',
-    borderTop: '1px solid #161f31',
-    color: '#d0d0d0',
+    borderTop: '1px solid var(--line)',
+    color: 'var(--text-input)',
     fontSize: 15,
     textAlign: 'left',
     cursor: 'pointer',
@@ -1338,8 +1339,8 @@ function ActionSheet({
           right: 0,
           bottom: 0,
           zIndex: 101,
-          background: '#0d0d0d',
-          borderTop: '1px solid #232323',
+          background: 'var(--surface-raised)',
+          borderTop: '1px solid var(--border-pop)',
           borderRadius: '14px 14px 0 0',
           paddingBottom: 'env(safe-area-inset-bottom)',
         }}
@@ -1349,10 +1350,10 @@ function ActionSheet({
           <span style={{ color: PIN_EDGE, marginRight: 8 }}>{item.pinned ? '★' : '☆'}</span>
           {item.pinned ? 'Unpin' : 'Pin to top'}
         </button>
-        <button style={{ ...row, color: '#e06c6c' }} onClick={() => onRemove(item)}>
+        <button style={{ ...row, color: 'var(--error)' }} onClick={() => onRemove(item)}>
           Remove {item.symbol}
         </button>
-        <button style={{ ...row, color: '#777777' }} onClick={onClose}>
+        <button style={{ ...row, color: 'var(--icon)' }} onClick={onClose}>
           Cancel
         </button>
       </div>
@@ -1361,33 +1362,33 @@ function ActionSheet({
 }
 
 function ErrorLine({ text }: { text: string }) {
-  return <span style={{ fontSize: 12, color: '#e06c6c' }}>{text}</span>
+  return <span style={{ fontSize: 12, color: 'var(--error)' }}>{text}</span>
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#0a0a0a',
-  border: '1px solid #1f1f1f',
+  background: 'var(--surface)',
+  border: '1px solid var(--border)',
   borderRadius: 6,
   padding: '6px 9px',
-  color: '#d0d0d0',
+  color: 'var(--text-input)',
   fontSize: 12,
   outline: 'none',
 }
 
 const secondaryBtn: React.CSSProperties = {
   background: 'transparent',
-  border: '1px solid #262626',
+  border: '1px solid var(--border-btn)',
   borderRadius: 6,
   padding: '6px 12px',
-  color: '#999999',
+  color: 'var(--text-dim)',
   fontSize: 11,
   cursor: 'pointer',
 }
 
 function primaryBtn(accent: string): React.CSSProperties {
   return {
-    background: accent + '22',
-    border: `1px solid ${accent}55`,
+    background: alpha(accent, '22'),
+    border: `1px solid ${alpha(accent, '55')}`,
     borderRadius: 6,
     padding: '7px 14px',
     color: accent,
@@ -1399,13 +1400,13 @@ function primaryBtn(accent: string): React.CSSProperties {
 
 // Pinned rows are marked in amber rather than the portfolio accent, so a pinned
 // row and a compare-selected row never read as the same thing.
-const PIN_EDGE = '#d9a441'
-const PIN_TINT = '#d9a4410f'
-const PIN_STICKY = '#151209'
+const PIN_EDGE = 'var(--pin)'
+const PIN_TINT = 'var(--pin-tint)'
+const PIN_STICKY = 'var(--pin-sticky)'
 
 function stickyCol(background: string, zIndex: number): React.CSSProperties {
-  return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid #161f31' }
+  return { position: 'sticky', left: 0, background, zIndex, borderRight: '1px solid var(--line)' }
 }
 
 const th: React.CSSProperties = { padding: '6px 8px', fontWeight: 600, fontSize: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }
-const td: React.CSSProperties = { padding: '6px 8px', color: '#c0c0c0' }
+const td: React.CSSProperties = { padding: '6px 8px', color: 'var(--text-2)' }

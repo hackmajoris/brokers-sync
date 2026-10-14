@@ -8,6 +8,7 @@ import { RangeGauge } from './charts/RangeGauge'
 import { Candlestick } from './charts/Candlestick'
 import { InfoTooltip } from './ui/InfoTooltip'
 import { useIsMobile } from '../lib/useIsMobile'
+import { alpha, themed } from '../lib/theme'
 
 const CHART_RANGES = [
   { key: '1M', range: '1mo', interval: '1d' },
@@ -36,30 +37,30 @@ function Metric({ label, children, note }: { label: string; children: ReactNode;
   if (mobile) {
     return (
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8 }}>
-        <span style={{ fontSize: 10, color: '#8b8fa3', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
+        <span style={{ fontSize: 10, color: 'var(--text-3)', display: 'inline-flex', alignItems: 'center', gap: 4, whiteSpace: 'nowrap' }}>
           {label}
           {note && <InfoTooltip text={note} />}
         </span>
-        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 600, color: '#e0e0e0', textAlign: 'right' }}>{children}</span>
+        <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 600, color: 'var(--text-value)', textAlign: 'right' }}>{children}</span>
       </div>
     )
   }
   return (
-    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 7, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
-      <span style={{ fontSize: 9, fontWeight: 600, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 7, padding: '7px 10px', display: 'flex', flexDirection: 'column', gap: 4 }}>
+      <span style={{ fontSize: 9, fontWeight: 600, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: '0.06em', display: 'inline-flex', alignItems: 'center', gap: 4 }}>
         {label}
         {note && <InfoTooltip text={note} />}
       </span>
-      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 600, color: '#e0e0e0' }}>{children}</span>
+      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 13, fontWeight: 600, color: 'var(--text-value)' }}>{children}</span>
     </div>
   )
 }
 
 function RatingPill({ rating, colors }: { rating?: string; colors: Record<string, string> }) {
-  if (!rating) return <span style={{ color: '#8b8fa3' }}>—</span>
-  const c = colors[rating] ?? '#8b8fa3'
+  if (!rating) return <span style={{ color: 'var(--text-3)' }}>—</span>
+  const c = themed(colors[rating] ?? 'var(--text-3)')
   return (
-    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: c + '22', color: c }}>
+    <span style={{ padding: '2px 8px', borderRadius: 4, fontSize: 12, fontWeight: 600, background: alpha(c, '22'), color: c }}>
       {ratingLabel(rating)}
     </span>
   )
@@ -68,27 +69,27 @@ function RatingPill({ rating, colors }: { rating?: string; colors: Record<string
 function MetricGroup({ title, children }: { title: string; children: ReactNode }) {
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#c0c0c0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{children}</div>
     </div>
   )
 }
 
-const NA = <span style={{ color: '#8b8fa3' }}>N/A</span>
-const DASH = <span style={{ color: '#e0e0e0' }}>—</span>
+const NA = <span style={{ color: 'var(--text-3)' }}>N/A</span>
+const DASH = <span style={{ color: 'var(--text-value)' }}>—</span>
 
 // pctColored renders a percentage tinted by sign, or an em dash when absent.
 function pctColored(v?: number): ReactNode {
   if (v == null) return DASH
-  return <span style={{ color: clr(v) }}>{fmtPct(v)}</span>
+  return <span style={{ color: themed(clr(v)) }}>{fmtPct(v)}</span>
 }
 
 // PerfPill is the mobile performance-strip tile: a bordered box with a small
 // label over a colored return value, four to a row.
 function PerfPill({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 10, padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-      <span style={{ fontSize: 10, color: '#8b8fa3' }}>{label}</span>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: '10px 8px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
+      <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{label}</span>
       <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 15, fontWeight: 700 }}>{children}</span>
     </div>
   )
@@ -99,16 +100,16 @@ function PerfPill({ label, children }: { label: string; children: ReactNode }) {
 function RangeBar({ low, high, current }: { low: number; high: number; current: number }) {
   const pct = high > low ? Math.min(Math.max((current - low) / (high - low), 0), 1) : 0.5
   return (
-    <div style={{ background: '#0a0a0a', border: '1px solid #161f31', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: '#8b8fa3' }}>
+    <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, color: 'var(--text-3)' }}>
         <span>52-Week Range</span>
         <span>{Math.round(pct * 100)}% of range</span>
       </div>
       <div style={{ position: 'relative', height: 6, borderRadius: 999 }}>
-        <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'linear-gradient(90deg, #5eead4, #fde68a, #fb923c, #f87171)' }} />
-        <div style={{ position: 'absolute', left: `${pct * 100}%`, top: -4, width: 3, height: 14, background: '#f5f5f5', borderRadius: 1, transform: 'translateX(-50%)' }} />
+        <div style={{ position: 'absolute', inset: 0, borderRadius: 999, background: 'var(--gauge)' }} />
+        <div style={{ position: 'absolute', left: `${pct * 100}%`, top: -4, width: 3, height: 14, background: 'var(--marker)', borderRadius: 1, transform: 'translateX(-50%)' }} />
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#e0e0e0' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text-value)' }}>
         <span>{fmtCurrency(low)}</span>
         <span>{fmtCurrency(high)}</span>
       </div>
@@ -140,7 +141,7 @@ function MobileDetailBody({ p }: { p: Position }) {
       title: 'Cash Flow',
       content: (
         <>
-          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? clr(p.fcf) : '#e0e0e0' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
+          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? themed(clr(p.fcf)) : 'var(--text-value)' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
           <Metric label="Free Cash Flow Yield" note={p.fcfYieldInterpretation}>{p.fcfYield != null ? pctColored(p.fcfYield) : DASH}</Metric>
           <Metric label="SBC Adj. FCF Yield">{NA}</Metric>
           <Metric label="SBC Impact">{NA}</Metric>
@@ -165,7 +166,7 @@ function MobileDetailBody({ p }: { p: Position }) {
         <>
           <Metric label="Cash" note={p.cashInterpretation}>{p.cash != null ? fmtKMBT(p.cash) : DASH}</Metric>
           <Metric label="Debt" note={p.debtInterpretation}>{p.debt != null ? fmtKMBT(p.debt) : DASH}</Metric>
-          <Metric label="Net">{p.net != null ? <span style={{ color: clr(p.net) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
+          <Metric label="Net">{p.net != null ? <span style={{ color: themed(clr(p.net)) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
           <Metric label="Debt/Equity" note={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</Metric>
           <Metric label="Health" note={p.healthReason}><RatingPill rating={p.healthRating} colors={HEALTH_COLORS} /></Metric>
         </>
@@ -204,10 +205,10 @@ function MobileDetailBody({ p }: { p: Position }) {
             style={{
               flexShrink: 0, padding: '7px 14px', borderRadius: 999, fontSize: 12, fontWeight: 600,
               whiteSpace: 'nowrap', cursor: 'pointer',
-              background: i === active ? '#6366f11f' : 'transparent',
-              border: `1px solid ${i === active ? '#6366f1' : '#262626'}`,
-              color: i === active ? '#a5a6f6' : '#8b8fa3',
-              fontFamily: "'DM Sans', sans-serif",
+              background: i === active ? alpha('var(--indigo)', '1f') : 'transparent',
+              border: `1px solid ${i === active ? 'var(--indigo)' : 'var(--border-btn)'}`,
+              color: i === active ? 'var(--indigo-text)' : 'var(--text-3)',
+              fontFamily: 'var(--font-sans)',
             }}
           >
             {g.title}
@@ -217,13 +218,13 @@ function MobileDetailBody({ p }: { p: Position }) {
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-          <div style={{ width: 3, height: 14, borderRadius: 2, background: '#6366f1' }} />
-          <div style={{ fontSize: 12, fontWeight: 700, color: '#c0c0c0', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{groups[active].title}</div>
+          <div style={{ width: 3, height: 14, borderRadius: 2, background: 'var(--indigo)' }} />
+          <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{groups[active].title}</div>
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>{groups[active].content}</div>
       </div>
 
-      <div style={{ fontSize: 10, color: '#5c6070', textAlign: 'center', padding: '4px 0 2px' }}>
+      <div style={{ fontSize: 10, color: 'var(--text-ghost)', textAlign: 'center', padding: '4px 0 2px' }}>
         Fundamentals as of {new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}. Verdicts are heuristics, not advice.
       </div>
     </div>
@@ -260,7 +261,7 @@ function DetailBody({ p }: { p: Position }) {
         </MetricGroup>
 
         <MetricGroup title="Cash Flow">
-          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? clr(p.fcf) : '#e0e0e0' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
+          <Metric label="FCF" note={p.fcfInterpretation}><span style={{ color: p.fcf != null ? themed(clr(p.fcf)) : 'var(--text-value)' }}>{p.fcf != null ? fmtKMBT(p.fcf) : '—'}</span></Metric>
           <Metric label="Free Cash Flow Yield" note={p.fcfYieldInterpretation}>{p.fcfYield != null ? pctColored(p.fcfYield) : DASH}</Metric>
           <Metric label="SBC Adj. FCF Yield">{NA}</Metric>
           <Metric label="SBC Impact">{NA}</Metric>
@@ -277,7 +278,7 @@ function DetailBody({ p }: { p: Position }) {
         <MetricGroup title="Balance">
           <Metric label="Cash" note={p.cashInterpretation}>{p.cash != null ? fmtKMBT(p.cash) : DASH}</Metric>
           <Metric label="Debt" note={p.debtInterpretation}>{p.debt != null ? fmtKMBT(p.debt) : DASH}</Metric>
-          <Metric label="Net">{p.net != null ? <span style={{ color: clr(p.net) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
+          <Metric label="Net">{p.net != null ? <span style={{ color: themed(clr(p.net)) }}>{fmtKMBT(p.net)}</span> : DASH}</Metric>
           <Metric label="Debt/Equity" note={p.debtToEquityInterpretation}>{p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'}</Metric>
           <Metric label="Health" note={p.healthReason}><RatingPill rating={p.healthRating} colors={HEALTH_COLORS} /></Metric>
         </MetricGroup>
@@ -294,12 +295,12 @@ function DetailBody({ p }: { p: Position }) {
 
 function NewsSection({ items }: { items: NewsItem[] | null }) {
   if (items == null) {
-    return <div style={{ color: '#8b8fa3', fontSize: 13, padding: '8px 0' }}>Loading news…</div>
+    return <div style={{ color: 'var(--text-3)', fontSize: 13, padding: '8px 0' }}>Loading news…</div>
   }
   if (items.length === 0) return null
   return (
     <div>
-      <div style={{ fontSize: 11, fontWeight: 700, color: '#8b8fa3', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Today's News</div>
+      <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-3)', textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 8 }}>Today's News</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {items.map((n, i) => (
           <a
@@ -307,7 +308,7 @@ function NewsSection({ items }: { items: NewsItem[] | null }) {
             href={n.link}
             target="_blank"
             rel="noopener noreferrer"
-            style={{ fontSize: 13, color: '#e0e0e0', textDecoration: 'none' }}
+            style={{ fontSize: 13, color: 'var(--text-value)', textDecoration: 'none' }}
             onMouseEnter={e => { e.currentTarget.style.textDecoration = 'underline' }}
             onMouseLeave={e => { e.currentTarget.style.textDecoration = 'none' }}
           >
@@ -508,32 +509,32 @@ export function StockLookup({ accent }: Props) {
           onClick={e => e.target === e.currentTarget && setOpen(false)}
           style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.6)', zIndex: 50, display: 'flex', alignItems: 'flex-start', justifyContent: 'center', paddingTop: '12vh' }}
         >
-          <div style={{ width: 'min(520px, 92vw)', background: '#090f1c', border: '1px solid #262626', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
+          <div style={{ width: 'min(520px, 92vw)', background: 'var(--panel)', border: '1px solid var(--border-btn)', borderRadius: 12, overflow: 'hidden', boxShadow: '0 24px 60px rgba(0,0,0,0.6)' }}>
             <input
               ref={inputRef}
               value={query}
               onChange={e => setQuery(e.target.value)}
               onKeyDown={onInputKey}
               placeholder="Search any stock — symbol or name…"
-              style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: 'none', outline: 'none', color: '#f0f0f0', fontSize: 16, padding: '16px 18px' }}
+              style={{ width: '100%', boxSizing: 'border-box', background: 'transparent', border: 'none', outline: 'none', color: 'var(--text-strong)', fontSize: 16, padding: '16px 18px' }}
             />
             {results.length > 0 && (
-              <div style={{ borderTop: '1px solid #161f31', maxHeight: 320, overflowY: 'auto' }}>
+              <div style={{ borderTop: '1px solid var(--line)', maxHeight: 320, overflowY: 'auto' }}>
                 {results.map((r, i) => (
                   <div
                     key={`${r.symbol}-${i}`}
                     onMouseEnter={() => setHighlight(i)}
                     onClick={() => pick(r.symbol)}
-                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', cursor: 'pointer', background: i === highlight ? accent + '1c' : 'transparent' }}
+                    style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '9px 18px', cursor: 'pointer', background: i === highlight ? alpha(accent, '1c') : 'transparent' }}
                   >
-                    <span style={{ fontWeight: 700, fontSize: 13, color: '#f0f0f0', minWidth: 64 }}>{r.symbol}</span>
-                    <span style={{ flex: 1, fontSize: 12, color: '#999999', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
-                    <span style={{ fontSize: 10, color: '#8b8fa3' }}>{r.exchange}</span>
+                    <span style={{ fontWeight: 700, fontSize: 13, color: 'var(--text-strong)', minWidth: 64 }}>{r.symbol}</span>
+                    <span style={{ flex: 1, fontSize: 12, color: 'var(--text-dim)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    <span style={{ fontSize: 10, color: 'var(--text-3)' }}>{r.exchange}</span>
                   </div>
                 ))}
               </div>
             )}
-            <div style={{ borderTop: '1px solid #161f31', padding: '7px 18px', fontSize: 10, color: '#8b8fa3' }}>
+            <div style={{ borderTop: '1px solid var(--line)', padding: '7px 18px', fontSize: 10, color: 'var(--text-3)' }}>
               ↑↓ to navigate · Enter to open · Esc to close
             </div>
           </div>
@@ -557,12 +558,12 @@ export function StockLookup({ accent }: Props) {
                     style={{
                       padding: '6px 12px',
                       borderRadius: 999,
-                      background: tracked ? '#34d39914' : accent + '1f',
-                      border: `1px solid ${tracked ? '#34d39955' : accent + '55'}`,
-                      color: addError ? '#f87171' : tracked ? '#34d399' : accent,
+                      background: tracked ? alpha('var(--pos)', '14') : alpha(accent, '1f'),
+                      border: `1px solid ${tracked ? alpha('var(--pos)', '55') : alpha(accent, '55')}`,
+                      color: addError ? 'var(--neg)' : tracked ? 'var(--pos)' : accent,
                       fontSize: 11,
                       fontWeight: 700,
-                      fontFamily: "'DM Sans', sans-serif",
+                      fontFamily: 'var(--font-sans)',
                       cursor: tracked || adding ? 'default' : 'pointer',
                       whiteSpace: 'nowrap',
                     }}
@@ -574,20 +575,20 @@ export function StockLookup({ accent }: Props) {
               </div>
             </div>
             <div className="chart-modal-body">
-              {loading && <div style={{ color: '#8b8fa3', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>Loading {detailSymbol}…</div>}
-              {!loading && error && <div style={{ color: '#f87171', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>{error}</div>}
+              {loading && <div style={{ color: 'var(--text-3)', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>Loading {detailSymbol}…</div>}
+              {!loading && error && <div style={{ color: 'var(--neg)', fontSize: 14, padding: '30px 0', textAlign: 'center' }}>{error}</div>}
               {!loading && !error && detail && mobile && (
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                   {detail.currentPrice != null && (
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 30, fontWeight: 700, color: '#f0f0f0' }}>{fmtCurrency(detail.currentPrice)}</span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 30, fontWeight: 700, color: 'var(--text-strong)' }}>{fmtCurrency(detail.currentPrice)}</span>
                   )}
                   {detail.todayReturn != null && (
-                    <span style={{ padding: '3px 9px', borderRadius: 6, fontSize: 13, fontWeight: 700, background: clr(detail.todayReturn) + '1f', color: clr(detail.todayReturn) }}>
+                    <span style={{ padding: '3px 9px', borderRadius: 6, fontSize: 13, fontWeight: 700, background: alpha(themed(clr(detail.todayReturn)), '1f'), color: themed(clr(detail.todayReturn)) }}>
                       {fmtPct(detail.todayReturn)}
                     </span>
                   )}
                   {(detail.currency || detail.sector) && (
-                    <span style={{ fontSize: 12, color: '#8b8fa3', marginLeft: 'auto' }}>
+                    <span style={{ fontSize: 12, color: 'var(--text-3)', marginLeft: 'auto' }}>
                       {[detail.currency, detail.sector].filter(Boolean).join(' · ')}
                     </span>
                   )}
@@ -610,9 +611,9 @@ export function StockLookup({ accent }: Props) {
                       </div>
                     </div>
                     {chartError ? (
-                      <div style={{ color: '#8b8fa3', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{chartError}</div>
+                      <div style={{ color: 'var(--text-3)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>{chartError}</div>
                     ) : history == null ? (
-                      <div style={{ color: '#8b8fa3', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Loading chart…</div>
+                      <div style={{ color: 'var(--text-3)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>Loading chart…</div>
                     ) : (
                       <Candlestick candles={history.candles} ma={history.ma} />
                     )}

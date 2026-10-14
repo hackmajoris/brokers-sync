@@ -4,6 +4,7 @@ import { fmt, fmtCurrency, fmtPct, clr } from '../utils/format'
 import { HEALTH_COLORS, VALUATION_COLORS, ratingLabel } from '../utils/ratings'
 import { rangePct, type IndicatorKey } from './IndicatorColumns'
 import { openStockLookup } from './StockLookup'
+import { alpha, themed } from '../lib/theme'
 
 // The summary band above the watchlist and positions tables. Both tabs show the
 // same reading of the same indicators; only the watchlist has buy targets and
@@ -29,14 +30,14 @@ export interface BandFeatures {
   pinned?: boolean
 }
 
-const PIN_EDGE = '#d9a441'
+const PIN_EDGE = 'var(--pin)'
 
 export const MC = {
-  surf: '#111827',
-  line: '#161f31',
-  mut: '#64748b',
-  dim: '#475569',
-  txt: '#e2e8f0',
+  surf: 'var(--card)',
+  line: 'var(--line)',
+  mut: 'var(--mc-mut)',
+  dim: 'var(--mc-dim)',
+  txt: 'var(--text-mc)',
 }
 
 
@@ -116,7 +117,7 @@ function Rail({
     <div style={{ width: '100%' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 4 }}>
         <span style={{ width: 3, height: 11, borderRadius: 2, background: accentBar }} />
-        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: '#94a3b8' }}>{title}</span>
+        <span style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.09em', textTransform: 'uppercase', color: 'var(--text-soft)' }}>{title}</span>
       </div>
       <div className="rail" style={{ display: 'flex', gap: 8, overflowX: 'auto', scrollSnapType: 'x mandatory' }}>
         {items.map(item => (
@@ -138,7 +139,7 @@ function MoverCard({ item, tone, tf, onOpen }: { item: BandRow; tone: string; tf
       style={{
         width: 132,
         background: MC.surf,
-        border: `1px solid ${tone}2e`,
+        border: `1px solid ${alpha(tone, '2e')}`,
         borderRadius: 11,
         padding: '6px 10px',
         display: 'flex',
@@ -146,7 +147,7 @@ function MoverCard({ item, tone, tf, onOpen }: { item: BandRow; tone: string; tf
         gap: 3,
         cursor: 'pointer',
         textAlign: 'left',
-        fontFamily: "'DM Sans', sans-serif",
+        fontFamily: 'var(--font-sans)',
         flexShrink: 0,
       }}
     >
@@ -157,7 +158,7 @@ function MoverCard({ item, tone, tf, onOpen }: { item: BandRow; tone: string; tf
         {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 9, flexShrink: 0 }}>★</span>}
       </div>
       <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', width: '100%' }}>
-        <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: '#cbd5e1' }}>
+        <span style={{ fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text-num)' }}>
           {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
         </span>
         <span style={{ fontSize: 11.5, fontWeight: 700, fontFamily: "'DM Mono', monospace", color: tone }}>
@@ -182,9 +183,9 @@ function StatTiles({ total, rows, tf, strip = false }: { total: number; rows: Ba
   const extreme = (x: typeof best) => (x ? `${x.symbol} ${compactPct(x.v)}` : '—')
   const tiles: [string, string, string][] = [
     ['Tracked', String(total), MC.txt],
-    ['Avg', avg == null ? '—' : compactPct(avg), avg == null ? MC.mut : clr(avg)],
-    ['Best', extreme(best), best ? clr(best.v) : MC.mut],
-    ['Worst', extreme(worst), worst ? clr(worst.v) : MC.mut],
+    ['Avg', avg == null ? '—' : compactPct(avg), avg == null ? MC.mut : themed(clr(avg))],
+    ['Best', extreme(best), best ? themed(clr(best.v)) : MC.mut],
+    ['Worst', extreme(worst), worst ? themed(clr(worst.v)) : MC.mut],
   ]
   // On a desktop the four readings are one sentence rather than four boxes:
   // they are a single thought about the list, and four bordered tiles gave them
@@ -260,10 +261,10 @@ function TimeframePills({ value, onPick, accent }: { value: BandMetric; onPick: 
             fontSize: 10.5,
             fontWeight: 700,
             cursor: 'pointer',
-            fontFamily: "'DM Sans', sans-serif",
-            background: value === t.key ? accent + '26' : 'transparent',
+            fontFamily: 'var(--font-sans)',
+            background: value === t.key ? alpha(accent, '26') : 'transparent',
             color: value === t.key ? accent : MC.mut,
-            border: `1px solid ${value === t.key ? accent + '55' : MC.line}`,
+            border: `1px solid ${value === t.key ? alpha(accent, '55') : MC.line}`,
           }}
         >
           {t.label}
@@ -287,10 +288,10 @@ function FilterChips({ value, onPick, accent, filters }: { value: RowFilter; onP
             fontWeight: 600,
             cursor: 'pointer',
             whiteSpace: 'nowrap',
-            fontFamily: "'DM Sans', sans-serif",
-            background: value === c ? accent + '26' : MC.surf,
+            fontFamily: 'var(--font-sans)',
+            background: value === c ? alpha(accent, '26') : MC.surf,
             color: value === c ? accent : MC.mut,
-            border: `1px solid ${value === c ? accent + '55' : MC.line}`,
+            border: `1px solid ${value === c ? alpha(accent, '55') : MC.line}`,
           }}
         >
           {c}
@@ -361,8 +362,8 @@ export function InsightsBand({
         <>
           <StatTiles total={items.length} rows={rows} tf={tf} />
           <BreadthBar rows={rows} tf={tf} />
-          <Rail title={`${tfLabel} Gainers`} accentBar="#34d399" items={gainers} tf={tf} onOpen={openStockLookup} />
-          <Rail title={`${tfLabel} Losers`} accentBar="#f87171" items={losers} tf={tf} onOpen={openStockLookup} />
+          <Rail title={`${tfLabel} Gainers`} accentBar="var(--pos)" items={gainers} tf={tf} onOpen={openStockLookup} />
+          <Rail title={`${tfLabel} Losers`} accentBar="var(--neg)" items={losers} tf={tf} onOpen={openStockLookup} />
         </>
       ) : (
         <>
@@ -370,10 +371,10 @@ export function InsightsBand({
           <BreadthBar rows={rows} tf={tf} />
           <div style={{ display: 'flex', gap: 14, width: '100%', alignItems: 'flex-start' }}>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <Rail title={`${tfLabel} Gainers`} accentBar="#34d399" items={gainers} tf={tf} onOpen={openStockLookup} />
+              <Rail title={`${tfLabel} Gainers`} accentBar="var(--pos)" items={gainers} tf={tf} onOpen={openStockLookup} />
             </div>
             <div style={{ flex: 1, minWidth: 0 }}>
-              <Rail title={`${tfLabel} Losers`} accentBar="#f87171" items={losers} tf={tf} onOpen={openStockLookup} />
+              <Rail title={`${tfLabel} Losers`} accentBar="var(--neg)" items={losers} tf={tf} onOpen={openStockLookup} />
             </div>
           </div>
         </>
@@ -381,12 +382,12 @@ export function InsightsBand({
       {/* Collapsed, each of these is a single header strip, so all six fit one
           row. Expanding one grows that row only. */}
       <SignalRow compact={compact}>
-        {features.targets && <SignalList title="Target hit" tone="#34d399" items={targetHits} note={i => fmtPct(i.targetGap ?? 0)} />}
-        <SignalList title="Near 52w high" tone="#f59e0b" items={nearHigh} />
-        <SignalList title="Near 52w low" tone="#60a5fa" items={nearLow} />
+        {features.targets && <SignalList title="Target hit" tone="var(--pos)" items={targetHits} note={i => fmtPct(i.targetGap ?? 0)} />}
+        <SignalList title="Near 52w high" tone="var(--warn)" items={nearHigh} />
+        <SignalList title="Near 52w low" tone="var(--blue)" items={nearLow} />
         <QualityValueGrid items={items} />
-        <SignalList title="Red flags" tone="#f87171" items={flagged.map(x => x.item)} note={i => redFlag(i.indicators) ?? ''} />
-        <SignalList title="Income" tone="#a78bfa" items={income} note={i => fmt(i.indicators?.dividendYield, 1) + '%'} />
+        <SignalList title="Red flags" tone="var(--neg)" items={flagged.map(x => x.item)} note={i => redFlag(i.indicators) ?? ''} />
+        <SignalList title="Income" tone="var(--purple)" items={income} note={i => fmt(i.indicators?.dividendYield, 1) + '%'} />
       </SignalRow>
       <FilterChips value={filter} onPick={onFilter} accent={accent} filters={filtersFor(features)} />
     </div>
@@ -428,17 +429,17 @@ function QualityValueGrid({ items }: { items: BandRow[] }) {
   const rated = items.filter(i => i.indicators?.healthRating && i.indicators?.valuationRating).length
 
   return (
-    <SignalCard title="Health × Valuation" tone="#818cf8" count={rated}>
+    <SignalCard title="Health × Valuation" tone="var(--accent)" count={rated}>
       <div style={{ display: 'grid', gridTemplateColumns: `54px repeat(${GRID_VALUATION.length}, 1fr)`, gap: 2 }}>
         <span />
         {GRID_VALUATION.map(v => (
-          <span key={v} style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: VALUATION_COLORS[v], textAlign: 'center' }}>
+          <span key={v} style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: themed(VALUATION_COLORS[v]), textAlign: 'center' }}>
             {v.slice(0, 5)}
           </span>
         ))}
         {GRID_HEALTH.map(h => (
           <Fragment key={h}>
-            <span style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: HEALTH_COLORS[h], alignSelf: 'center' }}>
+            <span style={{ fontSize: 8.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em', color: themed(HEALTH_COLORS[h]), alignSelf: 'center' }}>
               {ratingLabel(h)}
             </span>
             {GRID_VALUATION.map(v => {
@@ -458,9 +459,9 @@ function QualityValueGrid({ items }: { items: BandRow[] }) {
                     fontWeight: 700,
                     fontFamily: "'DM Mono', monospace",
                     cursor: hit.length ? 'help' : 'default',
-                    background: hit.length === 0 ? 'transparent' : sweet ? '#34d39926' : '#1e293b',
-                    color: hit.length === 0 ? MC.dim : sweet ? '#34d399' : '#cbd5e1',
-                    border: `1px solid ${hit.length && sweet ? '#34d39955' : 'transparent'}`,
+                    background: hit.length === 0 ? 'transparent' : sweet ? alpha('var(--pos)', '26') : 'var(--cell)',
+                    color: hit.length === 0 ? MC.dim : sweet ? 'var(--pos)' : 'var(--text-num)',
+                    border: `1px solid ${hit.length && sweet ? alpha('var(--pos)', '55') : 'transparent'}`,
                   }}
                 >
                   {hit.length || '·'}
@@ -484,11 +485,11 @@ function BreadthBar({ rows, tf }: { rows: BandRow[]; tf: BandMetric }) {
   const upPct = total === 0 ? 0 : (up / total) * 100
   return (
     <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10 }}>
-      <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: '#34d399', width: 46, textAlign: 'right' }}>{up} up</span>
-      <div style={{ flex: 1, height: 6, borderRadius: 3, background: total === 0 ? MC.line : '#f87171', overflow: 'hidden' }}>
-        <div style={{ width: `${upPct}%`, height: '100%', background: '#34d399' }} />
+      <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: 'var(--pos)', width: 46, textAlign: 'right' }}>{up} up</span>
+      <div style={{ flex: 1, height: 6, borderRadius: 3, background: total === 0 ? MC.line : 'var(--neg)', overflow: 'hidden' }}>
+        <div style={{ width: `${upPct}%`, height: '100%', background: 'var(--pos)' }} />
       </div>
-      <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: '#f87171', width: 52 }}>{down} down</span>
+      <span style={{ fontSize: 10, fontFamily: "'DM Mono', monospace", color: 'var(--neg)', width: 52 }}>{down} down</span>
     </div>
   )
 }
@@ -590,12 +591,12 @@ function SignalList({
               gap: 4,
               padding: '2px 7px',
               borderRadius: 999,
-              background: tone + '14',
-              border: `1px solid ${tone}33`,
+              background: alpha(tone, '14'),
+              border: `1px solid ${alpha(tone, '33')}`,
               color: tone,
               fontSize: 10.5,
               fontWeight: 600,
-              fontFamily: "'DM Sans', sans-serif",
+              fontFamily: 'var(--font-sans)',
               cursor: 'pointer',
             }}
           >

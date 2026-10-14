@@ -4,6 +4,7 @@ import { fmt, fmtPct, fmtKMBT, clr } from '../utils/format'
 import { RangeGauge } from '../components/charts/RangeGauge'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { HEALTH_COLORS, VALUATION_COLORS, analystColor, analystRank, ratingLabel } from '../utils/ratings'
+import { alpha, themed } from '../lib/theme'
 
 // Shared by the Positions and Watchlist tabs. Both show the same indicators for
 // a symbol; only the position-specific columns (quantity, cost, P&L, weight)
@@ -140,8 +141,8 @@ export function ValueWithNote({ value, note }: { value: ReactNode; note?: string
 // Cheap against the sector is good news, so the sign has to be inverted before
 // it is coloured: a negative gap is green here, unlike a negative return.
 function sectorColor(vsSector: number | undefined): string {
-  if (vsSector == null) return '#c0c0c0'
-  return clr(vsSector, true)
+  if (vsSector == null) return 'var(--text-2)'
+  return themed(clr(vsSector, true))
 }
 
 // The aggregate is only as good as the peer set behind it, so the count travels
@@ -151,7 +152,7 @@ function peerNote(p: Position): string | undefined {
   return `Market-cap-weighted across ${p.sectorPeerCount} of the largest ${p.sector || 'sector'} companies.`
 }
 
-const cell: React.CSSProperties = { padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: '#c0c0c0' }
+const cell: React.CSSProperties = { padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--text-2)' }
 const pill: React.CSSProperties = { padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }
 
 // IndicatorCells renders one <td> per INDICATOR_COLUMNS entry, in the same
@@ -168,7 +169,7 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
           <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
         </div>
       ) : (
-        <span style={{ color: '#8b8fa3' }}>—</span>
+        <span style={{ color: 'var(--text-3)' }}>—</span>
       )}
     </td>
   ),
@@ -177,34 +178,34 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
   ),
   forwardPe: p => <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>,
   today: p => (
-    <td style={{ ...cell, color: p.todayReturn != null ? clr(p.todayReturn) : '#c0c0c0' }}>{p.todayReturn != null ? fmtPct(p.todayReturn) : '—'}</td>
+    <td style={{ ...cell, color: p.todayReturn != null ? themed(clr(p.todayReturn)) : 'var(--text-2)' }}>{p.todayReturn != null ? fmtPct(p.todayReturn) : '—'}</td>
   ),
   oneWeek: p => (
-    <td style={{ ...cell, color: p.oneWeekReturn != null ? clr(p.oneWeekReturn) : '#c0c0c0' }}>{p.oneWeekReturn != null ? fmtPct(p.oneWeekReturn) : '—'}</td>
+    <td style={{ ...cell, color: p.oneWeekReturn != null ? themed(clr(p.oneWeekReturn)) : 'var(--text-2)' }}>{p.oneWeekReturn != null ? fmtPct(p.oneWeekReturn) : '—'}</td>
   ),
   oneMonth: p => (
-    <td style={{ ...cell, color: p.oneMonthReturn != null ? clr(p.oneMonthReturn) : '#c0c0c0' }}>{p.oneMonthReturn != null ? fmtPct(p.oneMonthReturn) : '—'}</td>
+    <td style={{ ...cell, color: p.oneMonthReturn != null ? themed(clr(p.oneMonthReturn)) : 'var(--text-2)' }}>{p.oneMonthReturn != null ? fmtPct(p.oneMonthReturn) : '—'}</td>
   ),
   ytd: p => (
-    <td style={{ ...cell, color: p.ytdReturn != null ? clr(p.ytdReturn) : '#c0c0c0' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
+    <td style={{ ...cell, color: p.ytdReturn != null ? themed(clr(p.ytdReturn)) : 'var(--text-2)' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
   ),
   threeYr: p => (
-    <td style={{ ...cell, color: p.threeYrReturn != null ? clr(p.threeYrReturn) : '#c0c0c0' }}>
+    <td style={{ ...cell, color: p.threeYrReturn != null ? themed(clr(p.threeYrReturn)) : 'var(--text-2)' }}>
       {p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}
     </td>
   ),
   fiveYr: p => (
-    <td style={{ ...cell, color: p.fiveYrReturn != null ? clr(p.fiveYrReturn) : '#c0c0c0' }}>
+    <td style={{ ...cell, color: p.fiveYrReturn != null ? themed(clr(p.fiveYrReturn)) : 'var(--text-2)' }}>
       {p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
     </td>
   ),
   tenYr: p => (
-    <td style={{ ...cell, color: p.tenYrReturn != null ? clr(p.tenYrReturn) : '#c0c0c0' }}>
+    <td style={{ ...cell, color: p.tenYrReturn != null ? themed(clr(p.tenYrReturn)) : 'var(--text-2)' }}>
       {p.tenYrReturn != null ? fmtPct(p.tenYrReturn) : '—'}
     </td>
   ),
   fcf: p => (
-    <td style={{ ...cell, color: p.fcf != null ? clr(p.fcf) : '#c0c0c0' }}>
+    <td style={{ ...cell, color: p.fcf != null ? themed(clr(p.fcf)) : 'var(--text-2)' }}>
       <ValueWithNote value={p.fcf != null ? fmtKMBT(p.fcf) : '—'} note={p.fcfInterpretation} />
     </td>
   ),
@@ -214,29 +215,29 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
     </td>
   ),
   analyst: p => {
-    const tone = analystColor(p.analystRating, p.analystScore)
+    const tone = themed(analystColor(p.analystRating, p.analystScore))
     return (
       <td style={{ padding: '10px 14px', textAlign: 'right' }}>
         {p.analystRating ? (
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, ...pill, background: tone + '22', color: tone }}>
+          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, ...pill, background: alpha(tone, '22'), color: tone }}>
             {p.analystRating}
             {p.analystScore != null && p.analystScore > 0 && (
               <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, opacity: 0.85 }}>{fmt(p.analystScore, 1)}</span>
             )}
           </span>
         ) : (
-          <span style={{ color: '#8b8fa3' }}>—</span>
+          <span style={{ color: 'var(--text-3)' }}>—</span>
         )}
       </td>
     )
   },
   sector: p => (
-    <td style={{ ...cell, textAlign: 'left', fontFamily: "'DM Sans', sans-serif", fontSize: 11.5, color: p.sector ? '#94a3b8' : '#c0c0c0', whiteSpace: 'nowrap' }}>
+    <td style={{ ...cell, textAlign: 'left', fontFamily: 'var(--font-sans)', fontSize: 11.5, color: p.sector ? 'var(--text-soft)' : 'var(--text-2)', whiteSpace: 'nowrap' }}>
       {p.sector || '—'}
     </td>
   ),
   sectorPe: p => (
-    <td style={{ ...cell, color: '#8b8fa3' }}>
+    <td style={{ ...cell, color: 'var(--text-3)' }}>
       <ValueWithNote value={p.sectorPe != null && p.sectorPe > 0 ? fmt(p.sectorPe, 1) : '—'} note={peerNote(p)} />
     </td>
   ),
@@ -268,11 +269,11 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
       <ValueWithNote
         value={
           p.healthRating ? (
-            <span style={{ ...pill, background: (HEALTH_COLORS[p.healthRating] ?? '#8b8fa3') + '22', color: HEALTH_COLORS[p.healthRating] ?? '#8b8fa3' }}>
+            <span style={{ ...pill, background: alpha(themed(HEALTH_COLORS[p.healthRating]) ?? 'var(--text-3)', '22'), color: themed(HEALTH_COLORS[p.healthRating]) ?? 'var(--text-3)' }}>
               {ratingLabel(p.healthRating)}
             </span>
           ) : (
-            <span style={{ color: '#8b8fa3' }}>—</span>
+            <span style={{ color: 'var(--text-3)' }}>—</span>
           )
         }
         note={p.healthReason}
@@ -284,11 +285,11 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
       <ValueWithNote
         value={
           p.valuationRating ? (
-            <span style={{ ...pill, background: (VALUATION_COLORS[p.valuationRating] ?? '#8b8fa3') + '22', color: VALUATION_COLORS[p.valuationRating] ?? '#8b8fa3' }}>
+            <span style={{ ...pill, background: alpha(themed(VALUATION_COLORS[p.valuationRating]) ?? 'var(--text-3)', '22'), color: themed(VALUATION_COLORS[p.valuationRating]) ?? 'var(--text-3)' }}>
               {ratingLabel(p.valuationRating)}
             </span>
           ) : (
-            <span style={{ color: '#8b8fa3' }}>—</span>
+            <span style={{ color: 'var(--text-3)' }}>—</span>
           )
         }
         note={p.valuationReason}
