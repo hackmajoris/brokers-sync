@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"regexp"
+	"strconv"
 	"strings"
 	"time"
 
@@ -20,6 +21,10 @@ const (
 	MaxNoteLen   = 500
 	MaxSymbolLen = 12
 	ttlWindow    = 365 * 24 * time.Hour
+	// accessWindow is how stale lastAccess may get before a read refreshes it.
+	// The table has 1 write unit, so recording every page load would compete
+	// with real edits; one write per list per hour is plenty for analytics.
+	accessWindow = time.Hour
 )
 
 var (
@@ -119,6 +124,46 @@ func (s *Store) Reserve(ctx context.Context, max int) error {
 // List returns every watchlist item for a portfolio. It reports ErrNotFound when
 // the portfolio does not exist, which callers must surface as a bare 404.
 func (s *Store) List(ctx context.Context, pk string) ([]Item, error) {
+	items, _, err := s.list(ctx, pk)
+	return items, err
+}
+
+// ListAndRecordAccess is List for a user opening their list: it also stamps
+// lastAccess on the portfolio record, at most once per accessWindow. Unlike
+// lastSeen, which only moves on edits, this shows lists that are read but
+// rarely changed. The stamp is bookkeeping, so a failed write never fails the
+// read; the cost is lastAccess lagging by one more window.
+func (s *Store) ListAndRecordAccess(ctx context.Context, pk string, now time.Time) ([]Item, error) {
+	items, lastAccess, err := s.list(ctx, pk)
+	if err != nil {
+		return nil, err
+	}
+	if now.Sub(time.Unix(lastAccess, 0)) >= accessWindow {
+		_ = s.recordAccess(ctx, pk, now)
+	}
+	return items, nil
+}
+
+func (s *Store) recordAccess(ctx context.Context, pk string, now time.Time) error {
+	_, err := s.db.UpdateItem(ctx, &dynamodb.UpdateItemInput{
+		TableName: aws.String(s.table),
+		Key: map[string]types.AttributeValue{
+			"PK": &types.AttributeValueMemberS{Value: pk},
+			"SK": &types.AttributeValueMemberS{Value: "META"},
+		},
+		UpdateExpression: aws.String("SET lastAccess = :access"),
+		// Never recreate a portfolio that expired between the read and here.
+		ConditionExpression: aws.String("attribute_exists(PK)"),
+		ExpressionAttributeValues: map[string]types.AttributeValue{
+			":access": num(now.Unix()),
+		},
+	})
+	return err
+}
+
+// list also reports the portfolio's lastAccess (0 when never recorded), which
+// the Query returns with the META record at no extra cost.
+func (s *Store) list(ctx context.Context, pk string) ([]Item, int64, error) {
 	out, err := s.db.Query(ctx, &dynamodb.QueryInput{
 		TableName:              aws.String(s.table),
 		KeyConditionExpression: aws.String("PK = :pk"),
@@ -127,10 +172,11 @@ func (s *Store) List(ctx context.Context, pk string) ([]Item, error) {
 		},
 	})
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 
 	var meta bool
+	var lastAccess int64
 	items := make([]Item, 0, len(out.Items))
 	for _, raw := range out.Items {
 		sk, _ := raw["SK"].(*types.AttributeValueMemberS)
@@ -139,18 +185,21 @@ func (s *Store) List(ctx context.Context, pk string) ([]Item, error) {
 		}
 		if sk.Value == "META" {
 			meta = true
+			if n, ok := raw["lastAccess"].(*types.AttributeValueMemberN); ok {
+				lastAccess, _ = strconv.ParseInt(n.Value, 10, 64)
+			}
 			continue
 		}
 		var it Item
 		if err := attributevalue.UnmarshalMap(raw, &it); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 		items = append(items, it)
 	}
 	if !meta {
-		return nil, ErrNotFound
+		return nil, 0, ErrNotFound
 	}
-	return items, nil
+	return items, lastAccess, nil
 }
 
 // Upsert adds or replaces one watchlist entry and refreshes the portfolio TTL so

@@ -208,3 +208,53 @@ func TestReserveResumesWhenCapRaised(t *testing.T) {
 		t.Fatalf("after raising the cap: %v", err)
 	}
 }
+
+// lastAccess tracks which lists are opened, but the table has one write unit:
+// a read must stamp it when it is stale and must not write again within the
+// window, or every page load would compete with real edits for capacity.
+func TestListAndRecordAccessThrottlesWrites(t *testing.T) {
+	s, db := newStore()
+	ctx := context.Background()
+	if err := s.EnsureMeta(ctx, testPK); err != nil {
+		t.Fatal(err)
+	}
+	t0 := time.Date(2026, 10, 12, 10, 0, 0, 0, time.UTC)
+	access := func() string { return db.Num(testPK, "META", "lastAccess") }
+
+	if _, err := s.ListAndRecordAccess(ctx, testPK, t0); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := access(), strconv.FormatInt(t0.Unix(), 10); got != want {
+		t.Fatalf("first read: lastAccess = %q, want %q", got, want)
+	}
+
+	if _, err := s.ListAndRecordAccess(ctx, testPK, t0.Add(30*time.Minute)); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := access(), strconv.FormatInt(t0.Unix(), 10); got != want {
+		t.Errorf("read within the window rewrote lastAccess: %q, want unchanged %q", got, want)
+	}
+
+	later := t0.Add(2 * time.Hour)
+	if _, err := s.ListAndRecordAccess(ctx, testPK, later); err != nil {
+		t.Fatal(err)
+	}
+	if got, want := access(), strconv.FormatInt(later.Unix(), 10); got != want {
+		t.Errorf("read after the window: lastAccess = %q, want %q", got, want)
+	}
+}
+
+// Plain List is used by writes (Upsert) and must stay free of side effects.
+func TestListDoesNotRecordAccess(t *testing.T) {
+	s, db := newStore()
+	ctx := context.Background()
+	if err := s.EnsureMeta(ctx, testPK); err != nil {
+		t.Fatal(err)
+	}
+	if _, err := s.List(ctx, testPK); err != nil {
+		t.Fatal(err)
+	}
+	if got := db.Num(testPK, "META", "lastAccess"); got != "" {
+		t.Errorf("List wrote lastAccess = %q, want none", got)
+	}
+}

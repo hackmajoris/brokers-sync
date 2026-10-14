@@ -145,7 +145,7 @@ type watchlistEntry struct {
 }
 
 func (h *watchlistHandler) list(w http.ResponseWriter, r *http.Request, pk string) {
-	items, err := h.store.List(r.Context(), pk)
+	items, err := h.store.ListAndRecordAccess(r.Context(), pk, time.Now())
 	if err != nil {
 		h.fail(w, err)
 		return

@@ -68,6 +68,8 @@ func (f *FakeAPI) UpdateItem(_ context.Context, in *dynamodb.UpdateItemInput, _ 
 			cur.Value["lastSeen"] = v
 		case ":ttl":
 			cur.Value["ttl"] = v
+		case ":access":
+			cur.Value["lastAccess"] = v
 		}
 	}
 	return &dynamodb.UpdateItemOutput{}, nil

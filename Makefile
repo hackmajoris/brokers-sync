@@ -9,7 +9,7 @@ AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Accou
 .PHONY: help \
         dev dev-mock build build-web build-server run run-watchlist \
         compose-up compose-build compose-up-d compose-logs compose-down \
-        cdk-diff cdk-deploy cdk-destroy \
+        cdk-diff cdk-deploy cdk-destroy analytics \
         cdk-bootstrap ecr-setup
 
 help: ## Show this help
@@ -83,6 +83,11 @@ cdk-deploy: build-web ## Build web and deploy all CDK stacks
 cdk-destroy: ## Destroy all CDK stacks
 	cd infra && CDK_DEFAULT_ACCOUNT=$(AWS_ACCOUNT) CDK_DEFAULT_REGION=$(AWS_REGION) \
 		cdk destroy --all $(PROFILE_ARG) --force
+
+## ==== Analytics ====
+
+analytics: ## Print watchlist usage stats (scans the live table; read-only)
+	go run ./scripts/watchlist-stats -region $(AWS_REGION) $(if $(AWS_PROFILE),-profile $(AWS_PROFILE))
 
 ## ==== One-time setup ====
 
