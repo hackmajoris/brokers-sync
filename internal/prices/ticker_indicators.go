@@ -14,8 +14,17 @@ import (
 type TickerIndicators struct {
 	Price      *float64
 	Currency   string
+	QuoteType  string
 	Week52Low  *float64
 	Week52High *float64
+
+	// Bid/ask snapshot from the quote. Spread fields stay nil when the book is
+	// missing or crossed, so the table shows "no spread" rather than a 0% one.
+	Bid         *float64
+	Ask         *float64
+	Spread      *float64
+	SpreadPct   *float64
+	MarketState string
 
 	PE        *float64
 	ForwardPE *float64
@@ -185,6 +194,14 @@ func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, f
 		}
 		ti.Price = &q.Price
 		ti.Currency = q.Currency
+		ti.QuoteType = q.QuoteType
+		ti.MarketState = q.MarketState
+		if q.SpreadPct > 0 {
+			ti.Bid = &q.Bid
+			ti.Ask = &q.Ask
+			ti.Spread = &q.Spread
+			ti.SpreadPct = &q.SpreadPct
+		}
 		// Fund data costs extra requests, so it is fetched only once the quote
 		// says this is an ETF — a stock pays nothing for it. Holdings feed the
 		// modal alone, so a list fetch skips them.

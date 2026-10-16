@@ -7,7 +7,7 @@ require (
 	github.com/aws/aws-sdk-go-v2/config v1.32.37
 	github.com/aws/aws-sdk-go-v2/feature/dynamodb/attributevalue v1.20.61
 	github.com/aws/aws-sdk-go-v2/service/dynamodb v1.63.3
-	github.com/hackmajoris/go-finance v0.13.0
+	github.com/hackmajoris/go-finance v0.15.0
 	github.com/xuri/excelize/v2 v2.10.1
 )
 

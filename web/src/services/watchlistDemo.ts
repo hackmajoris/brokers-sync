@@ -14,7 +14,7 @@ type Indicators = Omit<RawPosition, 'currency' | 'quantity' | 'avg_cost' | 'tota
 
 function raw(ind: Indicators): RawPosition {
   return {
-    currency: 'USD', quantity: 0, avg_cost: 0, total_cost: 0, market_value: 0, unrealized_pnl: 0, unrealized_pct_omitempty: 0,
+    currency: 'USD', quote_type: 'EQUITY', quantity: 0, avg_cost: 0, total_cost: 0, market_value: 0, unrealized_pnl: 0, unrealized_pct_omitempty: 0,
     health_reason: 'Sample data for the demo.',
     valuation_reason: 'Sample data for the demo.',
     ...ind,

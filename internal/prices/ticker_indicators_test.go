@@ -15,14 +15,14 @@ import (
 // fakeYahoo answers the v7 quote with the given quote type and records every
 // quoteSummary module set requested, so a test can see which upstream calls a
 // fetch actually paid for. Every other endpoint 404s.
-func fakeYahoo(t *testing.T, quoteType string) (*yahoo.Client, func() []string) {
+func fakeYahoo(t *testing.T, quoteType string, quoteFields ...string) (*yahoo.Client, func() []string) {
 	t.Helper()
 	var mu sync.Mutex
 	var modules []string
 	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.URL.Path == "/v7/finance/quote":
-			fmt.Fprintf(w, `{"quoteResponse":{"result":[{"symbol":%q,"regularMarketPrice":100,"currency":"EUR","quoteType":%q}]}}`, r.URL.Query().Get("symbols"), quoteType)
+			fmt.Fprintf(w, `{"quoteResponse":{"result":[{"symbol":%q,"regularMarketPrice":100,"currency":"EUR","quoteType":%q%s}]}}`, r.URL.Query().Get("symbols"), quoteType, strings.Join(quoteFields, ""))
 		case strings.HasPrefix(r.URL.Path, "/v10/finance/quoteSummary/"):
 			m := r.URL.Query().Get("modules")
 			mu.Lock()
@@ -108,5 +108,31 @@ func TestETFFullFetchHasHoldings(t *testing.T) {
 	}
 	if len(ti.TopHoldings) != 1 || ti.TopHoldings[0].Symbol != "NVDA" {
 		t.Fatalf("want NVDA holding for the modal, got %v", ti.TopHoldings)
+	}
+}
+
+// The spread column ranks symbols by trading cost. A missing or crossed book
+// must read as "no spread" rather than 0%, or it would sort as the cheapest
+// symbol to trade.
+func TestSpreadOnlyFromUsableBook(t *testing.T) {
+	client, _ := fakeYahoo(t, "ETF", `,"bid":99.95,"ask":100.05,"marketState":"CLOSED"`)
+	ti, ok := fetchIndicators(context.Background(), client, "TSTSPREAD", false)
+	if !ok {
+		t.Fatal("expected indicators to resolve")
+	}
+	if ti.SpreadPct == nil || *ti.SpreadPct < 0.099 || *ti.SpreadPct > 0.101 {
+		t.Errorf("want 0.1%% spread, got %v", ti.SpreadPct)
+	}
+	if ti.QuoteType != "ETF" || ti.MarketState != "CLOSED" {
+		t.Errorf("quote type and market state must reach the table, got %q %q", ti.QuoteType, ti.MarketState)
+	}
+
+	client, _ = fakeYahoo(t, "EQUITY", `,"bid":101,"ask":100`)
+	ti, ok = fetchIndicators(context.Background(), client, "TSTCROSSED", false)
+	if !ok {
+		t.Fatal("expected indicators to resolve")
+	}
+	if ti.SpreadPct != nil || ti.Bid != nil {
+		t.Errorf("crossed book must leave spread unset, got pct=%v bid=%v", ti.SpreadPct, ti.Bid)
 	}
 }

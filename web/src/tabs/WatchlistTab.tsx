@@ -47,7 +47,7 @@ const DEMO_STEPS = [
   { title: 'Keep your code', body: 'It is your only key: no account, no email. Anyone holding it can read and edit the list, so treat it like a password.' },
 ]
 
-type SortKey = 'symbol' | 'note' | 'target' | 'price' | 'currency' | 'ter' | BandMetric
+type SortKey = 'symbol' | 'note' | 'target' | 'price' | 'currency' | 'ter' | 'spread' | BandMetric
 type SortDir = 'asc' | 'desc'
 
 // Performance and the 52-week range sit ahead of the target columns; the
@@ -69,6 +69,7 @@ const COLUMNS: Column[] = [
   { key: 'price', label: 'Price' },
   { key: 'currency', label: 'Ccy', align: 'left' },
   { key: 'ter', label: 'TER' },
+  { key: 'spread', label: 'Spread' },
   ...TRAIL_INDICATORS.map(indicatorColumn),
   { key: 'note', label: 'Note', align: 'left' },
 ]
@@ -80,6 +81,34 @@ function targetGap(item: WatchlistItem): number | null {
   const price = item.indicators?.currentPrice
   if (!(item.targetPrice > 0) || price == null || price <= 0) return null
   return ((item.targetPrice - price) / price) * 100
+}
+
+// Yahoo's instrument type, shown after the symbol as "VGT (ETF)". Types not
+// listed here show no tag rather than Yahoo's raw code.
+const QUOTE_TYPE_LABEL: Record<string, string> = {
+  EQUITY: 'STOCK',
+  ETF: 'ETF',
+  MUTUALFUND: 'FUND',
+  CRYPTOCURRENCY: 'CRYPTO',
+  INDEX: 'INDEX',
+}
+
+// hideStock is for the phone list, whose sticky cell is too narrow for
+// "DKK 395.40 (STOCK)"; stock is the common case there, so only the exceptions
+// are tagged.
+function TypeTag({ type, hideStock }: { type?: string; hideStock?: boolean }) {
+  const label = type ? QUOTE_TYPE_LABEL[type] : undefined
+  if (!label || (hideStock && type === 'EQUITY')) return null
+  return <span style={{ marginLeft: 4, fontSize: 9.5, fontWeight: 600, color: 'var(--text-3)', flexShrink: 0 }}>({label})</span>
+}
+
+// Outside the regular session Yahoo returns the last quotes before the close,
+// which are usually wider than intraday, so the note says which one it is.
+function spreadNote(p: Position): string | undefined {
+  if (p.spreadPct == null) return undefined
+  const quotes = `Bid ${fmtCurrency(p.bid, p.currency)}, ask ${fmtCurrency(p.ask, p.currency)}: ${fmtCurrency(p.spread, p.currency)} apart.`
+  if (p.marketState && p.marketState !== 'REGULAR') return `${quotes} Market not in regular session, so these are the last quotes before the close.`
+  return quotes
 }
 
 function sortValue(item: WatchlistItem, key: SortKey): number | string {
@@ -98,6 +127,8 @@ function sortValue(item: WatchlistItem, key: SortKey): number | string {
       return item.indicators?.currency ?? ''
     case 'ter':
       return item.indicators?.ter ?? -Infinity
+    case 'spread':
+      return item.indicators?.spreadPct ?? -Infinity
     default:
       return indicatorSortValue(item.indicators, key)
   }
@@ -877,6 +908,7 @@ function Row({
     >
       <td style={{ ...td, fontWeight: 600, color: accent, whiteSpace: 'nowrap', ...stickyCol(stickyBg, 1), boxShadow: edge ? `inset 2px 0 0 0 ${edge}` : undefined }}>
         {item.symbol}
+        <TypeTag type={p?.quoteType} />
       </td>
       <IndicatorGroup p={p} keys={LEAD_INDICATORS} />
       <td style={{ ...td, textAlign: 'right' }} onClick={e => e.stopPropagation()}>
@@ -951,6 +983,9 @@ function Row({
       </td>
       <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p?.ter != null ? 'var(--text-2)' : 'var(--text-3)' }}>
         <ValueWithNote value={p?.ter != null ? `${fmt(p.ter, 2)}%` : '—'} note={p?.terInterpretation} />
+      </td>
+      <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p?.spreadPct != null ? 'var(--text-2)' : 'var(--text-3)' }}>
+        <ValueWithNote value={p?.spreadPct != null ? `${fmt(p.spreadPct, p.spreadPct < 0.1 ? 3 : 2)}%` : '—'} note={p && spreadNote(p)} />
       </td>
       <IndicatorGroup p={p} keys={TRAIL_INDICATORS} />
       <td style={td} onClick={e => e.stopPropagation()}>
@@ -1216,8 +1251,11 @@ function MatrixRow({
           </span>
           {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 8, flexShrink: 0 }}>★</span>}
         </div>
-        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text-soft)', letterSpacing: '-0.03em' }}>
+        {/* The tag rides the price line here: next to the symbol it would
+            truncate the ticker in this narrow sticky column. */}
+        <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text-soft)', letterSpacing: '-0.03em', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
           {p?.currentPrice != null ? fmtCurrency(p.currentPrice, p.currency) : '—'}
+          <TypeTag type={p?.quoteType} hideStock />
         </span>
       </div>
       {MOBILE_COLS.map((c, i) => (

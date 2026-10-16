@@ -659,6 +659,12 @@ func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 
 	putFloat("current_price", ti.Price)
 	putStr("currency", ti.Currency)
+	putStr("quote_type", ti.QuoteType)
+	putFloat("bid", ti.Bid)
+	putFloat("ask", ti.Ask)
+	putFloat("spread", ti.Spread)
+	putFloat("spread_pct", ti.SpreadPct)
+	putStr("market_state", ti.MarketState)
 	putFloat("week_52_low", ti.Week52Low)
 	putFloat("week_52_high", ti.Week52High)
 	putFloat("pe", ti.PE)

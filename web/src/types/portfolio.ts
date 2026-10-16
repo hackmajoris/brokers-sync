@@ -85,6 +85,12 @@ export interface RawPosition {
   analyst_score?: number
   ter?: number
   ter_interpretation?: string
+  quote_type?: string
+  bid?: number
+  ask?: number
+  spread?: number
+  spread_pct?: number
+  market_state?: string
   top_holdings?: Holding[]
   sector?: string
   sector_pe?: number
@@ -217,6 +223,12 @@ export interface Position {
   analystScore?: number
   ter?: number
   terInterpretation?: string
+  quoteType?: string
+  bid?: number
+  ask?: number
+  spread?: number
+  spreadPct?: number
+  marketState?: string
   topHoldings?: Holding[]
   sector?: string
   sectorPe?: number

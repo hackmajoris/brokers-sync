@@ -58,6 +58,7 @@ export const INDICATOR_COLUMNS: { key: IndicatorKey; label: string }[] = [
 
 export const INDICATOR_INFO: Partial<Record<string, string>> = {
   ter: 'Total expense ratio — the yearly fee an ETF charges, as a percentage of what you hold. ETFs only; blank for stocks.',
+  spread: 'Gap between the best ask and best bid, as a percentage of their midpoint — the cost of buying and selling straight away. Lower is cheaper to trade. Blank when there is no usable quote.',
   analyst: 'Yahoo’s average analyst recommendation, scored 1 (Strong Buy) to 5 (Sell). Low is bullish — the opposite direction to every other number here, which is why it has its own colour scale. Blank means no analyst covers the symbol, common for small caps and non-US listings.',
   sector: 'Yahoo’s own top-level sector classification — its taxonomy, not GICS. Sets the peer group every “vs Sector” reading is measured against.',
   sectorPe: 'Market-cap-weighted P/E across the largest companies in this symbol’s sector (ΣmarketCap ÷ ΣnetIncome). A weighted aggregate, not a median: a few mega-caps dominate it, the same way Yahoo weights sector performance.',
