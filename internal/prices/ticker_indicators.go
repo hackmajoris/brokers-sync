@@ -13,6 +13,7 @@ import (
 // from a real zero. Interpretation strings are go-finance's plain-language notes.
 type TickerIndicators struct {
 	Price      *float64
+	Currency   string
 	Week52Low  *float64
 	Week52High *float64
 
@@ -82,6 +83,11 @@ type TickerIndicators struct {
 
 	AnalystScore  *float64
 	AnalystRating string
+
+	TER       *float64
+	TERInterp string
+
+	TopHoldings []yahoo.Holding
 
 	Sector           string
 	SectorPE         *float64
@@ -178,6 +184,21 @@ func fetchIndicators(ctx context.Context, client *yahoo.Client, symbol string, f
 			return false
 		}
 		ti.Price = &q.Price
+		ti.Currency = q.Currency
+		// Fund data costs extra requests, so it is fetched only once the quote
+		// says this is an ETF — a stock pays nothing for it. Holdings feed the
+		// modal alone, so a list fetch skips them.
+		if q.QuoteType == "ETF" {
+			if er, err := client.GetExpenseRatio(ctx, symbol); err == nil && er.TER > 0 {
+				ti.TER = &er.TER
+				ti.TERInterp = er.Interpretation
+			}
+			if full {
+				if th, err := client.GetTopHoldings(ctx, symbol); err == nil {
+					ti.TopHoldings = th.Holdings
+				}
+			}
+		}
 		return true
 	})
 	run(func() bool {

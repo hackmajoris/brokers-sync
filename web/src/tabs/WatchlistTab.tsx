@@ -20,7 +20,7 @@ import { getTurnstileToken } from '../services/turnstile'
 import { SectionLabel } from '../components/ui/SectionLabel'
 import { InfoTooltip } from '../components/ui/InfoTooltip'
 import { openStockLookup } from '../components/StockLookup'
-import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
+import { IndicatorCells, INDICATOR_COLUMNS, INDICATOR_INFO, ValueWithNote, indicatorSortValue, type IndicatorKey } from '../components/IndicatorColumns'
 import {
   InsightsBand,
   MC,
@@ -31,7 +31,7 @@ import {
   type BandRow,
   type RowFilter,
 } from '../components/InsightsBand'
-import { fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
+import { fmt, fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import type { Position } from '../types/portfolio'
 import { alpha, themed } from '../lib/theme'
 
@@ -47,7 +47,7 @@ const DEMO_STEPS = [
   { title: 'Keep your code', body: 'It is your only key: no account, no email. Anyone holding it can read and edit the list, so treat it like a password.' },
 ]
 
-type SortKey = 'symbol' | 'note' | 'target' | 'price' | BandMetric
+type SortKey = 'symbol' | 'note' | 'target' | 'price' | 'currency' | 'ter' | BandMetric
 type SortDir = 'asc' | 'desc'
 
 // Performance and the 52-week range sit ahead of the target columns; the
@@ -67,6 +67,8 @@ const COLUMNS: Column[] = [
   { key: 'target', label: 'Target Value' },
   { key: 'targetGap', label: 'Target Diff' },
   { key: 'price', label: 'Price' },
+  { key: 'currency', label: 'Ccy', align: 'left' },
+  { key: 'ter', label: 'TER' },
   ...TRAIL_INDICATORS.map(indicatorColumn),
   { key: 'note', label: 'Note', align: 'left' },
 ]
@@ -92,6 +94,10 @@ function sortValue(item: WatchlistItem, key: SortKey): number | string {
       return targetGap(item) ?? -Infinity
     case 'price':
       return item.indicators?.currentPrice ?? -Infinity
+    case 'currency':
+      return item.indicators?.currency ?? ''
+    case 'ter':
+      return item.indicators?.ter ?? -Infinity
     default:
       return indicatorSortValue(item.indicators, key)
   }
@@ -938,7 +944,13 @@ function Row({
         {gap == null ? '—' : fmtPct(gap)}
       </td>
       <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, whiteSpace: 'nowrap' }}>
-        {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+        {p?.currentPrice != null ? fmtCurrency(p.currentPrice, p.currency) : '—'}
+      </td>
+      <td style={{ ...td, fontFamily: "'DM Mono', monospace", fontSize: 11.5, color: p?.currency ? 'var(--text-soft)' : 'var(--text-3)' }}>
+        {p?.currency || '—'}
+      </td>
+      <td style={{ ...td, textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: p?.ter != null ? 'var(--text-2)' : 'var(--text-3)' }}>
+        <ValueWithNote value={p?.ter != null ? `${fmt(p.ter, 2)}%` : '—'} note={p?.terInterpretation} />
       </td>
       <IndicatorGroup p={p} keys={TRAIL_INDICATORS} />
       <td style={td} onClick={e => e.stopPropagation()}>
@@ -1205,7 +1217,7 @@ function MatrixRow({
           {item.pinned && <span style={{ color: PIN_EDGE, fontSize: 8, flexShrink: 0 }}>★</span>}
         </div>
         <span style={{ fontSize: 11, fontFamily: "'DM Mono', monospace", color: 'var(--text-soft)', letterSpacing: '-0.03em' }}>
-          {p?.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}
+          {p?.currentPrice != null ? fmtCurrency(p.currentPrice, p.currency) : '—'}
         </span>
       </div>
       {MOBILE_COLS.map((c, i) => (

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import type { Position } from '../types/portfolio'
+import type { Holding, Position } from '../types/portfolio'
 import { fetchTicker, fetchHistory, fetchNews, searchSymbols, type TickerSearchResult, type HistoryData, type NewsItem } from '../services/portfolioService'
 import { fmt, fmtCurrency, fmtPct, fmtKMBT, clr } from '../utils/format'
 import { HEALTH_COLORS, VALUATION_COLORS, ratingLabel } from '../utils/ratings'
@@ -97,7 +97,7 @@ function PerfPill({ label, children }: { label: string; children: ReactNode }) {
 
 // RangeBar is the mobile full-width 52-week range: a wide gradient track plus
 // the percent-of-range and the low/high prices anchoring each end.
-function RangeBar({ low, high, current }: { low: number; high: number; current: number }) {
+function RangeBar({ low, high, current, currency }: { low: number; high: number; current: number; currency?: string }) {
   const pct = high > low ? Math.min(Math.max((current - low) / (high - low), 0), 1) : 0.5
   return (
     <div style={{ background: 'var(--surface)', border: '1px solid var(--line)', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -110,16 +110,61 @@ function RangeBar({ low, high, current }: { low: number; high: number; current: 
         <div style={{ position: 'absolute', left: `${pct * 100}%`, top: -4, width: 3, height: 14, background: 'var(--marker)', borderRadius: 1, transform: 'translateX(-50%)' }} />
       </div>
       <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, fontFamily: "'DM Mono', monospace", color: 'var(--text-value)' }}>
-        <span>{fmtCurrency(low)}</span>
-        <span>{fmtCurrency(high)}</span>
+        <span>{fmtCurrency(low, currency)}</span>
+        <span>{fmtCurrency(high, currency)}</span>
       </div>
     </div>
   )
 }
 
+// HoldingsList renders an ETF's largest positions, largest first. Bars are
+// scaled to the biggest holding rather than to 100%, since even a top holding
+// is rarely above 10% and absolute bars would all look empty. The list is split
+// into two halves rather than laid out with CSS columns — Chromium's renderer
+// crashed on columns wrapping these grid rows — so rank order still reads down
+// each column, and the halves stack in order once the modal is too narrow.
+function HoldingsList({ holdings }: { holdings: Holding[] }) {
+  const max = Math.max(...holdings.map(h => h.weight))
+  const half = Math.ceil(holdings.length / 2)
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', columnGap: 24 }}>
+      {[holdings.slice(0, half), holdings.slice(half)].map((col, c) => (
+        <div key={c}>
+          {col.map((h, i) => <HoldingRow key={i} h={h} max={max} />)}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function HoldingRow({ h, max }: { h: Holding; max: number }) {
+  return (
+    <div
+      title={h.name}
+      style={{ display: 'grid', gridTemplateColumns: '58px 1fr 56px', alignItems: 'center', columnGap: 10, rowGap: 4, padding: '7px 0', borderBottom: '1px solid var(--line)' }}
+    >
+      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 600, color: 'var(--indigo-text)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+        {h.symbol || '—'}
+      </span>
+      <span style={{ fontSize: 12, color: 'var(--text-soft)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.name}</span>
+      <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 12, fontWeight: 600, color: 'var(--text-value)', textAlign: 'right' }}>{fmt(h.weight, 2)}%</span>
+      <div style={{ gridColumn: '2 / 4', height: 3, borderRadius: 2, background: alpha('var(--indigo)', '1f') }}>
+        <div style={{ width: `${max > 0 ? (h.weight / max) * 100 : 0}%`, height: '100%', borderRadius: 2, background: 'var(--indigo)' }} />
+      </div>
+    </div>
+  )
+}
+
+// The share the listed holdings take of the whole fund — how concentrated it is.
+function holdingsShare(holdings: Holding[]): string {
+  const total = holdings.reduce((s, h) => s + h.weight, 0)
+  return `Top ${holdings.length} make up ${fmt(total, 1)}% of the fund`
+}
+
 // MobileDetailBody trades the always-visible five-group grid for one group at
 // a time behind a pill switcher, so a phone screen shows dense metrics
 // without the endless stacked scroll the grid produces at 1-2 columns.
+
 function MobileDetailBody({ p }: { p: Position }) {
   const hasRange = p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null
   const groups: { title: string; content: ReactNode }[] = [
@@ -182,8 +227,24 @@ function MobileDetailBody({ p }: { p: Position }) {
         </>
       ),
     },
+    ...(p.topHoldings?.length
+      ? [
+          {
+            title: 'Top Holdings',
+            content: (
+              <>
+                <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{holdingsShare(p.topHoldings)}</span>
+                <HoldingsList holdings={p.topHoldings} />
+              </>
+            ),
+          },
+        ]
+      : []),
   ]
-  const [active, setActive] = useState(0)
+  const [selected, setActive] = useState(0)
+  // The body stays mounted across lookups, so a tab picked on an ETF can point
+  // past the end once a stock (no holdings tab) loads.
+  const active = selected < groups.length ? selected : 0
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -195,7 +256,7 @@ function MobileDetailBody({ p }: { p: Position }) {
         <PerfPill label="10Y">{pctColored(p.tenYrReturn)}</PerfPill>
       </div>
 
-      {hasRange && <RangeBar low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} />}
+      {hasRange && <RangeBar low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} currency={p.currency} />}
 
       <div className="rail" style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 2 }}>
         {groups.map((g, i) => (
@@ -239,7 +300,7 @@ function DetailBody({ p }: { p: Position }) {
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
       {/* Performance strip — not part of the picture's five groups */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(128px, 1fr))', gap: 8 }}>
-        <Metric label="Price">{p.currentPrice != null ? fmtCurrency(p.currentPrice) : '—'}</Metric>
+        <Metric label="Price">{p.currentPrice != null ? fmtCurrency(p.currentPrice, p.currency) : '—'}</Metric>
         <Metric label="52 Week Range">
           {hasRange ? <RangeGauge low={p.weekLow52!} high={p.weekHigh52!} current={p.currentPrice!} width={80} /> : '—'}
         </Metric>
@@ -289,6 +350,16 @@ function DetailBody({ p }: { p: Position }) {
           <Metric label="Payout Date" note={p.payoutDateInterpretation}>{p.payoutDate || DASH}</Metric>
         </MetricGroup>
       </div>
+
+      {p.topHoldings?.length ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 12, flexWrap: 'wrap' }}>
+            <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--text-2)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Top Holdings</div>
+            <span style={{ fontSize: 11, color: 'var(--text-3)' }}>{holdingsShare(p.topHoldings)}</span>
+          </div>
+          <HoldingsList holdings={p.topHoldings} />
+        </div>
+      ) : null}
     </div>
   )
 }
@@ -580,7 +651,7 @@ export function StockLookup({ accent }: Props) {
               {!loading && !error && detail && mobile && (
                 <div style={{ display: 'flex', alignItems: 'baseline', gap: 10, flexWrap: 'wrap', marginBottom: 12 }}>
                   {detail.currentPrice != null && (
-                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 30, fontWeight: 700, color: 'var(--text-strong)' }}>{fmtCurrency(detail.currentPrice)}</span>
+                    <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 30, fontWeight: 700, color: 'var(--text-strong)' }}>{fmtCurrency(detail.currentPrice, detail.currency)}</span>
                   )}
                   {detail.todayReturn != null && (
                     <span style={{ padding: '3px 9px', borderRadius: 6, fontSize: 13, fontWeight: 700, background: alpha(themed(clr(detail.todayReturn)), '1f'), color: themed(clr(detail.todayReturn)) }}>

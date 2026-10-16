@@ -658,6 +658,7 @@ func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 	}
 
 	putFloat("current_price", ti.Price)
+	putStr("currency", ti.Currency)
 	putFloat("week_52_low", ti.Week52Low)
 	putFloat("week_52_high", ti.Week52High)
 	putFloat("pe", ti.PE)
@@ -708,6 +709,11 @@ func tickerPayload(symbol string, ti *prices.TickerIndicators) map[string]any {
 	putStr("payout_date_interpretation", ti.PayoutDateInterp)
 	putStr("analyst_rating", ti.AnalystRating)
 	putFloat("analyst_score", ti.AnalystScore)
+	putFloat("ter", ti.TER)
+	putStr("ter_interpretation", ti.TERInterp)
+	if len(ti.TopHoldings) > 0 {
+		out["top_holdings"] = ti.TopHoldings
+	}
 	putStr("sector", ti.Sector)
 	putFloat("sector_pe", ti.SectorPE)
 	putFloat("pe_vs_sector", ti.PEVsSector)

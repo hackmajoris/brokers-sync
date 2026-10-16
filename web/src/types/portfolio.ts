@@ -18,6 +18,13 @@ export interface RawPeriod {
   gain_pct: number
 }
 
+// One position inside an ETF. weight is a percentage (8.08 = 8.08%).
+export interface Holding {
+  symbol: string
+  name: string
+  weight: number
+}
+
 export interface RawPosition {
   symbol: string
   currency: string
@@ -76,6 +83,9 @@ export interface RawPosition {
   payout_date_interpretation?: string
   analyst_rating?: string
   analyst_score?: number
+  ter?: number
+  ter_interpretation?: string
+  top_holdings?: Holding[]
   sector?: string
   sector_pe?: number
   pe_vs_sector?: number
@@ -205,6 +215,9 @@ export interface Position {
   payoutDateInterpretation?: string
   analystRating?: string
   analystScore?: number
+  ter?: number
+  terInterpretation?: string
+  topHoldings?: Holding[]
   sector?: string
   sectorPe?: number
   peVsSector?: number
