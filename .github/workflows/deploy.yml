@@ -42,7 +42,7 @@ jobs:
         run: npm install -g aws-cdk
 
       - name: Build web
-        run: cd web && npm ci && npm run build
+        run: cd web && npm ci && cd .. make build-web
 
       - name: CDK Bootstrap
         run: make cdk-bootstrap AWS_PROFILE=
