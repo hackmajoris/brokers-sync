@@ -2,6 +2,13 @@
 
 Release notes for each version, newest first. Generated from GitHub releases.
 
+## [v0.22.1] - 2026-10-17
+
+**Improvements**
+- fix ci f673994
+- ci fix 317fa57
+- added changelog.md d22ca82
+
 ## [v0.22.0] - 2026-10-17
 
 **New Features**
