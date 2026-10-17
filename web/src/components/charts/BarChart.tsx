@@ -1,6 +1,6 @@
-import type { CartesianTickOptions, TooltipItem } from 'chart.js';
-import { useChart } from './useChart';
-import { chartDefaults } from '../../lib/chartDefaults';
+import type { CartesianTickOptions, TooltipItem } from "chart.js"
+import { useChart } from "./useChart"
+import { chartDefaults } from "../../lib/chartDefaults"
 
 interface BarChartProps {
   data: Array<Record<string, number | string>>
@@ -13,67 +13,78 @@ interface BarChartProps {
   xLabelRotation?: number
 }
 
-export function BarChart({ data, keyX, keyY, color = '#fb923c', colorFn, height = 160, formatValue, xLabelRotation = 0 }: BarChartProps) {
-  const labels = data.map(d => String(d[keyX]));
-  const values = data.map(d => d[keyY] as number);
+export function BarChart({
+  data,
+  keyX,
+  keyY,
+  color = "#fb923c",
+  colorFn,
+  height = 160,
+  formatValue,
+  xLabelRotation = 0,
+}: BarChartProps) {
+  const labels = data.map((d) => String(d[keyX]))
+  const values = data.map((d) => d[keyY] as number)
 
-  const bgColors = colorFn ? values.map(v => colorFn(v) + 'aa') : color + 'aa';
-  const bdColors = colorFn ? values.map(v => colorFn(v)) : color;
+  const bgColors = colorFn ? values.map((v) => colorFn(v) + "aa") : color + "aa"
+  const bdColors = colorFn ? values.map((v) => colorFn(v)) : color
 
   const ref = useChart({
-    type: 'bar',
+    type: "bar",
     data: {
       labels,
-      datasets: [{
-        data: values,
-        backgroundColor: bgColors,
-        borderColor: bdColors,
-        borderWidth: 1,
-        borderRadius: 4,
-      }],
+      datasets: [
+        {
+          data: values,
+          backgroundColor: bgColors,
+          borderColor: bdColors,
+          borderWidth: 1,
+          borderRadius: 4,
+        },
+      ],
     },
     options: {
       ...chartDefaults,
-      interaction: { mode: 'index', intersect: false },
+      interaction: { mode: "index", intersect: false },
       plugins: {
         ...chartDefaults.plugins,
         tooltip: {
-          ...(chartDefaults.plugins as Record<string, unknown>)['tooltip'] as object,
+          ...((chartDefaults.plugins as Record<string, unknown>)["tooltip"] as object),
           callbacks: {
-            label: (ctx: TooltipItem<'bar'>) => {
-              const v = ctx.parsed.y ?? 0;
-              return formatValue ? formatValue(v) : `$${Math.round(v).toLocaleString()}`;
+            label: (ctx: TooltipItem<"bar">) => {
+              const v = ctx.parsed.y ?? 0
+              return formatValue ? formatValue(v) : `$${Math.round(v).toLocaleString()}`
             },
           },
         },
       },
       scales: {
         x: {
-          ...chartDefaults.scales?.['x'],
+          ...chartDefaults.scales?.["x"],
           ticks: {
-            ...(chartDefaults.scales?.['x'] as Record<string, unknown>)?.['ticks'] as object,
+            ...((chartDefaults.scales?.["x"] as Record<string, unknown>)?.["ticks"] as object),
             maxRotation: xLabelRotation,
             minRotation: xLabelRotation,
           } as Partial<CartesianTickOptions>,
         },
         y: {
-          ...chartDefaults.scales?.['y'],
+          ...chartDefaults.scales?.["y"],
           ticks: {
-            ...(chartDefaults.scales?.['y'] as Record<string, unknown>)?.['ticks'] as object,
+            ...((chartDefaults.scales?.["y"] as Record<string, unknown>)?.["ticks"] as object),
             callback: (v: number | string) => {
-              const n = Number(v);
-              if (formatValue) return formatValue(n);
-              return n >= 1000 ? '$' + (n / 1000).toFixed(0) + 'k' : '$' + n;
+              const n = Number(v)
+              if (formatValue) return formatValue(n)
+              return n >= 1000 ? "$" + (n / 1000).toFixed(0) + "k" : "$" + n
             },
           },
         },
       },
     },
-  });
+  })
 
   return (
-    <div style={{ position: 'relative', width: '100%', height }}>
+    <div style={{ position: "relative", width: "100%", height }}>
       <canvas ref={ref} />
     </div>
-  );
+  )
 }

@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import type { ReactNode } from "react"
 
 export function SectionLabel({ children }: { children: ReactNode }) {
   return (
@@ -6,9 +6,9 @@ export function SectionLabel({ children }: { children: ReactNode }) {
       style={{
         fontSize: 10,
         fontWeight: 600,
-        letterSpacing: '0.12em',
-        color: 'var(--text-3)',
-        textTransform: 'uppercase',
+        letterSpacing: "0.12em",
+        color: "var(--text-3)",
+        textTransform: "uppercase",
         marginBottom: 10,
       }}
     >

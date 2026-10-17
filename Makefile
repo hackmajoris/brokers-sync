@@ -7,6 +7,7 @@ AWS_ACCOUNT  ?= $(shell aws sts get-caller-identity $(PROFILE_ARG) --query Accou
 .DEFAULT_GOAL := help
 
 .PHONY: help \
+        check-web fix-web \
         dev dev-mock build build-web build-server run run-watchlist \
         compose-up compose-build compose-up-d compose-logs compose-down \
         cdk-diff cdk-deploy cdk-destroy analytics \
@@ -28,6 +29,12 @@ lint: ## Run Go lint
 fmt: ## Run Go formatters
 	find . -name "*.go" -not -path "*/vendor/*" | xargs gofmt -w
 	find . -name "*.go" -not -path "*/vendor/*" | xargs goimports -w
+
+check-web: ## Run web format, lint and type checks (vp check)
+	cd web && npm run check
+
+fix-web: ## Auto-fix web format and lint issues (vp check --fix)
+	cd web && npm run check:fix
 
 ## ==== Local development ====
 

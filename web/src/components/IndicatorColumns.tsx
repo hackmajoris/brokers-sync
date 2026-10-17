@@ -1,75 +1,92 @@
-import { Fragment, type ReactNode } from 'react'
-import type { Position } from '../types/portfolio'
-import { fmt, fmtPct, fmtKMBT, clr } from '../utils/format'
-import { RangeGauge } from '../components/charts/RangeGauge'
-import { InfoTooltip } from '../components/ui/InfoTooltip'
-import { HEALTH_COLORS, VALUATION_COLORS, analystColor, analystRank, ratingLabel } from '../utils/ratings'
-import { alpha, themed } from '../lib/theme'
+import { Fragment, type ReactNode } from "react"
+import type { Position } from "../types/portfolio"
+import { fmt, fmtPct, fmtKMBT, clr } from "../utils/format"
+import { RangeGauge } from "../components/charts/RangeGauge"
+import { InfoTooltip } from "../components/ui/InfoTooltip"
+import {
+  HEALTH_COLORS,
+  VALUATION_COLORS,
+  analystColor,
+  analystRank,
+  ratingLabel,
+} from "../utils/ratings"
+import { alpha, themed } from "../lib/theme"
 
 // Shared by the Positions and Watchlist tabs. Both show the same indicators for
 // a symbol; only the position-specific columns (quantity, cost, P&L, weight)
 // differ, so those stay in PositionsTab.
 export type IndicatorKey =
-  | 'range'
-  | 'pe'
-  | 'forwardPe'
-  | 'analyst'
-  | 'sector'
-  | 'sectorPe'
-  | 'peVsSector'
-  | 'evVsSector'
-  | 'today'
-  | 'oneWeek'
-  | 'oneMonth'
-  | 'ytd'
-  | 'threeYr'
-  | 'fiveYr'
-  | 'tenYr'
-  | 'fcf'
-  | 'evToEbitda'
-  | 'debtToEquity'
-  | 'cashFlowQuality'
-  | 'health'
-  | 'valuation'
+  | "range"
+  | "pe"
+  | "forwardPe"
+  | "analyst"
+  | "sector"
+  | "sectorPe"
+  | "peVsSector"
+  | "evVsSector"
+  | "today"
+  | "oneWeek"
+  | "oneMonth"
+  | "ytd"
+  | "threeYr"
+  | "fiveYr"
+  | "tenYr"
+  | "fcf"
+  | "evToEbitda"
+  | "debtToEquity"
+  | "cashFlowQuality"
+  | "health"
+  | "valuation"
 
 export const INDICATOR_COLUMNS: { key: IndicatorKey; label: string }[] = [
-  { key: 'today', label: '1D' },
-  { key: 'oneWeek', label: '1W' },
-  { key: 'oneMonth', label: '1M' },
-  { key: 'ytd', label: 'YTD' },
-  { key: 'threeYr', label: '3Y' },
-  { key: 'fiveYr', label: '5Y' },
-  { key: 'tenYr', label: '10Y' },
-  { key: 'range', label: '52 Week Low/High' },
-  { key: 'pe', label: 'P/E' },
-  { key: 'forwardPe', label: 'Forward P/E' },
-  { key: 'analyst', label: 'Analysts' },
-  { key: 'sector', label: 'Sector' },
-  { key: 'sectorPe', label: 'Sector Med.' },
-  { key: 'peVsSector', label: 'vs Sector' },
-  { key: 'fcf', label: 'FCF' },
-  { key: 'evToEbitda', label: 'EV/EBITDA' },
-  { key: 'evVsSector', label: 'vs Sector' },
-  { key: 'debtToEquity', label: 'Debt/Equity' },
-  { key: 'cashFlowQuality', label: 'CF Quality' },
-  { key: 'health', label: 'Health' },
-  { key: 'valuation', label: 'Valuation' },
+  { key: "today", label: "1D" },
+  { key: "oneWeek", label: "1W" },
+  { key: "oneMonth", label: "1M" },
+  { key: "ytd", label: "YTD" },
+  { key: "threeYr", label: "3Y" },
+  { key: "fiveYr", label: "5Y" },
+  { key: "tenYr", label: "10Y" },
+  { key: "range", label: "52 Week Low/High" },
+  { key: "pe", label: "P/E" },
+  { key: "forwardPe", label: "Forward P/E" },
+  { key: "analyst", label: "Analysts" },
+  { key: "sector", label: "Sector" },
+  { key: "sectorPe", label: "Sector Med." },
+  { key: "peVsSector", label: "vs Sector" },
+  { key: "fcf", label: "FCF" },
+  { key: "evToEbitda", label: "EV/EBITDA" },
+  { key: "evVsSector", label: "vs Sector" },
+  { key: "debtToEquity", label: "Debt/Equity" },
+  { key: "cashFlowQuality", label: "CF Quality" },
+  { key: "health", label: "Health" },
+  { key: "valuation", label: "Valuation" },
 ]
 
 export const INDICATOR_INFO: Partial<Record<string, string>> = {
-  ter: 'Total expense ratio — the yearly fee an ETF charges, as a percentage of what you hold. ETFs only; blank for stocks.',
-  spread: 'Gap between the best ask and best bid, as a percentage of their midpoint — the cost of buying and selling straight away. Lower is cheaper to trade. Blank when there is no usable quote.',
-  analyst: 'Yahoo’s average analyst recommendation, scored 1 (Strong Buy) to 5 (Sell). Low is bullish — the opposite direction to every other number here, which is why it has its own colour scale. Blank means no analyst covers the symbol, common for small caps and non-US listings.',
-  sector: 'Yahoo’s own top-level sector classification — its taxonomy, not GICS. Sets the peer group every “vs Sector” reading is measured against.',
-  sectorPe: 'Market-cap-weighted P/E across the largest companies in this symbol’s sector (ΣmarketCap ÷ ΣnetIncome). A weighted aggregate, not a median: a few mega-caps dominate it, the same way Yahoo weights sector performance.',
-  peVsSector: 'How far this symbol’s P/E sits above or below its sector aggregate. Negative (green) is cheaper than the sector, positive (red) is more expensive. A P/E of 40 is cheap for software and dear for a utility — this is the column that tells them apart.',
-  evVsSector: 'How far this symbol’s EV/EBITDA sits above or below its sector aggregate. Negative (green) is cheaper than the sector. Capital-structure neutral, so it compares across different leverage better than P/E does.',
-  fcf: 'Trailing twelve-month free cash flow — cash generated by operations after capital expenditure. Positive means the business self-funds; negative means it’s burning cash (normal for growth or heavy-capex phases, a warning sign if sustained).',
-  evToEbitda: 'Enterprise value ÷ trailing twelve-month EBITDA. Capital-structure neutral valuation multiple (accounts for debt and cash), more comparable across companies with different leverage than P/E.',
-  debtToEquity: 'Total debt as a percentage of total equity. Higher values mean more leverage — compare against sector peers rather than an absolute threshold.',
-  cashFlowQuality: 'Operating cash flow ÷ net income. Near 1 means earnings are roughly cash-backed (healthy); well below 1 suggests earnings rely on accruals; well above 1 often reflects heavy non-cash charges.',
-  health: 'Coarse read on financial soundness from free cash flow, cash flow quality, and debt-to-equity. Says nothing about valuation — pair with the Valuation column.',
-  valuation: 'Coarse read on whether the market price looks cheap or expensive, from forward-vs-trailing P/E and EV/EBITDA. Says nothing about financial health — pair with the Health column.',
+  ter: "Total expense ratio — the yearly fee an ETF charges, as a percentage of what you hold. ETFs only; blank for stocks.",
+  spread:
+    "Gap between the best ask and best bid, as a percentage of their midpoint — the cost of buying and selling straight away. Lower is cheaper to trade. Blank when there is no usable quote.",
+  analyst:
+    "Yahoo’s average analyst recommendation, scored 1 (Strong Buy) to 5 (Sell). Low is bullish — the opposite direction to every other number here, which is why it has its own colour scale. Blank means no analyst covers the symbol, common for small caps and non-US listings.",
+  sector:
+    "Yahoo’s own top-level sector classification — its taxonomy, not GICS. Sets the peer group every “vs Sector” reading is measured against.",
+  sectorPe:
+    "Market-cap-weighted P/E across the largest companies in this symbol’s sector (ΣmarketCap ÷ ΣnetIncome). A weighted aggregate, not a median: a few mega-caps dominate it, the same way Yahoo weights sector performance.",
+  peVsSector:
+    "How far this symbol’s P/E sits above or below its sector aggregate. Negative (green) is cheaper than the sector, positive (red) is more expensive. A P/E of 40 is cheap for software and dear for a utility — this is the column that tells them apart.",
+  evVsSector:
+    "How far this symbol’s EV/EBITDA sits above or below its sector aggregate. Negative (green) is cheaper than the sector. Capital-structure neutral, so it compares across different leverage better than P/E does.",
+  fcf: "Trailing twelve-month free cash flow — cash generated by operations after capital expenditure. Positive means the business self-funds; negative means it’s burning cash (normal for growth or heavy-capex phases, a warning sign if sustained).",
+  evToEbitda:
+    "Enterprise value ÷ trailing twelve-month EBITDA. Capital-structure neutral valuation multiple (accounts for debt and cash), more comparable across companies with different leverage than P/E.",
+  debtToEquity:
+    "Total debt as a percentage of total equity. Higher values mean more leverage — compare against sector peers rather than an absolute threshold.",
+  cashFlowQuality:
+    "Operating cash flow ÷ net income. Near 1 means earnings are roughly cash-backed (healthy); well below 1 suggests earnings rely on accruals; well above 1 often reflects heavy non-cash charges.",
+  health:
+    "Coarse read on financial soundness from free cash flow, cash flow quality, and debt-to-equity. Says nothing about valuation — pair with the Valuation column.",
+  valuation:
+    "Coarse read on whether the market price looks cheap or expensive, from forward-vs-trailing P/E and EV/EBITDA. Says nothing about financial health — pair with the Health column.",
 }
 
 export function rangePct(p: Position): number {
@@ -79,61 +96,63 @@ export function rangePct(p: Position): number {
 }
 
 export function indicatorSortValue(p: Position | undefined, key: IndicatorKey): number | string {
-  if (!p) return key === 'health' || key === 'valuation' ? '' : -Infinity
+  if (!p) return key === "health" || key === "valuation" ? "" : -Infinity
   switch (key) {
-    case 'range':
+    case "range":
       return rangePct(p)
-    case 'pe':
+    case "pe":
       return p.pe ?? -Infinity
-    case 'forwardPe':
+    case "forwardPe":
       return p.forwardPE ?? -Infinity
-    case 'today':
+    case "today":
       return p.todayReturn ?? -Infinity
-    case 'oneWeek':
+    case "oneWeek":
       return p.oneWeekReturn ?? -Infinity
-    case 'oneMonth':
+    case "oneMonth":
       return p.oneMonthReturn ?? -Infinity
-    case 'ytd':
+    case "ytd":
       return p.ytdReturn ?? -Infinity
-    case 'threeYr':
+    case "threeYr":
       return p.threeYrReturn ?? -Infinity
-    case 'fiveYr':
+    case "fiveYr":
       return p.fiveYrReturn ?? -Infinity
-    case 'tenYr':
+    case "tenYr":
       return p.tenYrReturn ?? -Infinity
-    case 'fcf':
+    case "fcf":
       return p.fcf ?? -Infinity
-    case 'evToEbitda':
+    case "evToEbitda":
       return p.evToEbitda ?? -Infinity
-    case 'analyst': {
+    case "analyst": {
       // Ranked off the label, since the score is usually absent. Ascending sort
       // puts the most bullish first, so an unrated symbol sorts to the bottom
       // rather than masquerading as the best.
       const rank = analystRank(p.analystRating, p.analystScore)
       return rank ?? Infinity
     }
-    case 'sector':
-      return p.sector ?? ''
-    case 'sectorPe':
+    case "sector":
+      return p.sector ?? ""
+    case "sectorPe":
       return p.sectorPe ?? -Infinity
-    case 'peVsSector':
+    case "peVsSector":
       return p.peVsSector ?? -Infinity
-    case 'evVsSector':
+    case "evVsSector":
       return p.evToEbitdaVsSector ?? -Infinity
-    case 'debtToEquity':
+    case "debtToEquity":
       return p.debtToEquity ?? -Infinity
-    case 'cashFlowQuality':
+    case "cashFlowQuality":
       return p.cashFlowQuality ?? -Infinity
-    case 'health':
-      return p.healthRating ?? ''
-    case 'valuation':
-      return p.valuationRating ?? ''
+    case "health":
+      return p.healthRating ?? ""
+    case "valuation":
+      return p.valuationRating ?? ""
   }
 }
 
 export function ValueWithNote({ value, note }: { value: ReactNode; note?: string }) {
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, justifyContent: 'flex-end' }}>
+    <span
+      style={{ display: "inline-flex", alignItems: "center", gap: 5, justifyContent: "flex-end" }}
+    >
       {value}
       {note && <InfoTooltip text={note} />}
     </span>
@@ -143,7 +162,7 @@ export function ValueWithNote({ value, note }: { value: ReactNode; note?: string
 // Cheap against the sector is good news, so the sign has to be inverted before
 // it is coloured: a negative gap is green here, unlike a negative return.
 function sectorColor(vsSector: number | undefined): string {
-  if (vsSector == null) return 'var(--text-2)'
+  if (vsSector == null) return "var(--text-2)"
   return themed(clr(vsSector, true))
 }
 
@@ -151,11 +170,22 @@ function sectorColor(vsSector: number | undefined): string {
 // with the number rather than being dropped.
 function peerNote(p: Position): string | undefined {
   if (p.sectorPeerCount == null || p.sectorPeerCount === 0) return undefined
-  return `Market-cap-weighted across ${p.sectorPeerCount} of the largest ${p.sector || 'sector'} companies.`
+  return `Market-cap-weighted across ${p.sectorPeerCount} of the largest ${p.sector || "sector"} companies.`
 }
 
-const cell: React.CSSProperties = { padding: '10px 14px', textAlign: 'right', fontFamily: "'DM Mono', monospace", fontSize: 13, color: 'var(--text-2)' }
-const pill: React.CSSProperties = { padding: '2px 7px', borderRadius: 4, fontSize: 11, fontWeight: 600 }
+const cell: React.CSSProperties = {
+  padding: "10px 14px",
+  textAlign: "right",
+  fontFamily: "'DM Mono', monospace",
+  fontSize: 13,
+  color: "var(--text-2)",
+}
+const pill: React.CSSProperties = {
+  padding: "2px 7px",
+  borderRadius: 4,
+  fontSize: 11,
+  fontWeight: 600,
+}
 
 // IndicatorCells renders one <td> per INDICATOR_COLUMNS entry, in the same
 // order, so a caller only has to emit the matching headers.
@@ -164,134 +194,231 @@ const pill: React.CSSProperties = { padding: '2px 7px', borderRadius: 4, fontSiz
 // sequence of <td>s no longer works — and driving cells from the same keys the
 // headers use is what keeps the two from drifting apart.
 const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
-  range: p => (
-    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+  range: (p) => (
+    <td style={{ padding: "10px 14px", textAlign: "right" }}>
       {p.weekLow52 != null && p.weekHigh52 != null && p.currentPrice != null ? (
-        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ display: "flex", justifyContent: "flex-end" }}>
           <RangeGauge low={p.weekLow52} high={p.weekHigh52} current={p.currentPrice} />
         </div>
       ) : (
-        <span style={{ color: 'var(--text-3)' }}>—</span>
+        <span style={{ color: "var(--text-3)" }}>—</span>
       )}
     </td>
   ),
-  pe: p => (
-    <td style={{ ...cell, color: sectorColor(p.peVsSector) }}>{p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : '—'}</td>
-  ),
-  forwardPe: p => <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : '—'}</td>,
-  today: p => (
-    <td style={{ ...cell, color: p.todayReturn != null ? themed(clr(p.todayReturn)) : 'var(--text-2)' }}>{p.todayReturn != null ? fmtPct(p.todayReturn) : '—'}</td>
-  ),
-  oneWeek: p => (
-    <td style={{ ...cell, color: p.oneWeekReturn != null ? themed(clr(p.oneWeekReturn)) : 'var(--text-2)' }}>{p.oneWeekReturn != null ? fmtPct(p.oneWeekReturn) : '—'}</td>
-  ),
-  oneMonth: p => (
-    <td style={{ ...cell, color: p.oneMonthReturn != null ? themed(clr(p.oneMonthReturn)) : 'var(--text-2)' }}>{p.oneMonthReturn != null ? fmtPct(p.oneMonthReturn) : '—'}</td>
-  ),
-  ytd: p => (
-    <td style={{ ...cell, color: p.ytdReturn != null ? themed(clr(p.ytdReturn)) : 'var(--text-2)' }}>{p.ytdReturn != null ? fmtPct(p.ytdReturn) : '—'}</td>
-  ),
-  threeYr: p => (
-    <td style={{ ...cell, color: p.threeYrReturn != null ? themed(clr(p.threeYrReturn)) : 'var(--text-2)' }}>
-      {p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : '—'}
+  pe: (p) => (
+    <td style={{ ...cell, color: sectorColor(p.peVsSector) }}>
+      {p.pe != null && p.pe > 0 ? fmt(p.pe, 1) : "—"}
     </td>
   ),
-  fiveYr: p => (
-    <td style={{ ...cell, color: p.fiveYrReturn != null ? themed(clr(p.fiveYrReturn)) : 'var(--text-2)' }}>
-      {p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : '—'}
+  forwardPe: (p) => (
+    <td style={cell}>{p.forwardPE != null && p.forwardPE > 0 ? fmt(p.forwardPE, 1) : "—"}</td>
+  ),
+  today: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.todayReturn != null ? themed(clr(p.todayReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.todayReturn != null ? fmtPct(p.todayReturn) : "—"}
     </td>
   ),
-  tenYr: p => (
-    <td style={{ ...cell, color: p.tenYrReturn != null ? themed(clr(p.tenYrReturn)) : 'var(--text-2)' }}>
-      {p.tenYrReturn != null ? fmtPct(p.tenYrReturn) : '—'}
+  oneWeek: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.oneWeekReturn != null ? themed(clr(p.oneWeekReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.oneWeekReturn != null ? fmtPct(p.oneWeekReturn) : "—"}
     </td>
   ),
-  fcf: p => (
-    <td style={{ ...cell, color: p.fcf != null ? themed(clr(p.fcf)) : 'var(--text-2)' }}>
-      <ValueWithNote value={p.fcf != null ? fmtKMBT(p.fcf) : '—'} note={p.fcfInterpretation} />
+  oneMonth: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.oneMonthReturn != null ? themed(clr(p.oneMonthReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.oneMonthReturn != null ? fmtPct(p.oneMonthReturn) : "—"}
     </td>
   ),
-  evToEbitda: p => (
+  ytd: (p) => (
+    <td
+      style={{ ...cell, color: p.ytdReturn != null ? themed(clr(p.ytdReturn)) : "var(--text-2)" }}
+    >
+      {p.ytdReturn != null ? fmtPct(p.ytdReturn) : "—"}
+    </td>
+  ),
+  threeYr: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.threeYrReturn != null ? themed(clr(p.threeYrReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.threeYrReturn != null ? fmtPct(p.threeYrReturn) : "—"}
+    </td>
+  ),
+  fiveYr: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.fiveYrReturn != null ? themed(clr(p.fiveYrReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.fiveYrReturn != null ? fmtPct(p.fiveYrReturn) : "—"}
+    </td>
+  ),
+  tenYr: (p) => (
+    <td
+      style={{
+        ...cell,
+        color: p.tenYrReturn != null ? themed(clr(p.tenYrReturn)) : "var(--text-2)",
+      }}
+    >
+      {p.tenYrReturn != null ? fmtPct(p.tenYrReturn) : "—"}
+    </td>
+  ),
+  fcf: (p) => (
+    <td style={{ ...cell, color: p.fcf != null ? themed(clr(p.fcf)) : "var(--text-2)" }}>
+      <ValueWithNote value={p.fcf != null ? fmtKMBT(p.fcf) : "—"} note={p.fcfInterpretation} />
+    </td>
+  ),
+  evToEbitda: (p) => (
     <td style={{ ...cell, color: sectorColor(p.evToEbitdaVsSector) }}>
-      <ValueWithNote value={p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : '—'} note={p.evToEbitdaInterpretation} />
+      <ValueWithNote
+        value={p.evToEbitda != null && p.evToEbitda !== 0 ? fmt(p.evToEbitda, 1) : "—"}
+        note={p.evToEbitdaInterpretation}
+      />
     </td>
   ),
-  analyst: p => {
+  analyst: (p) => {
     const tone = themed(analystColor(p.analystRating, p.analystScore))
     return (
-      <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+      <td style={{ padding: "10px 14px", textAlign: "right" }}>
         {p.analystRating ? (
-          <span style={{ display: 'inline-flex', alignItems: 'baseline', gap: 5, ...pill, background: alpha(tone, '22'), color: tone }}>
+          <span
+            style={{
+              display: "inline-flex",
+              alignItems: "baseline",
+              gap: 5,
+              ...pill,
+              background: alpha(tone, "22"),
+              color: tone,
+            }}
+          >
             {p.analystRating}
             {p.analystScore != null && p.analystScore > 0 && (
-              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, opacity: 0.85 }}>{fmt(p.analystScore, 1)}</span>
+              <span style={{ fontFamily: "'DM Mono', monospace", fontSize: 10, opacity: 0.85 }}>
+                {fmt(p.analystScore, 1)}
+              </span>
             )}
           </span>
         ) : (
-          <span style={{ color: 'var(--text-3)' }}>—</span>
+          <span style={{ color: "var(--text-3)" }}>—</span>
         )}
       </td>
     )
   },
-  sector: p => (
-    <td style={{ ...cell, textAlign: 'left', fontFamily: 'var(--font-sans)', fontSize: 11.5, color: p.sector ? 'var(--text-soft)' : 'var(--text-2)', whiteSpace: 'nowrap' }}>
-      {p.sector || '—'}
+  sector: (p) => (
+    <td
+      style={{
+        ...cell,
+        textAlign: "left",
+        fontFamily: "var(--font-sans)",
+        fontSize: 11.5,
+        color: p.sector ? "var(--text-soft)" : "var(--text-2)",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {p.sector || "—"}
     </td>
   ),
-  sectorPe: p => (
-    <td style={{ ...cell, color: 'var(--text-3)' }}>
-      <ValueWithNote value={p.sectorPe != null && p.sectorPe > 0 ? fmt(p.sectorPe, 1) : '—'} note={peerNote(p)} />
-    </td>
-  ),
-  peVsSector: p => (
-    <td style={{ ...cell, color: sectorColor(p.peVsSector), fontWeight: 600 }}>
-      {p.peVsSector != null ? fmtPct(p.peVsSector) : '—'}
-    </td>
-  ),
-  evVsSector: p => (
-    <td style={{ ...cell, color: sectorColor(p.evToEbitdaVsSector), fontWeight: 600 }}>
+  sectorPe: (p) => (
+    <td style={{ ...cell, color: "var(--text-3)" }}>
       <ValueWithNote
-        value={p.evToEbitdaVsSector != null ? fmtPct(p.evToEbitdaVsSector) : '—'}
-        note={p.sectorEvToEbitda != null && p.sectorEvToEbitda > 0 ? `Sector aggregate EV/EBITDA: ${fmt(p.sectorEvToEbitda, 1)}` : undefined}
+        value={p.sectorPe != null && p.sectorPe > 0 ? fmt(p.sectorPe, 1) : "—"}
+        note={peerNote(p)}
       />
     </td>
   ),
-  debtToEquity: p => (
-    <td style={cell}>
-      <ValueWithNote value={p.debtToEquity != null ? fmt(p.debtToEquity, 1) : '—'} note={p.debtToEquityInterpretation} />
+  peVsSector: (p) => (
+    <td style={{ ...cell, color: sectorColor(p.peVsSector), fontWeight: 600 }}>
+      {p.peVsSector != null ? fmtPct(p.peVsSector) : "—"}
     </td>
   ),
-  cashFlowQuality: p => (
-    <td style={cell}>
-      <ValueWithNote value={p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : '—'} note={p.cashFlowQualityInterpretation} />
+  evVsSector: (p) => (
+    <td style={{ ...cell, color: sectorColor(p.evToEbitdaVsSector), fontWeight: 600 }}>
+      <ValueWithNote
+        value={p.evToEbitdaVsSector != null ? fmtPct(p.evToEbitdaVsSector) : "—"}
+        note={
+          p.sectorEvToEbitda != null && p.sectorEvToEbitda > 0
+            ? `Sector aggregate EV/EBITDA: ${fmt(p.sectorEvToEbitda, 1)}`
+            : undefined
+        }
+      />
     </td>
   ),
-  health: p => (
-    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+  debtToEquity: (p) => (
+    <td style={cell}>
+      <ValueWithNote
+        value={p.debtToEquity != null ? fmt(p.debtToEquity, 1) : "—"}
+        note={p.debtToEquityInterpretation}
+      />
+    </td>
+  ),
+  cashFlowQuality: (p) => (
+    <td style={cell}>
+      <ValueWithNote
+        value={
+          p.cashFlowQuality != null && p.cashFlowQuality !== 0 ? fmt(p.cashFlowQuality, 2) : "—"
+        }
+        note={p.cashFlowQualityInterpretation}
+      />
+    </td>
+  ),
+  health: (p) => (
+    <td style={{ padding: "10px 14px", textAlign: "right" }}>
       <ValueWithNote
         value={
           p.healthRating ? (
-            <span style={{ ...pill, background: alpha(themed(HEALTH_COLORS[p.healthRating]) ?? 'var(--text-3)', '22'), color: themed(HEALTH_COLORS[p.healthRating]) ?? 'var(--text-3)' }}>
+            <span
+              style={{
+                ...pill,
+                background: alpha(themed(HEALTH_COLORS[p.healthRating]) ?? "var(--text-3)", "22"),
+                color: themed(HEALTH_COLORS[p.healthRating]) ?? "var(--text-3)",
+              }}
+            >
               {ratingLabel(p.healthRating)}
             </span>
           ) : (
-            <span style={{ color: 'var(--text-3)' }}>—</span>
+            <span style={{ color: "var(--text-3)" }}>—</span>
           )
         }
         note={p.healthReason}
       />
     </td>
   ),
-  valuation: p => (
-    <td style={{ padding: '10px 14px', textAlign: 'right' }}>
+  valuation: (p) => (
+    <td style={{ padding: "10px 14px", textAlign: "right" }}>
       <ValueWithNote
         value={
           p.valuationRating ? (
-            <span style={{ ...pill, background: alpha(themed(VALUATION_COLORS[p.valuationRating]) ?? 'var(--text-3)', '22'), color: themed(VALUATION_COLORS[p.valuationRating]) ?? 'var(--text-3)' }}>
+            <span
+              style={{
+                ...pill,
+                background: alpha(
+                  themed(VALUATION_COLORS[p.valuationRating]) ?? "var(--text-3)",
+                  "22",
+                ),
+                color: themed(VALUATION_COLORS[p.valuationRating]) ?? "var(--text-3)",
+              }}
+            >
               {ratingLabel(p.valuationRating)}
             </span>
           ) : (
-            <span style={{ color: 'var(--text-3)' }}>—</span>
+            <span style={{ color: "var(--text-3)" }}>—</span>
           )
         }
         note={p.valuationReason}
@@ -302,10 +429,10 @@ const INDICATOR_CELLS: Record<IndicatorKey, (p: Position) => ReactNode> = {
 
 // keys defaults to every indicator, in INDICATOR_COLUMNS order.
 export function IndicatorCells({ p, keys }: { p: Position; keys?: IndicatorKey[] }) {
-  const render = keys ?? INDICATOR_COLUMNS.map(c => c.key)
+  const render = keys ?? INDICATOR_COLUMNS.map((c) => c.key)
   return (
     <>
-      {render.map(key => (
+      {render.map((key) => (
         <Fragment key={key}>{INDICATOR_CELLS[key](p)}</Fragment>
       ))}
     </>

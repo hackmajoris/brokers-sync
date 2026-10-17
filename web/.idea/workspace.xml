@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="PropertiesComponent">
+    <![CDATA[{
+  "keyToString": {
+    "javascript.preferred.runtime.type.id": "node",
+    "nodejs_interpreter_path": "/Users/hackmajoris/.local/share/vite-plus/bin/node",
+    "nodejs_package_manager_path": "npm"
+  }
+}]]>
+  </component>
+</project>

@@ -1,16 +1,16 @@
-import { useState } from 'react'
-import type { Candle } from '../../services/portfolioService'
-import { fmt } from '../../utils/format'
-import { alpha } from '../../lib/theme'
+import { useState } from "react"
+import type { Candle } from "../../services/portfolioService"
+import { fmt } from "../../utils/format"
+import { alpha } from "../../lib/theme"
 
 interface Props {
   candles: Candle[]
   ma?: (number | null)[]
 }
 
-const UP = '#34d399'
-const DOWN = '#f87171'
-const MA_COLOR = '#60a5fa'
+const UP = "#34d399"
+const DOWN = "#f87171"
+const MA_COLOR = "#60a5fa"
 
 const W = 900
 const H = 260
@@ -24,7 +24,11 @@ export function Candlestick({ candles, ma }: Props) {
   const [hover, setHover] = useState<number | null>(null)
 
   if (candles.length === 0) {
-    return <div style={{ color: 'var(--text-3)', fontSize: 13, padding: '30px 0', textAlign: 'center' }}>No history available</div>
+    return (
+      <div style={{ color: "var(--text-3)", fontSize: 13, padding: "30px 0", textAlign: "center" }}>
+        No history available
+      </div>
+    )
   }
 
   const plotW = W - PAD_L - PAD_R
@@ -55,12 +59,21 @@ export function Candlestick({ candles, ma }: Props) {
   const y = (p: number) => PAD_T + (1 - (p - lo) / (hi - lo)) * plotH
 
   const priceTicks = 4
-  const yLabels = Array.from({ length: priceTicks + 1 }, (_, k) => lo + ((hi - lo) * k) / priceTicks)
+  const yLabels = Array.from(
+    { length: priceTicks + 1 },
+    (_, k) => lo + ((hi - lo) * k) / priceTicks,
+  )
 
   const dateTicks = Math.min(5, n)
   const xLabels = Array.from({ length: dateTicks }, (_, k) => {
     const i = Math.round((k * (n - 1)) / Math.max(1, dateTicks - 1))
-    return { i, label: new Date(candles[i].t * 1000).toLocaleDateString('en-US', { month: 'short', year: '2-digit' }) }
+    return {
+      i,
+      label: new Date(candles[i].t * 1000).toLocaleDateString("en-US", {
+        month: "short",
+        year: "2-digit",
+      }),
+    }
   })
 
   function onMove(e: React.MouseEvent<SVGSVGElement>) {
@@ -76,22 +89,47 @@ export function Candlestick({ candles, ma }: Props) {
   const flip = leftPct > 55
 
   return (
-    <div style={{ position: 'relative' }}>
+    <div style={{ position: "relative" }}>
       <svg
         viewBox={`0 0 ${W} ${H}`}
-        style={{ width: '100%', height: 'auto', display: 'block' }}
+        style={{ width: "100%", height: "auto", display: "block" }}
         preserveAspectRatio="none"
         onMouseMove={onMove}
         onMouseLeave={() => setHover(null)}
       >
         {yLabels.map((p, k) => (
           <g key={k}>
-            <line x1={PAD_L} x2={W - PAD_R} y1={y(p)} y2={y(p)} style={{ stroke: 'var(--line)' }} strokeWidth={1} />
-            <text x={W - PAD_R + 5} y={y(p) + 3} style={{ fill: 'var(--text-3)' }} fontSize={10} fontFamily="'DM Mono', monospace">{fmt(p, p >= 100 ? 0 : 1)}</text>
+            <line
+              x1={PAD_L}
+              x2={W - PAD_R}
+              y1={y(p)}
+              y2={y(p)}
+              style={{ stroke: "var(--line)" }}
+              strokeWidth={1}
+            />
+            <text
+              x={W - PAD_R + 5}
+              y={y(p) + 3}
+              style={{ fill: "var(--text-3)" }}
+              fontSize={10}
+              fontFamily="'DM Mono', monospace"
+            >
+              {fmt(p, p >= 100 ? 0 : 1)}
+            </text>
           </g>
         ))}
         {xLabels.map((t, k) => (
-          <text key={k} x={x(t.i)} y={H - 6} style={{ fill: 'var(--text-3)' }} fontSize={10} textAnchor="middle" fontFamily="'DM Mono', monospace">{t.label}</text>
+          <text
+            key={k}
+            x={x(t.i)}
+            y={H - 6}
+            style={{ fill: "var(--text-3)" }}
+            fontSize={10}
+            textAnchor="middle"
+            fontFamily="'DM Mono', monospace"
+          >
+            {t.label}
+          </text>
         ))}
         {candles.map((c, i) => {
           const up = c.c >= c.o
@@ -108,21 +146,55 @@ export function Candlestick({ candles, ma }: Props) {
             </g>
           )
         })}
-        {ma && (() => {
-          const pts = ma.map((m, i) => (m == null ? null : `${x(i)},${y(m)}`)).filter(Boolean).join(' ')
-          if (!pts) return null
-          return (
-            <>
-              <polyline points={pts} fill="none" stroke={MA_COLOR} strokeWidth={1.5} strokeLinejoin="round" />
-              <g>
-                <line x1={PAD_L} x2={PAD_L + 18} y1={PAD_T + 4} y2={PAD_T + 4} stroke={MA_COLOR} strokeWidth={1.5} />
-                <text x={PAD_L + 23} y={PAD_T + 7} fill={MA_COLOR} fontSize={10} fontFamily="'DM Mono', monospace">21W MA</text>
-              </g>
-            </>
-          )
-        })()}
+        {ma &&
+          (() => {
+            const pts = ma
+              .map((m, i) => (m == null ? null : `${x(i)},${y(m)}`))
+              .filter(Boolean)
+              .join(" ")
+            if (!pts) return null
+            return (
+              <>
+                <polyline
+                  points={pts}
+                  fill="none"
+                  stroke={MA_COLOR}
+                  strokeWidth={1.5}
+                  strokeLinejoin="round"
+                />
+                <g>
+                  <line
+                    x1={PAD_L}
+                    x2={PAD_L + 18}
+                    y1={PAD_T + 4}
+                    y2={PAD_T + 4}
+                    stroke={MA_COLOR}
+                    strokeWidth={1.5}
+                  />
+                  <text
+                    x={PAD_L + 23}
+                    y={PAD_T + 7}
+                    fill={MA_COLOR}
+                    fontSize={10}
+                    fontFamily="'DM Mono', monospace"
+                  >
+                    21W MA
+                  </text>
+                </g>
+              </>
+            )
+          })()}
         {hc && (
-          <line x1={x(hover!)} x2={x(hover!)} y1={PAD_T} y2={H - PAD_B} style={{ stroke: 'var(--text-3)' }} strokeWidth={1} strokeDasharray="3 3" pointerEvents="none" />
+          <line
+            x1={x(hover!)}
+            x2={x(hover!)}
+            y1={PAD_T}
+            y2={H - PAD_B}
+            style={{ stroke: "var(--text-3)" }}
+            strokeWidth={1}
+            strokeDasharray="3 3"
+            pointerEvents="none"
+          />
         )}
         {(() => {
           const last = candles[n - 1]
@@ -131,9 +203,33 @@ export function Candlestick({ candles, ma }: Props) {
           const ly = y(last.c)
           return (
             <g pointerEvents="none">
-              <line x1={PAD_L} x2={W - PAD_R} y1={ly} y2={ly} stroke={color} strokeWidth={1} strokeDasharray="4 4" opacity={0.6} />
-              <rect x={W - PAD_R + 2} y={ly - 8} width={PAD_R - 4} height={16} rx={3} fill={color} />
-              <text x={W - PAD_R + 2 + (PAD_R - 4) / 2} y={ly + 4} fill="#0a0a0a" fontSize={10} fontWeight={700} textAnchor="middle" fontFamily="'DM Mono', monospace">
+              <line
+                x1={PAD_L}
+                x2={W - PAD_R}
+                y1={ly}
+                y2={ly}
+                stroke={color}
+                strokeWidth={1}
+                strokeDasharray="4 4"
+                opacity={0.6}
+              />
+              <rect
+                x={W - PAD_R + 2}
+                y={ly - 8}
+                width={PAD_R - 4}
+                height={16}
+                rx={3}
+                fill={color}
+              />
+              <text
+                x={W - PAD_R + 2 + (PAD_R - 4) / 2}
+                y={ly + 4}
+                fill="#0a0a0a"
+                fontSize={10}
+                fontWeight={700}
+                textAnchor="middle"
+                fontFamily="'DM Mono', monospace"
+              >
                 {fmt(last.c, last.c >= 100 ? 0 : 1)}
               </text>
             </g>
@@ -144,28 +240,43 @@ export function Candlestick({ candles, ma }: Props) {
       {hc && (
         <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 6,
             left: `${leftPct}%`,
-            transform: flip ? 'translateX(calc(-100% - 10px))' : 'translateX(10px)',
-            pointerEvents: 'none',
-            background: alpha('var(--surface)', 'ee'),
-            border: '1px solid var(--border-2)',
+            transform: flip ? "translateX(calc(-100% - 10px))" : "translateX(10px)",
+            pointerEvents: "none",
+            background: alpha("var(--surface)", "ee"),
+            border: "1px solid var(--border-2)",
             borderRadius: 6,
-            padding: '6px 8px',
+            padding: "6px 8px",
             fontSize: 11,
             fontFamily: "'DM Mono', monospace",
-            whiteSpace: 'nowrap',
-            color: 'var(--text-2)',
+            whiteSpace: "nowrap",
+            color: "var(--text-2)",
           }}
         >
-          <div style={{ color: 'var(--text-faint)', marginBottom: 3 }}>{new Date(hc.t * 1000).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'auto auto', gap: '1px 10px' }}>
-            <span style={{ color: 'var(--text-3)' }}>O</span><span>{fmt(hc.o)}</span>
-            <span style={{ color: 'var(--text-3)' }}>H</span><span>{fmt(hc.h)}</span>
-            <span style={{ color: 'var(--text-3)' }}>L</span><span>{fmt(hc.l)}</span>
-            <span style={{ color: 'var(--text-3)' }}>C</span><span style={{ color: hc.c >= hc.o ? UP : DOWN }}>{fmt(hc.c)}</span>
-            {hMa != null && (<><span style={{ color: MA_COLOR }}>MA</span><span style={{ color: MA_COLOR }}>{fmt(hMa)}</span></>)}
+          <div style={{ color: "var(--text-faint)", marginBottom: 3 }}>
+            {new Date(hc.t * 1000).toLocaleDateString("en-US", {
+              month: "short",
+              day: "numeric",
+              year: "numeric",
+            })}
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "auto auto", gap: "1px 10px" }}>
+            <span style={{ color: "var(--text-3)" }}>O</span>
+            <span>{fmt(hc.o)}</span>
+            <span style={{ color: "var(--text-3)" }}>H</span>
+            <span>{fmt(hc.h)}</span>
+            <span style={{ color: "var(--text-3)" }}>L</span>
+            <span>{fmt(hc.l)}</span>
+            <span style={{ color: "var(--text-3)" }}>C</span>
+            <span style={{ color: hc.c >= hc.o ? UP : DOWN }}>{fmt(hc.c)}</span>
+            {hMa != null && (
+              <>
+                <span style={{ color: MA_COLOR }}>MA</span>
+                <span style={{ color: MA_COLOR }}>{fmt(hMa)}</span>
+              </>
+            )}
           </div>
         </div>
       )}

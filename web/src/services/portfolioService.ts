@@ -9,7 +9,7 @@ import type {
   YearStat,
   PeriodSummary,
   DividendBySymbol,
-} from '../types/portfolio'
+} from "../types/portfolio"
 
 function mapPeriod(p: RawPeriod): PeriodSummary {
   return {
@@ -122,7 +122,12 @@ function mapYearStat(p: RawPeriod): YearStat {
   }
 }
 
-function mapDividend(d: { symbol: string; gross: number; tax_withheld: number; net: number }): DividendBySymbol {
+function mapDividend(d: {
+  symbol: string
+  gross: number
+  tax_withheld: number
+  net: number
+}): DividendBySymbol {
   return { symbol: d.symbol, gross: d.gross, taxWithheld: d.tax_withheld, net: d.net }
 }
 
@@ -152,10 +157,14 @@ function mapBroker(b: RawBroker): BrokerData {
   }
 }
 
-const CACHE_KEY = 'brokers-sync:portfolio'
+const CACHE_KEY = "brokers-sync:portfolio"
 
 export function cacheRawPortfolio(raw: RawPortfolio): void {
-  try { localStorage.setItem(CACHE_KEY, JSON.stringify(raw)) } catch { /* quota exceeded */ }
+  try {
+    localStorage.setItem(CACHE_KEY, JSON.stringify(raw))
+  } catch {
+    /* quota exceeded */
+  }
 }
 
 export function loadCachedPortfolio(): PortfolioData | null {
@@ -163,7 +172,9 @@ export function loadCachedPortfolio(): PortfolioData | null {
     const raw = localStorage.getItem(CACHE_KEY)
     if (!raw) return null
     return mapRawPortfolio(JSON.parse(raw) as RawPortfolio)
-  } catch { return null }
+  } catch {
+    return null
+  }
 }
 
 export async function uploadZip(
@@ -176,29 +187,39 @@ export async function uploadZip(
   if (blob.size === 0) throw new Error(`${name} is empty — re-upload the ZIP file`)
 
   const fd = new FormData()
-  fd.append('file', blob, name)
-  const res = await fetch('/api/upload/zip', { method: 'POST', body: fd })
+  fd.append("file", blob, name)
+  const res = await fetch("/api/upload/zip", { method: "POST", body: fd })
   if (!res.ok || !res.body) throw new Error(`Server returned ${res.status} ${res.statusText}`)
 
   const reader = res.body.getReader()
   const decoder = new TextDecoder()
-  let buf = ''
+  let buf = ""
 
   while (true) {
     const { done, value } = await reader.read()
     if (done) break
     buf += decoder.decode(value, { stream: true })
-    const parts = buf.split('\n\n')
-    buf = parts.pop() ?? ''
+    const parts = buf.split("\n\n")
+    buf = parts.pop() ?? ""
     for (const part of parts) {
-      const dataLine = part.split('\n').find(l => l.startsWith('data: '))
+      const dataLine = part.split("\n").find((l) => l.startsWith("data: "))
       if (!dataLine) continue
-      let ev: { type: string; line?: string; success?: boolean; report?: unknown; error?: string } | null = null
-      try { ev = JSON.parse(dataLine.slice(6)) } catch { /* ignore malformed */ }
+      let ev: {
+        type: string
+        line?: string
+        success?: boolean
+        report?: unknown
+        error?: string
+      } | null = null
+      try {
+        ev = JSON.parse(dataLine.slice(6))
+      } catch {
+        /* ignore malformed */
+      }
       if (!ev) continue
-      if (ev.type === 'log' && ev.line != null) onLog?.(ev.line)
-      else if (ev.type === 'done') {
-        if (!ev.success) throw new Error(ev.error ?? 'Import failed')
+      if (ev.type === "log" && ev.line != null) onLog?.(ev.line)
+      else if (ev.type === "done") {
+        if (!ev.success) throw new Error(ev.error ?? "Import failed")
         return ev.report ? (ev.report as RawPortfolio) : null
       }
     }
@@ -214,11 +235,14 @@ export interface TickerSearchResult {
 }
 
 // searchSymbols hits the backend Yahoo-search proxy for the autocomplete dropdown.
-export async function searchSymbols(query: string, signal?: AbortSignal): Promise<TickerSearchResult[]> {
+export async function searchSymbols(
+  query: string,
+  signal?: AbortSignal,
+): Promise<TickerSearchResult[]> {
   const res = await fetch(`/api/search?q=${encodeURIComponent(query)}`, { signal })
   if (!res.ok) throw new Error(`Search failed (${res.status})`)
-  const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) throw new Error('Search unavailable')
+  const ct = res.headers.get("content-type") ?? ""
+  if (!ct.includes("application/json")) throw new Error("Search unavailable")
   return (await res.json()) as TickerSearchResult[]
 }
 
@@ -231,8 +255,8 @@ export interface NewsItem {
 export async function fetchNews(symbol: string, signal?: AbortSignal): Promise<NewsItem[]> {
   const res = await fetch(`/api/news/${encodeURIComponent(symbol)}`, { signal })
   if (!res.ok) throw new Error(`News failed (${res.status})`)
-  const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) throw new Error('News unavailable')
+  const ct = res.headers.get("content-type") ?? ""
+  if (!ct.includes("application/json")) throw new Error("News unavailable")
   return (await res.json()) as NewsItem[]
 }
 
@@ -251,11 +275,19 @@ export interface HistoryData {
 }
 
 // fetchHistory fetches OHLC candles + the aligned 21-week MA for the lookup chart.
-export async function fetchHistory(symbol: string, range: string, interval: string, signal?: AbortSignal): Promise<HistoryData> {
-  const res = await fetch(`/api/history/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`, { signal })
+export async function fetchHistory(
+  symbol: string,
+  range: string,
+  interval: string,
+  signal?: AbortSignal,
+): Promise<HistoryData> {
+  const res = await fetch(
+    `/api/history/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`,
+    { signal },
+  )
   if (!res.ok) throw new Error(`History failed (${res.status})`)
-  const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) throw new Error('History unavailable')
+  const ct = res.headers.get("content-type") ?? ""
+  if (!ct.includes("application/json")) throw new Error("History unavailable")
   const data = (await res.json()) as HistoryData
   return { candles: data.candles ?? [], ma: data.ma ?? [] }
 }
@@ -267,23 +299,22 @@ export async function fetchTicker(symbol: string): Promise<Position> {
     if (res.status === 404) throw new Error(`No data found for "${symbol}"`)
     throw new Error(`Lookup failed (${res.status})`)
   }
-  const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) throw new Error('Lookup unavailable')
+  const ct = res.headers.get("content-type") ?? ""
+  if (!ct.includes("application/json")) throw new Error("Lookup unavailable")
   return mapPosition((await res.json()) as RawPosition)
 }
 
 export async function fetchPortfolioData(): Promise<PortfolioData | null> {
-  const res = await fetch('/data/result.json')
+  const res = await fetch("/data/result.json")
   if (!res.ok) return loadCachedPortfolio()
   // CloudFront maps 403/404 to index.html (200) — guard against parsing HTML as JSON
-  const ct = res.headers.get('content-type') ?? ''
-  if (!ct.includes('application/json')) return loadCachedPortfolio()
+  const ct = res.headers.get("content-type") ?? ""
+  if (!ct.includes("application/json")) return loadCachedPortfolio()
   const raw: RawPortfolio = await res.json()
   return mapRawPortfolio(raw)
 }
 
 export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
-
   const topRPnlMap = new Map<string, number>()
   for (const b of raw.brokers) {
     for (const r of b.realized_pnl_by_symbol) {
@@ -294,9 +325,7 @@ export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
     .map(([symbol, pnl]) => ({ symbol, pnl }))
     .sort((a, b) => b.pnl - a.pnl)
 
-  const topDivs = raw.dividends_by_symbol
-    .map(mapDividend)
-    .sort((a, b) => b.net - a.net)
+  const topDivs = raw.dividends_by_symbol.map(mapDividend).sort((a, b) => b.net - a.net)
 
   return {
     generatedAt: raw.generated_at,
@@ -310,7 +339,10 @@ export function mapRawPortfolio(raw: RawPortfolio): PortfolioData {
     openPositions: raw.open_positions.map(mapPosition),
     topRPnl,
     topDivs,
-    divsByMonth: (raw.dividends_by_month ?? []).map(m => ({ label: m.label, divs: m.dividends_net })),
+    divsByMonth: (raw.dividends_by_month ?? []).map((m) => ({
+      label: m.label,
+      divs: m.dividends_net,
+    })),
     transactions: raw.transactions ?? [],
   }
 }

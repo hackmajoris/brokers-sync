@@ -1,39 +1,44 @@
-import { useState, useEffect } from 'react'
-import type { PortfolioData } from './types/portfolio'
-import { fetchPortfolioData, uploadZip, mapRawPortfolio, cacheRawPortfolio } from './services/portfolioService'
-import { loadMockPortfolio } from './services/mockService'
-import { loadCachedZip } from './services/zipCache'
-import { ACCENT_DEFAULT } from './constants'
-import { OverviewTab } from './tabs/OverviewTab'
-import { BrokersTab } from './tabs/BrokersTab'
-import { PositionsTab } from './tabs/PositionsTab'
-import { TradesTab } from './tabs/TradesTab'
-import { PnLTab } from './tabs/PnLTab'
-import { DividendsTab } from './tabs/DividendsTab'
-import { SettingsView } from './views/SettingsView'
-import { StockLookup } from './components/StockLookup'
-import { SectionLabel } from './components/ui/SectionLabel'
+import { useState, useEffect } from "react"
+import type { PortfolioData } from "./types/portfolio"
+import {
+  fetchPortfolioData,
+  uploadZip,
+  mapRawPortfolio,
+  cacheRawPortfolio,
+} from "./services/portfolioService"
+import { loadMockPortfolio } from "./services/mockService"
+import { loadCachedZip } from "./services/zipCache"
+import { ACCENT_DEFAULT } from "./constants"
+import { OverviewTab } from "./tabs/OverviewTab"
+import { BrokersTab } from "./tabs/BrokersTab"
+import { PositionsTab } from "./tabs/PositionsTab"
+import { TradesTab } from "./tabs/TradesTab"
+import { PnLTab } from "./tabs/PnLTab"
+import { DividendsTab } from "./tabs/DividendsTab"
+import { SettingsView } from "./views/SettingsView"
+import { StockLookup } from "./components/StockLookup"
+import { SectionLabel } from "./components/ui/SectionLabel"
 
-const WATCHLIST_APP_URL = 'https://watchlist.dot-core.com'
+const WATCHLIST_APP_URL = "https://watchlist.dot-core.com"
 
 const TABS = [
-  { id: 'overview', label: 'Overview' },
-  { id: 'brokers', label: 'Brokers' },
-  { id: 'positions', label: 'Positions' },
-  { id: 'trades', label: 'Trades' },
-  { id: 'pnl', label: 'P&L' },
-  { id: 'dividends', label: 'Dividends' },
-  { id: 'watchlist', label: 'Watchlist' },
-  { id: 'settings', label: 'Settings' },
+  { id: "overview", label: "Overview" },
+  { id: "brokers", label: "Brokers" },
+  { id: "positions", label: "Positions" },
+  { id: "trades", label: "Trades" },
+  { id: "pnl", label: "P&L" },
+  { id: "dividends", label: "Dividends" },
+  { id: "watchlist", label: "Watchlist" },
+  { id: "settings", label: "Settings" },
 ] as const
 
-type TabId = (typeof TABS)[number]['id']
+type TabId = (typeof TABS)[number]["id"]
 
 // Tabs are addressable as /overview, /watchlist and so on. CloudFront maps 404
 // to index.html and the Go server falls back the same way, so deep links work.
 function tabFromPath(): TabId {
-  const slug = window.location.pathname.replace(/^\/+|\/+$/g, '')
-  return TABS.some(t => t.id === slug) ? (slug as TabId) : 'overview'
+  const slug = window.location.pathname.replace(/^\/+|\/+$/g, "")
+  return TABS.some((t) => t.id === slug) ? (slug as TabId) : "overview"
 }
 
 export function App() {
@@ -49,13 +54,13 @@ export function App() {
   // Keep the URL and the back button in step with the visible tab.
   useEffect(() => {
     const path = `/${activeTab}`
-    if (window.location.pathname !== path) window.history.pushState({}, '', path)
+    if (window.location.pathname !== path) window.history.pushState({}, "", path)
   }, [activeTab])
 
   useEffect(() => {
     const onPop = () => setActiveTab(tabFromPath())
-    window.addEventListener('popstate', onPop)
-    return () => window.removeEventListener('popstate', onPop)
+    window.addEventListener("popstate", onPop)
+    return () => window.removeEventListener("popstate", onPop)
   }, [])
 
   useEffect(() => {
@@ -64,7 +69,11 @@ export function App() {
       if (cached) {
         // Show cached JSON immediately, then refresh in background
         const initial = await fetchPortfolioData().catch(() => null)
-        if (initial) setData(initial); else { setNoData(true); setActiveTab('settings') }
+        if (initial) setData(initial)
+        else {
+          setNoData(true)
+          setActiveTab("settings")
+        }
 
         setRefreshing(true)
         try {
@@ -77,7 +86,7 @@ export function App() {
           }
         } catch (err) {
           // Background refresh failed — the data shown above is stale, not fresh.
-          setRefreshError(err instanceof Error ? err.message : 'Background refresh failed')
+          setRefreshError(err instanceof Error ? err.message : "Background refresh failed")
         }
         setRefreshing(false)
       } else {
@@ -90,79 +99,168 @@ export function App() {
         }
       }
     }
-    init()
+    void init()
   }, [])
 
   const generatedDate = data
-    ? new Date(data.generatedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : '…'
-  const buildDate = new Date(__BUILD_DATE__).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
+    ? new Date(data.generatedAt).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+      })
+    : "…"
+  const buildDate = new Date(__BUILD_DATE__).toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  })
 
   return (
-    <div style={{ minHeight: '100vh', background: '#000000', color: '#ffffff' }}>
+    <div style={{ minHeight: "100vh", background: "#000000", color: "#ffffff" }}>
       {/* Header */}
-      <header style={{ background: '#0a0a0a', borderBottom: '1px solid #161f31', padding: '0 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', height: 52, position: 'sticky', top: 0, zIndex: 10, gap: 8 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+      <header
+        style={{
+          background: "#0a0a0a",
+          borderBottom: "1px solid #161f31",
+          padding: "0 16px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          height: 52,
+          position: "sticky",
+          top: 0,
+          zIndex: 10,
+          gap: 8,
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           <button
             className="mobile-nav-toggle"
             onClick={() => setDrawerOpen(true)}
             aria-label="Open menu"
             aria-expanded={drawerOpen}
             style={{
-              background: 'transparent', border: 'none', color: '#c0c0c0',
-              padding: 6, marginRight: 2, cursor: 'pointer', display: 'none',
-              alignItems: 'center', justifyContent: 'center',
+              background: "transparent",
+              border: "none",
+              color: "#c0c0c0",
+              padding: 6,
+              marginRight: 2,
+              cursor: "pointer",
+              display: "none",
+              alignItems: "center",
+              justifyContent: "center",
             }}
           >
             <svg width="20" height="20" viewBox="0 0 20 20" fill="none" aria-hidden="true">
-              <path d="M3 5h14M3 10h14M3 15h14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+              <path
+                d="M3 5h14M3 10h14M3 15h14"
+                stroke="currentColor"
+                strokeWidth="1.7"
+                strokeLinecap="round"
+              />
             </svg>
           </button>
-          <div style={{ width: 28, height: 28, borderRadius: 7, background: `linear-gradient(135deg, ${accent}cc, ${accent}44)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, fontWeight: 700, color: 'white', flexShrink: 0 }}>B</div>
-          <span style={{ fontWeight: 600, fontSize: 15, letterSpacing: '-0.02em', whiteSpace: 'nowrap' }}>broker<span style={{ color: accent }}>sync</span></span>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 7,
+              background: `linear-gradient(135deg, ${accent}cc, ${accent}44)`,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 700,
+              color: "white",
+              flexShrink: 0,
+            }}
+          >
+            B
+          </div>
+          <span
+            style={{
+              fontWeight: 600,
+              fontSize: 15,
+              letterSpacing: "-0.02em",
+              whiteSpace: "nowrap",
+            }}
+          >
+            broker<span style={{ color: accent }}>sync</span>
+          </span>
         </div>
-        <nav className="desktop-nav" style={{ display: 'flex', gap: 2, overflowX: 'auto', flexShrink: 1, minWidth: 0 }}>
-          {TABS.map(t => (
+        <nav
+          className="desktop-nav"
+          style={{ display: "flex", gap: 2, overflowX: "auto", flexShrink: 1, minWidth: 0 }}
+        >
+          {TABS.map((t) => (
             <button
               key={t.id}
               onClick={() => setActiveTab(t.id)}
               style={{
-                background: activeTab === t.id ? accent + '22' : 'transparent',
-                border: activeTab === t.id ? `1px solid ${accent}55` : '1px solid transparent',
-                color: activeTab === t.id ? accent : '#888888',
-                padding: '4px 10px', borderRadius: 6, fontSize: 12, fontWeight: 500, cursor: 'pointer',
-                transition: 'all 0.15s', whiteSpace: 'nowrap', flexShrink: 0,
+                background: activeTab === t.id ? accent + "22" : "transparent",
+                border: activeTab === t.id ? `1px solid ${accent}55` : "1px solid transparent",
+                color: activeTab === t.id ? accent : "#888888",
+                padding: "4px 10px",
+                borderRadius: 6,
+                fontSize: 12,
+                fontWeight: 500,
+                cursor: "pointer",
+                transition: "all 0.15s",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
-            >{t.label}</button>
+            >
+              {t.label}
+            </button>
           ))}
         </nav>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, flexShrink: 0 }}>
           {refreshError && (
             <span
               title={refreshError}
               style={{
-                fontSize: 10, fontWeight: 700, letterSpacing: '0.04em',
-                background: '#f8717122', border: '1px solid #f8717155',
-                color: '#f87171', borderRadius: 4, padding: '2px 7px',
-                userSelect: 'none', cursor: 'help',
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.04em",
+                background: "#f8717122",
+                border: "1px solid #f8717155",
+                color: "#f87171",
+                borderRadius: 4,
+                padding: "2px 7px",
+                userSelect: "none",
+                cursor: "help",
               }}
-            >STALE DATA — refresh failed</span>
+            >
+              STALE DATA — refresh failed
+            </span>
           )}
           {isDemo && (
-            <span style={{
-              fontSize: 10, fontWeight: 700, letterSpacing: '0.08em',
-              background: '#f59e0b22', border: '1px solid #f59e0b55',
-              color: '#f59e0b', borderRadius: 4, padding: '2px 7px',
-              userSelect: 'none',
-            }}>DEMO</span>
+            <span
+              style={{
+                fontSize: 10,
+                fontWeight: 700,
+                letterSpacing: "0.08em",
+                background: "#f59e0b22",
+                border: "1px solid #f59e0b55",
+                color: "#f59e0b",
+                borderRadius: 4,
+                padding: "2px 7px",
+                userSelect: "none",
+              }}
+            >
+              DEMO
+            </span>
           )}
-          <div style={{ fontSize: 11, color: '#8b8fa3' }} className="date-label">
-            {refreshing
-              ? <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
-              : <>As of <span style={{ color: '#c0c0c0' }}>{generatedDate}</span></>
-            }
+          <div style={{ fontSize: 11, color: "#8b8fa3" }} className="date-label">
+            {refreshing ? (
+              <span style={{ color: accent, opacity: 0.7 }}>Refreshing…</span>
+            ) : (
+              <>
+                As of <span style={{ color: "#c0c0c0" }}>{generatedDate}</span>
+              </>
+            )}
           </div>
-          <div style={{ fontSize: 10, color: '#3a3a3a' }} className="date-label">
+          <div style={{ fontSize: 10, color: "#3a3a3a" }} className="date-label">
             build: {buildDate}
           </div>
         </div>
@@ -178,79 +276,142 @@ export function App() {
           />
           <aside className="mobile-drawer" role="dialog" aria-label="Navigation">
             <div className="mobile-drawer-header">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <div style={{ width: 24, height: 24, borderRadius: 6, background: `linear-gradient(135deg, ${accent}cc, ${accent}44)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700, color: 'white' }}>B</div>
-                <span style={{ fontWeight: 600, fontSize: 14, letterSpacing: '-0.02em' }}>broker<span style={{ color: accent }}>sync</span></span>
+              <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                <div
+                  style={{
+                    width: 24,
+                    height: 24,
+                    borderRadius: 6,
+                    background: `linear-gradient(135deg, ${accent}cc, ${accent}44)`,
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    color: "white",
+                  }}
+                >
+                  B
+                </div>
+                <span style={{ fontWeight: 600, fontSize: 14, letterSpacing: "-0.02em" }}>
+                  broker<span style={{ color: accent }}>sync</span>
+                </span>
               </div>
               <button
                 onClick={() => setDrawerOpen(false)}
                 aria-label="Close menu"
                 style={{
-                  background: 'transparent', border: 'none', color: '#888',
-                  padding: 6, cursor: 'pointer', display: 'flex',
-                  alignItems: 'center', justifyContent: 'center',
+                  background: "transparent",
+                  border: "none",
+                  color: "#888",
+                  padding: 6,
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
                 }}
               >
                 <svg width="18" height="18" viewBox="0 0 18 18" fill="none" aria-hidden="true">
-                  <path d="M4 4l10 10M14 4L4 14" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round"/>
+                  <path
+                    d="M4 4l10 10M14 4L4 14"
+                    stroke="currentColor"
+                    strokeWidth="1.7"
+                    strokeLinecap="round"
+                  />
                 </svg>
               </button>
             </div>
             <nav className="mobile-drawer-nav">
-              {TABS.map(t => (
+              {TABS.map((t) => (
                 <button
                   key={t.id}
-                  onClick={() => { setActiveTab(t.id); setDrawerOpen(false) }}
-                  style={{
-                    background: activeTab === t.id ? accent + '22' : 'transparent',
-                    border: activeTab === t.id ? `1px solid ${accent}55` : '1px solid transparent',
-                    color: activeTab === t.id ? accent : '#c0c0c0',
-                    padding: '10px 12px', borderRadius: 8, fontSize: 14, fontWeight: 500,
-                    cursor: 'pointer', textAlign: 'left', width: '100%',
+                  onClick={() => {
+                    setActiveTab(t.id)
+                    setDrawerOpen(false)
                   }}
-                >{t.label}</button>
+                  style={{
+                    background: activeTab === t.id ? accent + "22" : "transparent",
+                    border: activeTab === t.id ? `1px solid ${accent}55` : "1px solid transparent",
+                    color: activeTab === t.id ? accent : "#c0c0c0",
+                    padding: "10px 12px",
+                    borderRadius: 8,
+                    fontSize: 14,
+                    fontWeight: 500,
+                    cursor: "pointer",
+                    textAlign: "left",
+                    width: "100%",
+                  }}
+                >
+                  {t.label}
+                </button>
               ))}
             </nav>
           </aside>
         </>
       )}
 
-      <main style={{ padding: '16px', maxWidth: 1300, margin: '0 auto', width: '100%' }}>
-        {activeTab === 'watchlist' && (
-          <div style={{ maxWidth: 520, margin: '0 auto', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 18 }}>
+      <main style={{ padding: "16px", maxWidth: 1300, margin: "0 auto", width: "100%" }}>
+        {activeTab === "watchlist" && (
+          <div
+            style={{
+              maxWidth: 520,
+              margin: "0 auto",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              textAlign: "center",
+              gap: 18,
+            }}
+          >
             <SectionLabel>Watchlist</SectionLabel>
-            <p style={{ fontSize: 12, color: '#888888', lineHeight: 1.6, margin: 0 }}>
-              The watchlist has moved to its own app. Your list is unchanged: open it there
-              with the same portfolio code.
+            <p style={{ fontSize: 12, color: "#888888", lineHeight: 1.6, margin: 0 }}>
+              The watchlist has moved to its own app. Your list is unchanged: open it there with the
+              same portfolio code.
             </p>
             <a
               href={WATCHLIST_APP_URL}
               style={{
-                background: accent + '22', border: `1px solid ${accent}55`, borderRadius: 6,
-                padding: '7px 14px', color: accent, fontSize: 12, fontWeight: 600, textDecoration: 'none',
+                background: accent + "22",
+                border: `1px solid ${accent}55`,
+                borderRadius: 6,
+                padding: "7px 14px",
+                color: accent,
+                fontSize: 12,
+                fontWeight: 600,
+                textDecoration: "none",
               }}
-            >Open the watchlist app</a>
+            >
+              Open the watchlist app
+            </a>
           </div>
         )}
 
-        {activeTab === 'settings' && (
-          <SettingsView onImported={d => { setData(d); setNoData(false); setIsDemo(false); setActiveTab('overview') }} noData={noData} />
+        {activeTab === "settings" && (
+          <SettingsView
+            onImported={(d) => {
+              setData(d)
+              setNoData(false)
+              setIsDemo(false)
+              setActiveTab("overview")
+            }}
+            noData={noData}
+          />
         )}
 
-        {!noData && activeTab !== 'settings' && activeTab !== 'watchlist' && !data && (
-          <div style={{ color: '#8b8fa3', fontSize: 14, padding: '40px 0', textAlign: 'center' }}>
+        {!noData && activeTab !== "settings" && activeTab !== "watchlist" && !data && (
+          <div style={{ color: "#8b8fa3", fontSize: 14, padding: "40px 0", textAlign: "center" }}>
             Loading portfolio data…
           </div>
         )}
 
-        {data && activeTab !== 'settings' && activeTab !== 'watchlist' && (
+        {data && activeTab !== "settings" && activeTab !== "watchlist" && (
           <>
-            {activeTab === 'overview' && <OverviewTab data={data} accent={accent} />}
-            {activeTab === 'brokers' && <BrokersTab data={data} accent={accent} />}
-            {activeTab === 'positions' && <PositionsTab data={data} accent={accent} />}
-            {activeTab === 'trades' && <TradesTab data={data} />}
-            {activeTab === 'pnl' && <PnLTab data={data} />}
-            {activeTab === 'dividends' && <DividendsTab data={data} />}
+            {activeTab === "overview" && <OverviewTab data={data} accent={accent} />}
+            {activeTab === "brokers" && <BrokersTab data={data} accent={accent} />}
+            {activeTab === "positions" && <PositionsTab data={data} accent={accent} />}
+            {activeTab === "trades" && <TradesTab data={data} />}
+            {activeTab === "pnl" && <PnLTab data={data} />}
+            {activeTab === "dividends" && <DividendsTab data={data} />}
           </>
         )}
       </main>

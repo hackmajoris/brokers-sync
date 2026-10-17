@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -11,12 +11,15 @@
     />
     <style>
       /* SF Pro on Apple devices, Inter everywhere else. */
-      html:root { --font-sans: -apple-system, BlinkMacSystemFont, 'Inter', 'Helvetica Neue', sans-serif; }
+      html:root {
+        --font-sans: -apple-system, BlinkMacSystemFont, "Inter", "Helvetica Neue", sans-serif;
+      }
     </style>
     <script>
       // Applies the stored theme before first paint. Keep in sync with src/lib/theme.ts.
       try {
-        document.documentElement.dataset.theme = localStorage.getItem('bs.theme') === 'light' ? 'light' : 'dark'
+        document.documentElement.dataset.theme =
+          localStorage.getItem("bs.theme") === "light" ? "light" : "dark"
       } catch (e) {}
     </script>
   </head>

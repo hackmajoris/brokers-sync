@@ -1,7 +1,7 @@
-import rawMock from '../../mock.json'
-import type { RawPortfolio, RawPeriod, RawPosition, RawBroker } from '../types/portfolio'
-import { mapRawPortfolio } from './portfolioService'
-import type { PortfolioData } from '../types/portfolio'
+import rawMock from "../../mock.json"
+import type { RawPortfolio, RawPeriod, RawPosition, RawBroker } from "../types/portfolio"
+import { mapRawPortfolio } from "./portfolioService"
+import type { PortfolioData } from "../types/portfolio"
 
 // One random scale per session so numbers look different each time but stay consistent within the session
 const SCALE = 0.5 + Math.random() * 1.5
@@ -44,12 +44,12 @@ function scaleBroker(b: RawBroker): RawBroker {
     ...b,
     cash_balance: b.cash_balance * SCALE,
     open_positions: b.open_positions.map(scalePosition),
-    realized_pnl_by_symbol: b.realized_pnl_by_symbol.map(r => ({ ...r, pnl: r.pnl * SCALE })),
+    realized_pnl_by_symbol: b.realized_pnl_by_symbol.map((r) => ({ ...r, pnl: r.pnl * SCALE })),
     all_time: scalePeriod(b.all_time),
     ytd: scalePeriod(b.ytd),
     mtd: scalePeriod(b.mtd),
     by_year: b.by_year.map(scalePeriod),
-    dividends_by_symbol: b.dividends_by_symbol.map(d => ({
+    dividends_by_symbol: b.dividends_by_symbol.map((d) => ({
       ...d,
       gross: d.gross * SCALE,
       tax_withheld: d.tax_withheld * SCALE,
@@ -65,13 +65,16 @@ export function loadMockPortfolio(): PortfolioData {
     cash_balance: mock.cash_balance * SCALE,
     brokers: mock.brokers.map(scaleBroker),
     open_positions: mock.open_positions.map(scalePosition),
-    realized_pnl_by_symbol: mock.realized_pnl_by_symbol.map(r => ({ ...r, pnl: r.pnl * SCALE })),
+    realized_pnl_by_symbol: mock.realized_pnl_by_symbol.map((r) => ({ ...r, pnl: r.pnl * SCALE })),
     all_time: scalePeriod(mock.all_time),
     ytd: scalePeriod(mock.ytd),
     mtd: scalePeriod(mock.mtd),
     by_year: mock.by_year.map(scalePeriod),
-    dividends_by_month: mock.dividends_by_month?.map(m => ({ ...m, dividends_net: m.dividends_net * SCALE })),
-    dividends_by_symbol: mock.dividends_by_symbol.map(d => ({
+    dividends_by_month: mock.dividends_by_month?.map((m) => ({
+      ...m,
+      dividends_net: m.dividends_net * SCALE,
+    })),
+    dividends_by_symbol: mock.dividends_by_symbol.map((d) => ({
       ...d,
       gross: d.gross * SCALE,
       tax_withheld: d.tax_withheld * SCALE,
